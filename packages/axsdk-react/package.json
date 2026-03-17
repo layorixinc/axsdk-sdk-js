@@ -1,0 +1,64 @@
+{
+  "name": "@axsdk/react",
+  "version": "0.1.2",
+  "private": false,
+  "description": "axsdk react",
+  "keywords": [],
+  "homepage": "https://github.com/layorixinc/axsdk-sdk-js",
+  "bugs": {
+    "url": "https://github.com/layorixinc/axsdk-sdk-js/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/layorixinc/axsdk-sdk-js.git"
+  },
+  "license": "MIT",
+  "author": "layorixinc@gmail.com",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/lib.d.ts",
+      "import": "./dist/lib.js",
+      "source": "./src/lib.ts"
+    },
+    "./index.css": "./dist/lib.css"
+  },
+  "module": "./dist/lib.js",
+  "main": "./dist/lib.js",
+  "types": "./dist/lib.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite --port 3334",
+    "build": "tsc -b && vite build && bun build:types",
+    "build:types": "bunx tsc --project tsconfig.build.json",
+    "publish": "npm publish --access public",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@axsdk/core": "^0.1.4",
+    "react": "^19",
+    "react-dom": "^19",
+    "zustand": "^5.0.11"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/node": "^24.12.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.0.0",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.4.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.56.1",
+    "vite": "^8.0.0"
+  },
+  "peerDependencies": {
+    "react": "^19",
+    "react-dom": "^19"
+  }
+}

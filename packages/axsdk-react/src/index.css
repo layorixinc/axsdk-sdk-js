@@ -1,0 +1,115 @@
+/* ── Base reset / box model ──────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* ── AXButton animations ─────────────────────────────────────────── */
+
+@keyframes ax-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ax-glow {
+  0%, 100% { opacity: 0.6; filter: blur(16px); }
+  50% { opacity: 1; filter: blur(24px); }
+}
+
+@keyframes ax-show {
+  0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+  60% { transform: scale(1.15) rotate(10deg); opacity: 1; }
+  80% { transform: scale(0.95) rotate(-5deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes ax-hide {
+  0% { transform: scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: scale(0) rotate(180deg); opacity: 0; }
+}
+
+@keyframes ax-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+@keyframes ax-ripple {
+  0% { transform: scale(0); opacity: 0.6; }
+  100% { transform: scale(2.8); opacity: 0; }
+}
+
+/* ───────────────────────────────────────────────────────────────── */
+
+/* ── AXChatPopup animations ──────────────────────────────────────── */
+
+@keyframes axchat-open {
+  from { clip-path: inset(100% 0% 0% 100%); }
+  to   { clip-path: inset(0% 0% 0% 0%); }
+}
+
+@keyframes axchat-close {
+  from { clip-path: inset(0% 0% 0% 0%); }
+  to   { clip-path: inset(100% 0% 0% 100%); }
+}
+
+/* ───────────────────────────────────────────────────────────────── */
+
+/* ── AXChatMessage entry animation ──────────────────────────────── */
+
+@keyframes axchat-message-in {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────── */
+
+/* ── AXChatMessage thinking indicator ───────────────────────────── */
+
+@keyframes axchat-thinking-bounce {
+  0%, 80%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  40% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+/* ── Slide background animation ─────────────────────────────────── */
+
+@keyframes slide {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 256px 224px;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion) {
+  *,
+  ::before,
+  ::after {
+    animation: none !important;
+  }
+}

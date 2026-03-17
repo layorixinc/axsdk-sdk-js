@@ -1,0 +1,51 @@
+{
+  "name": "@axsdk/core",
+  "version": "0.1.4",
+  "private": false,
+  "description": "axsdk core",
+  "keywords": [],
+  "homepage": "https://github.com/layorixinc/axsdk-sdk-js",
+  "bugs": {
+    "url": "https://github.com/layorixinc/axsdk-sdk-js/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/layorixinc/axsdk-sdk-js.git"
+  },
+  "license": "MIT",
+  "author": "layorixinc@gmail.com",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/lib.d.ts",
+      "import": "./dist/lib.js",
+      "require": "./dist/lib.cjs",
+      "source": "./src/lib.ts"
+    }
+  },
+  "module": "./dist/lib.js",
+  "main": "./dist/lib.js",
+  "types": "./dist/lib.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "bun ./src/index.ts",
+    "build": "bun ./build.ts && bun build:types",
+    "build:types": "bunx tsc --emitDeclarationOnly",
+    "publish": "npm publish --access public"
+  },
+  "dependencies": {
+    "eventemitter3": "^5.0.4",
+    "html2canvas": "^1.4.1",
+    "nanoid": "^5.1.6",
+    "zod": "^4.3.6",
+    "zustand": "^5.0.11"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
