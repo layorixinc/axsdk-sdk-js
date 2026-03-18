@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { AXSDK } from '@axsdk/core';
 
 export interface AXChatMessageInputProps {
   onSend: (message: string) => void;
@@ -51,7 +52,7 @@ export function AXChatMessageInput({
         type="button"
         onClick={() => onClear?.()}
         disabled={disabled}
-        title="대화 초기화"
+        title={AXSDK.t("chatClearTooltip")}
         style={{
           flexShrink: 0,
           background: "rgba(255, 255, 255, 0.07)",
@@ -168,7 +169,7 @@ export function AXChatMessageInput({
           (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
         }}
       >
-        전송
+        {AXSDK.t("chatSend")}
       </button>
     </div>
   );
