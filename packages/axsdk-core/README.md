@@ -1,5 +1,7 @@
 # @axsdk/core
 
+These packages are code for integrating with the AXSDK (https://axsdk.ai) platform.
+
 Framework-agnostic JavaScript/TypeScript SDK for the AXSDK AI chat platform. Manages sessions, real-time SSE streaming, and chat state — no UI dependencies required.
 
 ## Installation

@@ -1,5 +1,7 @@
 # axsdk-sdk-js
 
+These packages are code for integrating with the AXSDK (https://axsdk.ai) platform.
+
 A JavaScript/TypeScript SDK monorepo for integrating AI chat into web applications. Provides a framework-agnostic core and a ready-to-use React UI layer.
 
 ## Packages

@@ -1,5 +1,7 @@
 # @axsdk/react
 
+These packages are code for integrating with the AXSDK (https://axsdk.ai) platform.
+
 React UI components for the AXSDK AI chat platform. Built on top of [`@axsdk/core`](../axsdk-core), providing a fully-featured chat popup, message list, input bar, and floating action button — all rendered into a portal so they stay above your app's layout.
 
 ## Installation
