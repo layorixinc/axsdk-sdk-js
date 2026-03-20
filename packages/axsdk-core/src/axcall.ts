@@ -20,7 +20,7 @@ export async function handleAXSDKCall(properties: unknown) {
   const session = chatStore.getState().session;
 
   if (session?.id !== sessionID) {
-    return;
+    // return; // tasks have different sessionID
   }
 
   let status: string = 'completed';

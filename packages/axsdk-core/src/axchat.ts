@@ -1,4 +1,4 @@
-import type { ChatSession } from './types';
+import type { ChatSession, MessagePart } from './types';
 import * as api from './axapi';
 import { getSSEService, type SSE } from './sse';
 import { appStore, chatStore } from './store';
@@ -106,10 +106,31 @@ async function handleMessageUpdate(properties: unknown) {
   updateFromMessageUpdate(properties);
 }
 async function handleMessagePartUpdate(properties: unknown) {
+  const data = properties as { part: MessagePart };
+  if(data.part.type == 'tool' && data.part.tool?.startsWith("AX") ) {
+    if(data.part.state.status == 'running') {
+      const call = {
+        id: data.part.callID,
+        sessionID: data.part.sessionID,
+        messageID: data.part.messageID,
+        command: data.part.tool,
+        args: data.part.state.input,
+        status: undefined
+      }
+      EventBus.emit('axsdk.call.execute', { sessionID: data.part.sessionID, call });
+    }
+  }
   updateFromMessagePartUpdate(properties);
 }
 async function handleMessagePartDelta(properties: unknown) {
   updateFromMessagePartDelta(properties);
+}
+async function handleChatCancel() {
+  const session = chatStore.getState().session;
+  if (!session) {
+    return;
+  }
+  await api.cancelSession(session.id);
 }
 
 async function handleMessage(properties: unknown) {
@@ -126,6 +147,9 @@ async function handleMessage(properties: unknown) {
   }
   else if (type === 'axsdk.chat.message') {
     return handleChatMessage(data);
+  }
+  else if (type === 'axsdk.chat.cancel') {
+    return handleChatCancel();
   }
   else if (type === 'session.status') {
     return handleSessionStatus(data);

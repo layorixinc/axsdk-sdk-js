@@ -1,9 +1,6 @@
-import { Config } from './config';
 import { ApiClient, type RequestInterceptor } from './apiclient';
 
 export const api = new ApiClient({
-  baseURL: Config.baseURL,
-  basePath: '/axsdk',
   defaultHeaders: {
     'Content-Type': 'application/json',
   },
@@ -29,6 +26,10 @@ export async function postMessage(text: string, images: string[]) {
   return api.post('/sessions/message', {
     text, images,
   });
+}
+
+export async function cancelSession(sessionID: string) {
+  return api.get(`/sessions/${sessionID}/cancel`);
 }
 
 export async function getPendingCalls() {

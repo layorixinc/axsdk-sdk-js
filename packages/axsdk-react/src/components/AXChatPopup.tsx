@@ -78,6 +78,7 @@ export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrCh
     onSendMessage?.(message, { x: window.innerWidth / 2, y: window.innerHeight / 2 });
   }
   function handleClear() {
+    AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.cancel' });
     AXSDK.resetSession();
   }
 
