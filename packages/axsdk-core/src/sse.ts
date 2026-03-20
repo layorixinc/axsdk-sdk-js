@@ -1,7 +1,6 @@
 import { Config } from './config';
 import { EventBus } from './eventbus';
 
-const SSE_URL = `${Config.baseURL}/axsdk/event`;
 const INITIAL_RETRY_DELAY = 1000;
 const MAX_RETRY_DELAY = 30000;
 const RETRY_BACKOFF_MULTIPLIER = 2;
@@ -142,6 +141,8 @@ export class SSE {
   }
 
   private async connect(): Promise<void> {
+    const SSE_URL = `${Config.baseURL}${Config.basePath}/event`;
+
     this.updateStatus(SSEConnectionStatus.CONNECTING);
     console.log(`Connecting...`);
 

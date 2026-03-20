@@ -1,3 +1,5 @@
+import { Config } from './config';
+
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
 export interface ApiRequestOptions {
@@ -63,8 +65,8 @@ export interface ApiClientConfig {
 }
 
 export class ApiClient {
-  private baseURL: string;
-  private basePath: string;
+  private baseURL?: string;
+  private basePath?: string;
   private defaultHeaders: Record<string, string>;
   private timeout: number;
   private requestInterceptors: RequestInterceptor[];
@@ -72,8 +74,8 @@ export class ApiClient {
   private errorInterceptors: ErrorInterceptor[];
 
   constructor(config: ApiClientConfig = {}) {
-    this.baseURL = config.baseURL || 'https://api.axsdk.ai/axsdk';
-    this.basePath = config.basePath || '/';
+    this.baseURL = config.baseURL || undefined;
+    this.basePath = config.basePath || undefined;
     this.defaultHeaders = {
       'Content-Type': 'application/json',
       ...config.defaultHeaders,
@@ -85,7 +87,9 @@ export class ApiClient {
   }
 
   private buildUrl(endpoint: string, params?: Record<string, string | number | boolean>): string {
-    const url = new URL(`${this.basePath[0] != '/' ? '/' : ''}${this.basePath}${endpoint}`, this.baseURL);
+    const baseURL = this.baseURL || Config.baseURL
+    const basePath = this.basePath || Config.basePath
+    const url = new URL(`${basePath[0] != '/' ? '/' : ''}${basePath}${endpoint}`, baseURL);
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         url.searchParams.append(key, String(value));

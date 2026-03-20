@@ -8,6 +8,7 @@ import { appStore, chatStore, type AppState, type ChatState } from './store';
 import * as AXCHAT from './axchat';
 import * as AXCALL from './axcall';
 import { AXSDK_TRANSLATIONS } from './translations';
+import { Config } from './config';
 
 class AxSdk extends EventEmitter {
   public config: AXSDKConfig | undefined;
@@ -29,6 +30,8 @@ class AxSdk extends EventEmitter {
 
     console.log('AXSDK initialized');
 
+    Config.baseURL = config.baseUrl || Config.baseURL
+    Config.basePath = config.basePath || Config.basePath
     appStore.getState().setApiKey(config.apiKey);
     appStore.getState().setAppId(config.appId);
     const browserLanguage = (typeof navigator !== 'undefined' && navigator.language)

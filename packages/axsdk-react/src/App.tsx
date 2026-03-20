@@ -13,6 +13,7 @@ function App() {
 
   useEffect(() => {
     AXSDK.init({
+      baseUrl: env.VITE_AXSDK_API_BASE_URL,
       apiKey: env.VITE_AXSDK_API_KEY,
       appId: env.VITE_AXSDK_APP_ID,
       headers: { 'origin': env.VITE_AXSDK_APP_DOMAIN },

@@ -6,6 +6,8 @@ export const AXSDKTranslationsSchema = z.record(z.string(), z.string());
 export type AXSDKTranslationsSchema = z.infer<typeof AXSDKTranslationsSchema>;
 
 export const AXSDKConfigSchema = z.object({
+  baseUrl: z.string().optional(),
+  basePath: z.string().optional(),
   apiKey: z.string(),
   appId: z.string(),
   headers: z.record(z.string(), z.string()).optional(),
