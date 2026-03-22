@@ -253,6 +253,8 @@ export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrCh
                 placeholder={AXSDK.t("chatInput")}
                 onSend={handleSend}
                 onClear={handleClear}
+                autoFocus
+                onAutoFocus={() => { setClearBubbleVisible(true); }}
                 onFocus={() => { scrollChatToBottom(); onInputFocusOrChange?.(); setClearBubbleVisible(false); }}
                 onInputChange={() => { scrollChatToBottom(); onInputFocusOrChange?.(); setClearBubbleVisible(false); }}
                 guideText={

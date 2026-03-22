@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { AXSDK } from '@axsdk/core';
 import { useStore } from 'zustand';
 
@@ -12,6 +12,10 @@ export interface AXChatMessageInputProps {
   placeholder?: string;
   /** Optional guide text rendered at the top of the input card (e.g. busy/idle status hint). */
   guideText?: string;
+  /** When true, focuses the textarea automatically on mount. */
+  autoFocus?: boolean;
+  /** Called when the textarea is focused automatically (via autoFocus). */
+  onAutoFocus?: () => void;
 }
 
 export function AXChatMessageInput({
@@ -22,9 +26,18 @@ export function AXChatMessageInput({
   disabled = false,
   placeholder = "Message",
   guideText,
+  autoFocus = false,
+  onAutoFocus,
 }: AXChatMessageInputProps) {
   const [message, setMessage] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (autoFocus && textareaRef.current) {
+      textareaRef.current.focus();
+      onAutoFocus?.();
+    }
+  }, [autoFocus]);
   const { errors } = useStore(AXSDK.getErrorStore());
   const { messages } = useStore(AXSDK.getChatStore());
   const lastMessage = messages?.[messages.length - 1];
