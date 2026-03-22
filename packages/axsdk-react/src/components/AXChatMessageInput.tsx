@@ -42,7 +42,6 @@ export function AXChatMessageInput({
   const { messages } = useStore(AXSDK.getChatStore());
   const lastMessage = messages?.[messages.length - 1];
   const latestError = errors[0] ?? null;
-  console.log(lastMessage, latestError)
   const effectiveError = !latestError?.url?.startsWith("axsdk://") || lastMessage?.info?.id === latestError?.id ? latestError : null
 
   function handleSend() {

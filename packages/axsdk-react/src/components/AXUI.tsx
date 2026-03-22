@@ -180,7 +180,7 @@ export function AXUI({ children }: AXUIProps) {
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
   // Track the message text that was manually dismissed; when a different (new) message arrives,
   // the popover will show again automatically — no useEffect needed.
-  const [dismissedMessage, setDismissedMessage] = useState<string | null>(null);
+  const [dismissedMessage, setDismissedMessage] = useState<string | undefined>(undefined);
   const [lastAnswer, setLastAnswer] = useState<{ questionIndex: number; selectedOption: number; label: string } | null>(null);
   const [submitLog, setSubmitLog] = useState<string | null>(null);
 
@@ -206,7 +206,7 @@ export function AXUI({ children }: AXUIProps) {
     for(let i = messages.length - 1; i >= 0; i--) {
       const msg = messages[i];
       if (msg.info.role !== "assistant") {
-        return null
+        return undefined
       }
       if (msg.info.role === "assistant" && msg.parts && msg.parts.length > 0) {
         const text = msg.parts
@@ -219,7 +219,21 @@ export function AXUI({ children }: AXUIProps) {
     }
   }, [messages]);
 
-  const notifVisible = !isOpen && !!latestAssistantMessage && latestAssistantMessage !== dismissedMessage;
+  const latestUserMessage = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.info.role !== 'user') continue;
+      const text = msg.parts
+        ?.filter((p) => p.type === 'text')
+        .map((p) => (p as TextPart).text ?? '')
+        .join('')
+        .trim();
+      if (text) return text;
+    }
+    return undefined;
+  }, [messages]);
+
+  const notifVisible = !isOpen && (!!latestUserMessage || (!!latestAssistantMessage || latestAssistantMessage !== dismissedMessage));
 
   useEffect(() => {
     // Inject keyframe animations into the document head once
@@ -286,15 +300,14 @@ export function AXUI({ children }: AXUIProps) {
     <AXChatPopup visible={isOpen} onSendMessage={handleSend}></AXChatPopup>
     <SpeechBubbleClosed visible={!isOpen && !chatWasEverOpened} />
     <SpeechBubbleOpen visible={isOpen} />
-    {latestAssistantMessage && (
-      <AXChatNotificationPopover
-        message={latestAssistantMessage}
-        visible={notifVisible}
-        onClose={() => setDismissedMessage(latestAssistantMessage)}
-        onOpen={() => setIsOpen(true)}
-        isBusy={isBusy}
-      />
-    )}
+    <AXChatNotificationPopover
+      message={latestAssistantMessage}
+      userMessage={latestUserMessage}
+      visible={notifVisible}
+      onClose={() => setDismissedMessage(latestAssistantMessage)}
+      onOpen={() => setIsOpen(true)}
+      isBusy={isBusy}
+    />
     {questions && (
       <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 99999, width: '100%', maxWidth: '420px' }}>
         {AXSDK.config?.debug && lastAnswer && (

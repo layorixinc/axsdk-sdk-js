@@ -8,6 +8,7 @@ export const AXSDK_TRANSLATIONS: Record<string, Record<string, string>> = {
     chatSend: 'Send',
     notifShowMore: 'Show more',
     notifCollapse: 'Collapse',
+    notifYouAsked: 'You asked',
     chatThought: 'Thought',
     'chatThinking...': 'Thinking...',
     chatEmpty: `Just tell the AI what you need.
@@ -36,6 +37,7 @@ e.g., What do you sell?, Buy the cheapest apples, Show my order history, Cancel 
     chatSend: '전송',
     notifShowMore: '펼치기',
     notifCollapse: '접기',
+    notifYouAsked: '질문',
     chatThought: '생각함',
     'chatThinking...': '생각중...',
     chatEmpty: `AI에게 필요한 것을 말해보세요.

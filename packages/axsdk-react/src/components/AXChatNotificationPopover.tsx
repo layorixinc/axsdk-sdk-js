@@ -6,7 +6,8 @@ const COLLAPSED_LINES = 4;
 const COLLAPSED_HEIGHT_PX = LINE_HEIGHT_PX * COLLAPSED_LINES + 20;
 
 export interface AXChatNotificationPopoverProps {
-  message: string;
+  message?: string|null;
+  userMessage?: string;
   onClose: () => void;
   onOpen?: () => void;
   visible: boolean;
@@ -15,7 +16,7 @@ export interface AXChatNotificationPopoverProps {
 }
 
 export function AXChatNotificationPopover({
-  message, onClose, onOpen, visible, isBusy,
+  message, userMessage, onClose, onOpen, visible, isBusy,
 }: AXChatNotificationPopoverProps) {
   const [expanded, setExpanded] = useState<boolean>(false);
 
@@ -100,13 +101,34 @@ export function AXChatNotificationPopover({
             flexDirection: "column",
           }}
         >
+          <div style={{
+            padding: "10px 14px 6px 14px",
+            borderBottom: "1px solid rgba(168, 85, 247, 0.2)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+          }}>
+            {userMessage && (
+              <div style={{
+                fontSize: "0.85rem",
+                fontWeight: 500,
+                color: "rgba(255, 255, 255, 0.75)",
+                whiteSpace: "nowrap" as const,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                maxWidth: "100%",
+                paddingRight: 32,
+              }}>{userMessage}</div>
+            )}
+          </div>
+
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onClose(); }}
             aria-label="Close notification"
             style={{
               position: "absolute",
-              top: 0,
+              top: 6,
               right: 6,
               background: "rgba(255, 255, 255, 0.2)",
               border: "1px solid rgba(168, 85, 247, 0.4)",
@@ -133,7 +155,7 @@ export function AXChatNotificationPopover({
             <div style={contentStyle}>{message}</div>
           </div>
 
-          <button
+          {false && <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
             style={{
@@ -159,7 +181,7 @@ export function AXChatNotificationPopover({
             onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(168, 85, 247, 0.12)"; }}
           >
             {expanded ? `${AXSDK.t("notifCollapse")} ▼` : `▲ ${AXSDK.t("notifShowMore")}`}
-          </button>
+          </button>}
 
         </div>
 

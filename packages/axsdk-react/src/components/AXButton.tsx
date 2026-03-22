@@ -324,7 +324,7 @@ export function AXButton({
               top: 2,
               left: 2,
               borderRadius: "50%",
-              background: "radial-gradient(circle at center, #7c3aed, #1d4ed8)",
+              background: "radial-gradient(circle at center, #ce0afffa, #8a3265)",
               zIndex: 11,
               pointerEvents: "none",
             }}

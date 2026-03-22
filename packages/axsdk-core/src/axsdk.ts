@@ -108,7 +108,7 @@ class AxSdk extends EventEmitter {
     const chatState = this.getChatState();
     chatState.setSession(null);
     chatState.setMessages([]);
-    chatState.setIsOpen(false);
+    this.getErrorStore().getState().clearErrors();
   }
 
   public sendMessage(text: string) {
