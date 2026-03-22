@@ -1,4 +1,4 @@
-import type { ChatSession, MessagePart } from './types';
+import type { ChatSession, MessagePart, QuestionData } from './types';
 import * as api from './axapi';
 import { getSSEService, type SSE } from './sse';
 import { appStore, chatStore } from './store';
@@ -88,6 +88,11 @@ async function handleChatMessage(properties: unknown) {
   await api.postMessage(text, images);
 }
 
+async function handleChatReply(properties: unknown) {
+  const { request, status, answers } = properties as { request: QuestionData, status: 'reply', answers: string[] };
+  await api.postAnswers(request.id, status, answers);
+}
+
 async function handleSessionStatus(properties: unknown) {
   const status = await updateFromSessionStatus(properties);
 
@@ -133,6 +138,11 @@ async function handleChatCancel() {
   await api.cancelSession(session.id);
 }
 
+async function handleQuestionAsked(data: unknown) {
+  console.log("handleQuestionAsked", data)
+  chatStore.getState().setQuestions(data as QuestionData);
+}
+
 async function handleMessage(properties: unknown) {
   const { type, data } = properties as { type: string, data: unknown };
 
@@ -147,6 +157,9 @@ async function handleMessage(properties: unknown) {
   }
   else if (type === 'axsdk.chat.message') {
     return handleChatMessage(data);
+  }
+  else if (type === 'axsdk.chat.reply') {
+    return handleChatReply(data);
   }
   else if (type === 'axsdk.chat.cancel') {
     return handleChatCancel();
@@ -165,6 +178,9 @@ async function handleMessage(properties: unknown) {
   }
   else if (type === 'message.part.delta') {
     return handleMessagePartDelta(data);
+  }
+  else if (type === 'question.asked') {
+    return handleQuestionAsked(data);
   }
 }
 

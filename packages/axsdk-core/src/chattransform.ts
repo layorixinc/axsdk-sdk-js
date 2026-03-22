@@ -54,11 +54,11 @@ export async function updateFromSessionUpdate(payload: unknown) {
   if (!session) {
     return;
   }
-  const data = payload as { info: { id: string; title: string; time: MessageTime } };
+  const data = payload as { info: { id: string; status: string; title: string; time: MessageTime } };
   if (session.id !== data.info.id) {
     return;
   }
-  chatState.setSession({ ...session, title: data.info.title, time: data.info.time });
+  chatState.setSession({ ...session, status: data.info.status, title: data.info.title, time: data.info.time });
 }
 
 export async function updateFromMessageUpdate(payload: unknown) {

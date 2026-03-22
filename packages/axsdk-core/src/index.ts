@@ -39,3 +39,5 @@ e.g., What do you sell?, Buy the cheapest apples, Show my order history, Cancel 
 await main();
 
 export * from './axtools';
+export { errorStore } from './store';
+export type { ApiError, ErrorState } from './store';

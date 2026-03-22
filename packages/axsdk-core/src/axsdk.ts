@@ -3,8 +3,9 @@ import { type StoreApi } from 'zustand/vanilla';
 import { EventBus } from './eventbus';
 import type { AXSDKConfig, AXHandler } from './types';
 export type * from './types';
+import { ApiError } from './apiclient';
 import * as api from './axapi';
-import { appStore, chatStore, type AppState, type ChatState } from './store';
+import { appStore, chatStore, errorStore, type AppState, type ChatState } from './store';
 import * as AXCHAT from './axchat';
 import * as AXCALL from './axcall';
 import { AXSDK_TRANSLATIONS } from './translations';
@@ -18,7 +19,13 @@ class AxSdk extends EventEmitter {
 
     EventBus.on('message', async (data: unknown) => {
       const { payload: { type, properties } } = data as { payload: { type: string; properties: unknown } };
-      if (type === 'session.status' || type === 'session.updated' || type === 'message.updated' || type === 'message.part.updated' || type === 'message.part.delta') {
+      if (type === 'session.status'
+        || type === 'session.updated'
+        || type === 'message.updated'
+        || type === 'message.part.updated'
+        || type === 'message.part.delta'
+        || type === 'question.asked'
+      ) {
         EventBus.emit('message.chat', { type, data: properties });
       }
     });
@@ -42,7 +49,7 @@ class AxSdk extends EventEmitter {
     chatStore.getState().setTranslations(translations || {});
 
     if (!isUpdate) {
-      api.init((this.requestInterceptor.bind(this)));
+      api.init(this.requestInterceptor.bind(this), this.errorInterceptor.bind(this));
       await AXCHAT.start();
       await AXCALL.start();
     }
@@ -102,6 +109,18 @@ class AxSdk extends EventEmitter {
 
   public sendMessage(text: string) {
     AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.message', data: { text } });
+  }
+
+  private async errorInterceptor(error: ApiError): Promise<ApiError> {
+    errorStore.getState().addError({
+      url: error.url || '',
+      method: error.method || '',
+      status: error.status,
+      statusText: error.statusText,
+      message: error.message,
+      responseBody: error.response,
+    });
+    return error;
   }
 
   private async requestInterceptor(url: string, options: RequestInit): Promise<RequestInit> {

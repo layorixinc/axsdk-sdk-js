@@ -155,3 +155,26 @@ export interface ChatMessage {
   timestamp?: Date | string | number;
   finish?: string;
 }
+
+export interface QuestionOption {
+  label: string;
+  description: string;
+}
+
+export interface Question {
+  question: string;
+  header: string;
+  options: QuestionOption[];
+}
+
+export interface QuestionTool {
+  messageID: string;
+  callID: string;
+}
+
+export interface QuestionData {
+  id: string;
+  sessionID: string;
+  questions: Question[];
+  tool: QuestionTool;
+}

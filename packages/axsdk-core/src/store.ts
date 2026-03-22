@@ -1,7 +1,46 @@
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { ChatSession, ChatMessage, MessagePart, AXSDKTranslationsSchema } from './types/index';
+import type { QuestionData } from './types/chat';
 import { nanoid } from 'nanoid';
+
+const ERROR_STORE_MAX_CAPACITY = 50;
+
+export interface ApiError {
+  id: string;
+  timestamp: number;
+  url: string;
+  method: string;
+  status: number;
+  statusText: string;
+  message: string;
+  requestBody?: unknown;
+  responseBody?: unknown;
+}
+
+export interface ErrorState {
+  errors: ApiError[];
+  addError: (error: Omit<ApiError, 'id' | 'timestamp'>) => void;
+  removeError: (id: string) => void;
+  clearErrors: () => void;
+}
+
+export const errorStore = createStore<ErrorState>()((set) => ({
+  errors: [],
+  addError: (error) =>
+    set((state) => {
+      const newError: ApiError = {
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        ...error,
+      };
+      const updated = [newError, ...state.errors];
+      return { errors: updated.slice(0, ERROR_STORE_MAX_CAPACITY) };
+    }),
+  removeError: (id) =>
+    set((state) => ({ errors: state.errors.filter((e) => e.id !== id) })),
+  clearErrors: () => set({ errors: [] }),
+}));
 
 export interface AppState {
   isLoading: boolean;
@@ -45,14 +84,18 @@ export const appStore = createStore<AppState>()(
 export interface ChatState {
   isLoading: boolean;
   isOpen: boolean;
+  chatWasEverOpened: boolean;
   session: ChatSession | null;
   setSession: (session: ChatSession | null) => void;
   messages: ChatMessage[];
   setMessages: (messages: ChatMessage[]) => void;
   updateMessage: (message: ChatMessage) => void;
   setIsOpen: (isOpen: boolean) => void;
+  setChatWasEverOpened: (value: boolean) => void;
   translations: Record<string, AXSDKTranslationsSchema>;
   setTranslations: (translations: Record<string, AXSDKTranslationsSchema>) => void;
+  questions: QuestionData | null;
+  setQuestions: (question: QuestionData | null) => void;
 }
 
 export const chatStore = createStore<ChatState>()(
@@ -60,6 +103,7 @@ export const chatStore = createStore<ChatState>()(
     (set, get) => ({
       isLoading: false,
       isOpen: false,
+      chatWasEverOpened: false,
       session: null,
       setSession: (session) => set({ session }),
       messages: [],
@@ -73,8 +117,11 @@ export const chatStore = createStore<ChatState>()(
         });
       },
       setIsOpen: (isOpen) => set({ isOpen }),
+      setChatWasEverOpened: (value: boolean) => set({ chatWasEverOpened: value }),
       translations: {},
       setTranslations: (translations: Record<string, AXSDKTranslationsSchema>) => set({ translations }),
+      questions: null,
+      setQuestions: (questions: QuestionData | null) => set({ questions }),
     }),
     {
       name: 'axsdk:chat',

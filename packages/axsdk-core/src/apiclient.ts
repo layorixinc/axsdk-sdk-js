@@ -13,18 +13,24 @@ export class ApiError extends Error {
   public readonly status: number;
   public readonly statusText: string;
   public readonly response?: unknown;
+  public url: string;
+  public method: string;
 
   constructor(
     message: string,
     status: number,
     statusText: string,
-    response?: unknown
+    response?: unknown,
+    url: string = '',
+    method: string = ''
   ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.statusText = statusText;
     this.response = response;
+    this.url = url;
+    this.method = method;
   }
 
   public isClientError(): boolean {
@@ -157,7 +163,7 @@ export class ApiClient {
     return controller;
   }
 
-  private async handleResponse<T>(response: Response): Promise<T> {
+  private async handleResponse<T>(response: Response, url: string, method: HttpMethod): Promise<T> {
     const contentType = response.headers.get('content-type');
     const isJson = contentType?.includes('application/json');
 
@@ -176,7 +182,9 @@ export class ApiClient {
         `HTTP error! status: ${response.status}`,
         response.status,
         response.statusText,
-        processedData
+        processedData,
+        url,
+        method
       );
     }
 
@@ -213,9 +221,11 @@ export class ApiClient {
 
     try {
       const response = await fetch(url, requestOptions);
-      return await this.handleResponse<T>(response);
+      return await this.handleResponse<T>(response, url, method);
     } catch (error) {
       if (error instanceof ApiError) {
+        if (!error.url) error.url = url;
+        if (!error.method) error.method = method;
         throw await this.applyErrorInterceptors(error);
       }
 
@@ -225,7 +235,9 @@ export class ApiClient {
             'Request timeout',
             0,
             'Timeout',
-            { message: 'The request timed out' }
+            { message: 'The request timed out' },
+            url,
+            method
           );
           throw await this.applyErrorInterceptors(abortError);
         }
@@ -234,7 +246,9 @@ export class ApiClient {
           error.message,
           0,
           'Network Error',
-          { message: error.message }
+          { message: error.message },
+          url,
+          method
         );
         throw await this.applyErrorInterceptors(networkError);
       }
@@ -243,7 +257,9 @@ export class ApiClient {
         'An unknown error occurred',
         0,
         'Unknown Error',
-        { error }
+        { error },
+        url,
+        method
       );
       throw await this.applyErrorInterceptors(unknownError);
     }

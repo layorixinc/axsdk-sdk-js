@@ -1,4 +1,4 @@
-import { ApiClient, type RequestInterceptor } from './apiclient';
+import { ApiClient, type RequestInterceptor, type ErrorInterceptor } from './apiclient';
 
 export const api = new ApiClient({
   defaultHeaders: {
@@ -6,8 +6,11 @@ export const api = new ApiClient({
   },
 });
 
-export function init(ri: RequestInterceptor) {
+export function init(ri: RequestInterceptor, ei?: ErrorInterceptor) {
   api.addRequestInterceptor(ri);
+  if(ei) {
+    api.addErrorInterceptor(ei);
+  }
 }
 
 export async function health() {
@@ -39,5 +42,11 @@ export async function getPendingCalls() {
 export async function updateCall(callID: string, status: string, result: string) {
   return api.put(`/calls/${callID}`, {
     status, result,
+  });
+}
+
+export async function postAnswers(requestID: string, status: string, answers: string[]) {
+  return api.post(`/questions/${requestID}/${status}`, {
+    answers,
   });
 }
