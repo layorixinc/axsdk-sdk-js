@@ -19,14 +19,11 @@ export async function handleAXSDKCall(properties: unknown) {
   const { sessionID, call } = properties as { sessionID: string; call: Call };
   const session = chatStore.getState().session;
 
-  if (session?.id !== sessionID) {
-    // return; // tasks have different sessionID
-  }
 
   let status: string = 'completed';
   let result: string = '';
   try {
-    const args = typeof call.args == 'string' ? JSON.parse(call.args) : call.args;
+    const args = typeof call.args === 'string' ? JSON.parse(call.args) : call.args;
     result = await processAXHandler(call.command, args);
   }
   catch (e) {

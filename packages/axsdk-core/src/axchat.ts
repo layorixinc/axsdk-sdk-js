@@ -94,14 +94,7 @@ async function handleChatReply(properties: unknown) {
 }
 
 async function handleSessionStatus(properties: unknown) {
-  const status = await updateFromSessionStatus(properties);
-
-  if (status == 'idle') {
-    //EventBus.emit("message.ui", { type: "axsdk.chat.maximize", data: {} })
-  }
-  else {
-    //EventBus.emit("message.ui", { type: "axsdk.chat.minimize", data: {} })
-  }
+  await updateFromSessionStatus(properties);
 }
 
 async function handleSessionUpdate(properties: unknown) {
@@ -112,8 +105,8 @@ async function handleMessageUpdate(properties: unknown) {
 }
 async function handleMessagePartUpdate(properties: unknown) {
   const data = properties as { part: MessagePart };
-  if(data.part.type == 'tool' && data.part.tool?.startsWith("AX") ) {
-    if(data.part.state.status == 'running') {
+  if (data.part.type === 'tool' && data.part.tool?.startsWith("AX") ) {
+    if (data.part.state.status === 'running') {
       const call = {
         id: data.part.callID,
         sessionID: data.part.sessionID,
@@ -139,7 +132,6 @@ async function handleChatCancel() {
 }
 
 async function handleQuestionAsked(data: unknown) {
-  console.log("handleQuestionAsked", data)
   chatStore.getState().setQuestions(data as QuestionData);
 }
 

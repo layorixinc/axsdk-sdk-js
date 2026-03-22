@@ -32,7 +32,7 @@ export type SSEEventCallback = (data: SSEEventData) => void;
 
 interface SSEConnectionController {
   abortController: AbortController;
-  reader: ReadableStreamDefaultReader<any> | null;
+  reader: ReadableStreamDefaultReader<Uint8Array> | null;
 }
 
 export class SSE {
@@ -61,7 +61,7 @@ export class SSE {
   public start(): void {
     if (this.status === SSEConnectionStatus.CONNECTED ||
         this.status === SSEConnectionStatus.CONNECTING) {
-      console.log('Connection already active or in progress');
+      if (this.config.enableLogging) console.log('Connection already active or in progress');
       return;
     }
 
@@ -80,7 +80,7 @@ export class SSE {
     await this.closeConnection();
     this.updateStatus(SSEConnectionStatus.DISCONNECTED);
 
-    console.log('SSE connection stopped');
+    if (this.config.enableLogging) console.log('SSE connection stopped');
   }
 
   public getStatus(): string {
@@ -102,7 +102,6 @@ export class SSE {
       ...this.config.headers,
     };
 
-    // Add x-api-key header if provided
     if (this.config.apiKey) {
       headers['x-api-key'] = this.config.apiKey;
     }
@@ -144,7 +143,7 @@ export class SSE {
     const SSE_URL = `${Config.baseURL}${Config.basePath}/event`;
 
     this.updateStatus(SSEConnectionStatus.CONNECTING);
-    console.log(`Connecting...`);
+    if (this.config.enableLogging) console.log(`Connecting...`);
 
     try {
       const abortController = new AbortController();
@@ -167,11 +166,11 @@ export class SSE {
 
       this.connection = {
         abortController,
-        reader: response.body.getReader() as ReadableStreamDefaultReader<any>,
+        reader: response.body.getReader() as ReadableStreamDefaultReader<Uint8Array>,
       };
 
       this.updateStatus(SSEConnectionStatus.CONNECTED);
-      console.log('SSE connection established successfully');
+      if (this.config.enableLogging) console.log('SSE connection established successfully');
 
       this.resetRetryDelay();
 
@@ -197,7 +196,7 @@ export class SSE {
         const { done, value } = await reader.read();
 
         if (done) {
-          console.log('Stream ended');
+          if (this.config.enableLogging) console.log('Stream ended');
           throw new Error('Stream ended unexpectedly');
         }
 
@@ -207,7 +206,7 @@ export class SSE {
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
-        console.log('Stream aborted');
+        if (this.config.enableLogging) console.log('Stream aborted');
       } else {
         throw error;
       }
@@ -236,7 +235,7 @@ export class SSE {
         parsedData = JSON.parse(data);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (parseError) {
-        console.log(`Message #${this.messageCount} received (not JSON):`, data);
+        if (this.config.enableLogging) console.log(`Message #${this.messageCount} received (not JSON):`, data);
         parsedData = { raw: data };
       }
 
@@ -276,7 +275,7 @@ export class SSE {
     }
 
     this.updateStatus(SSEConnectionStatus.RECONNECTING);
-    console.log(`Scheduling reconnection in ${this.retryDelay}ms...`);
+    if (this.config.enableLogging) console.log(`Scheduling reconnection in ${this.retryDelay}ms...`);
 
     this.retryTimer = setTimeout(() => {
       this.retryTimer = undefined;
@@ -300,7 +299,7 @@ export class SSE {
 
   private updateStatus(newStatus: string): void {
     if (this.status !== newStatus) {
-      console.log(`Status changed: ${this.status} -> ${newStatus}`);
+      if (this.config.enableLogging) console.log(`Status changed: ${this.status} -> ${newStatus}`);
       this.status = newStatus;
     }
   }
@@ -312,7 +311,7 @@ export function getSSEService(config: SSEConfig) {
   const servicekey = `${config.apiKey}:${config.appUserId}:${config.sessionId}`;
   const deleted: string[] = [];
   for (const [key, value] of sseServices.entries()) {
-    if (key == servicekey) {
+    if (key === servicekey) {
       continue;
     }
     value.stop();

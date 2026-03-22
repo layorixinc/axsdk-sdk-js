@@ -16,8 +16,6 @@ export interface AXUIProps {
   children?: React.ReactNode;
 }
 
-// Closed-state bubble: appears above the AXButton fixed at bottom-right,
-// tail points DOWNWARD toward the button below.
 function SpeechBubbleClosed({ visible }: { visible: boolean }) {
   return (
     <div
@@ -66,7 +64,6 @@ function SpeechBubbleClosed({ visible }: { visible: boolean }) {
         </span>
       </div>
 
-      {/* Downward-pointing CSS triangle arrow (border layer) */}
       <div
         style={{
           position: "absolute",
@@ -80,7 +77,6 @@ function SpeechBubbleClosed({ visible }: { visible: boolean }) {
           zIndex: -1,
         }}
       />
-      {/* Downward-pointing CSS triangle arrow (fill layer) */}
       <div
         style={{
           position: "absolute",
@@ -98,8 +94,6 @@ function SpeechBubbleClosed({ visible }: { visible: boolean }) {
   );
 }
 
-// Open-state bubble: appears to the LEFT of the AXButton fixed at top-right,
-// tail points RIGHTWARD toward the button to its right.
 function SpeechBubbleOpen({ visible }: { visible: boolean }) {
   return (
     <div
@@ -150,7 +144,6 @@ function SpeechBubbleOpen({ visible }: { visible: boolean }) {
           {AXSDK.t("chatHide")}
         </span>
 
-        {/* Right-pointing CSS triangle arrow (border layer) */}
         <div
           style={{
             position: "absolute",
@@ -165,7 +158,6 @@ function SpeechBubbleOpen({ visible }: { visible: boolean }) {
             zIndex: -1,
           }}
         />
-        {/* Right-pointing CSS triangle arrow (fill layer) */}
         <div
           style={{
             position: "absolute",
@@ -204,15 +196,12 @@ export function AXUI({ children }: AXUIProps) {
     prevStatusRef.current = currentStatus;
   }, [session?.status, setIsOpen]);
 
-  // Once the chat popup has been opened at least once this session,
-  // permanently suppress the closed-state tooltip bubble.
   useEffect(() => {
     if (isOpen) {
       setChatWasEverOpened(true);
     }
   }, [isOpen, setChatWasEverOpened]);
 
-  // Derive the latest assistant message text for the notification popover
   const latestAssistantMessage = useMemo(() => {
     for(let i = messages.length - 1; i >= 0; i--) {
       const msg = messages[i];
@@ -230,11 +219,7 @@ export function AXUI({ children }: AXUIProps) {
     }
   }, [messages]);
 
-  // The popover is visible when: chat is closed, there is a message, and it hasn't been dismissed
   const notifVisible = !isOpen && !!latestAssistantMessage && latestAssistantMessage !== dismissedMessage;
-
-  useEffect(() => {
-  }, [isOpen, latestAssistantMessage]);
 
   useEffect(() => {
     // Inject keyframe animations into the document head once
@@ -299,11 +284,8 @@ export function AXUI({ children }: AXUIProps) {
   const content = <div>
     {children}
     <AXChatPopup visible={isOpen} onSendMessage={handleSend}></AXChatPopup>
-    {/* Closed-state bubble: shown when popup is closed AND chat has never been opened this session */}
     <SpeechBubbleClosed visible={!isOpen && !chatWasEverOpened} />
-    {/* Open-state bubble: shown when popup is open, tail points up toward top-right button */}
     <SpeechBubbleOpen visible={isOpen} />
-    {/* Notification popover: shows latest assistant message to the left of the button when chat is closed */}
     {latestAssistantMessage && (
       <AXChatNotificationPopover
         message={latestAssistantMessage}
@@ -313,7 +295,6 @@ export function AXUI({ children }: AXUIProps) {
         isBusy={isBusy}
       />
     )}
-    {/* AXQuestionDialog — driven by real chatStore questions */}
     {questions && (
       <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 99999, width: '100%', maxWidth: '420px' }}>
         {AXSDK.config?.debug && lastAnswer && (
@@ -331,12 +312,10 @@ export function AXUI({ children }: AXUIProps) {
           onAnswer={(qi, si, label) => setLastAnswer({ questionIndex: qi, selectedOption: si, label })}
           onSubmit={(answers) => {
             setSubmitLog(JSON.stringify(answers, null, 2));
-            console.log('[AXQuestionDialog] onSubmit', answers);
             AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.reply', data: { request: questions, status: 'reply', answers: answers.map(x => [x.customAnswer || x.label]) } });
             setQuestions(null);
           }}
           onDecline={() => {
-            console.log('[AXQuestionDialog] onDecline');
             AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.reply', data: { request: questions, status: 'reject' } });
             setQuestions(null);
           }}

@@ -42,21 +42,17 @@ export function AXButton({
   size = 64,
   status,
 }: AXButtonProps) {
-  // If visible is true on initial mount, start in "idle" state (fully shown, no entrance animation)
   const [animState, setAnimState] = useState<AnimState>(visible ? "idle" : "unmounted");
   const isInitialMount = useRef(true);
   const [pressed, setPressed] = useState(false);
   const [ripples, setRipples] = useState<Ripple[]>([]);
 
-  // Convert size prop to a CSS string value for width/height
   const sizeCSS: string =
     typeof size === "number" ? `${size}px` : (size as string);
 
-  // Detect viewport-relative units — these cannot be resolved arithmetically at parse time
   const isViewportUnit =
     typeof size === "string" && /vw|vh|vmin|vmax/i.test(size);
 
-  // Compute an initial best-guess pxSize for non-viewport units
   const initialPxSize: number = (() => {
     if (typeof size === "number") return size;
     if (typeof size === "string") {
@@ -72,7 +68,6 @@ export function AXButton({
     return 64;
   })();
 
-  // For viewport units, measure the rendered button width via ResizeObserver
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [measuredPx, setMeasuredPx] = useState<number>(initialPxSize);
 
@@ -88,13 +83,10 @@ export function AXButton({
     return () => ro.disconnect();
   }, [isViewportUnit]);
 
-  // pxSize used for all internal arithmetic
   const pxSize = isViewportUnit ? measuredPx : initialPxSize;
 
-  // Whether the button is in a busy/processing state
   const isBusy = status === "busy";
 
-  // Derived size values (arithmetic always uses pxSize)
   const ringSize = pxSize + 16;
   const ringOffset = -8;
   const rippleHalf = pxSize / 2;
@@ -107,7 +99,6 @@ export function AXButton({
       ? "1rem"
       : pxSize * 0.3;
 
-  // Sync visibility prop → animation state
   useEffect(() => {
     // Skip the initial mount: animState is already set correctly in useState initializer
     if (isInitialMount.current) {
@@ -123,7 +114,6 @@ export function AXButton({
     }
   }, [visible]);
 
-  // Handle end of wrapper animation phases only
   function handleAnimationEnd(e: React.AnimationEvent<HTMLButtonElement>) {
     // Ignore bubbled events from child layers (ring/glow spin animations)
     if (e.target !== e.currentTarget) return;
@@ -144,7 +134,6 @@ export function AXButton({
       const id = Date.now();
       setRipples((prev) => [...prev, { id, x, y }]);
       setPressed(true);
-      // Auto-remove ripple after animation completes (600 ms)
       setTimeout(() => {
         setRipples((prev) => prev.filter((r) => r.id !== id));
       }, 600);
@@ -159,7 +148,6 @@ export function AXButton({
     return null;
   }
 
-  // Wrapper animation (controls the orb's entrance / idle pulse / exit)
   const wrapperAnimation: React.CSSProperties =
     animState === "show"
       ? { animation: "ax-show 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards" }
@@ -167,7 +155,6 @@ export function AXButton({
       ? { animation: "ax-hide 0.4s ease-in forwards" }
       : { animation: "ax-pulse 2.5s ease-in-out infinite" };
 
-  // Slide-off transform for the outer positioning wrapper
   const outerTransform = isOpen
     ? pressed
       ? "translate(55%, -55%) scale(0.77)"

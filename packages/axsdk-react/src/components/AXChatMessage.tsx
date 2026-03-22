@@ -305,7 +305,6 @@ export function AXChatMessage({ message, onMessageClick, opacity = 1, messageRef
         animation: animationDone ? undefined : "axchat-message-in 0.3s ease-out both",
         opacity: animationDone ? opacity : undefined,
         transition: animationDone ? "opacity 0.3s ease" : undefined,
-        // pointerEvents: opacity == 1 ? "auto" : "none"
       }}
     >
       {/* Message bubble */}
@@ -329,12 +328,10 @@ export function AXChatMessage({ message, onMessageClick, opacity = 1, messageRef
         }}
       >
         {isUser ? (
-          // User: render plain text from text parts
           <span style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
             {userText}
           </span>
         ) : (
-          // Assistant: render each part with appropriate component
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {parts.map((part: MessagePart, i: number) => renderPart(part, i))}
             {isThinking && <ThinkingIndicator />}

@@ -26,7 +26,6 @@ export function AXDevTools({ debug, messages }: AXDevToolsProps) {
 
   return (
     <>
-      {/* DevTools trigger button — fixed round circle at bottom-left */}
       <button
         onClick={() => setIsOpen(true)}
         aria-label="Open DevTools"
@@ -64,7 +63,6 @@ export function AXDevTools({ debug, messages }: AXDevToolsProps) {
         🐛
       </button>
 
-      {/* Full-screen overlay */}
       {isOpen && (
         <div
           role="dialog"
@@ -80,7 +78,6 @@ export function AXDevTools({ debug, messages }: AXDevToolsProps) {
             overflow: 'hidden',
           }}
         >
-          {/* Header bar */}
           <div
             style={{
               display: 'flex',
@@ -136,7 +133,6 @@ export function AXDevTools({ debug, messages }: AXDevToolsProps) {
             </button>
           </div>
 
-          {/* Scrollable messages area */}
           <div
             style={{
               flex: 1,
@@ -174,7 +170,6 @@ export function AXDevTools({ debug, messages }: AXDevToolsProps) {
                       flexShrink: 0,
                     }}
                   >
-                    {/* Message header — click to expand/collapse */}
                     <div
                       role="button"
                       tabIndex={0}
@@ -247,7 +242,6 @@ export function AXDevTools({ debug, messages }: AXDevToolsProps) {
                       </span>
                     </div>
 
-                    {/* Raw JSON — only shown when expanded */}
                     {isExpanded && (
                       <pre
                         style={{

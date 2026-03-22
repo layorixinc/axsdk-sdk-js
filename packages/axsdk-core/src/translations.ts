@@ -8,7 +8,7 @@ export const AXSDK_TRANSLATIONS: Record<string, Record<string, string>> = {
     chatSend: 'Send',
     notifShowMore: 'Show more',
     notifCollapse: 'Collapse',
-    'chatThinking': 'Thinking',
+    chatThinking: 'Thinking',
     'chatThinking...': 'Thinking...',
     chatEmpty: `Just tell the AI what you need.
 e.g., What do you sell?, Buy the cheapest apples, Show my order history, Cancel the chocolate I bought yesterday.`,
@@ -25,7 +25,7 @@ e.g., What do you sell?, Buy the cheapest apples, Show my order history, Cancel 
     'questionDialog.prev': 'Previous',
     'questionDialog.pageIndicator': '{current} / {total}',
     'questionDialog.customAnswerPlaceholder': 'Type your answer...',
-    'poweredBy': 'Powered by AXSDK',
+    poweredBy: 'Powered by AXSDK',
   },
   ko: {
     chatInput: '무엇을 도와드릴까요?',
@@ -36,7 +36,7 @@ e.g., What do you sell?, Buy the cheapest apples, Show my order history, Cancel 
     chatSend: '전송',
     notifShowMore: '펼치기',
     notifCollapse: '접기',
-    'chatThinking': '생각',
+    chatThinking: '생각',
     'chatThinking...': '생각중...',
     chatEmpty: `AI에게 필요한 것을 말해보세요.
 예)뭐 팔아?, 가장 저렴한 사과 구매해줘, 주문 내역 보여줘, 어제 산 초코렛 취소해줘`,
@@ -53,6 +53,6 @@ e.g., What do you sell?, Buy the cheapest apples, Show my order history, Cancel 
     'questionDialog.prev': '이전',
     'questionDialog.pageIndicator': '{current} / {total}',
     'questionDialog.customAnswerPlaceholder': '직접 입력...',
-    'poweredBy': 'Powered by AXSDK',
+    poweredBy: 'Powered by AXSDK',
   },
 };

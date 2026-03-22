@@ -17,7 +17,7 @@ export async function updateFromMessages(payload: unknown) {
     const parts: MessagePart[] = message.parts ?? [];
     for (const updatedPart of item.parts) {
       const part = parts.find(x => x.id == updatedPart.id) as (MessagePart & { text?: string }) | undefined;
-      if(part) {
+      if (part) {
         const updatedPartWithText = updatedPart as MessagePart & { text?: string };
         if((updatedPartWithText.text ?? '').length < (part.text ?? '').length) {
           part.text = updatedPartWithText.text;
@@ -26,7 +26,7 @@ export async function updateFromMessages(payload: unknown) {
         parts.push(updatedPart);
       }
     }
-    message.parts = parts.sort((a, b) => a.id.localeCompare(b.id))
+    message.parts = parts.sort((a, b) => a.id.localeCompare(b.id));
     const timestamp = item.info.time.completed ? new Date(item.info.time.completed) : new Date(item.info.time.created);
     const updatedMessage = { ...message, role: item.info.role, timestamp, parts, finish: item.info.finish };
     chatState.updateMessage(updatedMessage);

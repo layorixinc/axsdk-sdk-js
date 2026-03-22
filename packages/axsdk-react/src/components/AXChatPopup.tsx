@@ -13,7 +13,6 @@ export interface AXChatPopupProps {
   onInputFocusOrChange?: () => void;
 }
 
-/** Tooltip that appears below the Clear button in the input card, tail points UPWARD toward the button. */
 function ClearBubble({ visible, onClick }: { visible: boolean; onClick: () => void }) {
   return (
     <div
@@ -35,7 +34,6 @@ function ClearBubble({ visible, onClick }: { visible: boolean; onClick: () => vo
         opacity: visible ? undefined : 0,
       }}
     >
-      {/* Upward-pointing CSS triangle arrow (border layer) */}
       <div
         style={{
           position: "absolute",
@@ -50,7 +48,6 @@ function ClearBubble({ visible, onClick }: { visible: boolean; onClick: () => vo
           zIndex: -1,
         }}
       />
-      {/* Upward-pointing CSS triangle arrow (fill layer) */}
       <div
         style={{
           position: "absolute",
@@ -66,7 +63,6 @@ function ClearBubble({ visible, onClick }: { visible: boolean; onClick: () => vo
         }}
       />
 
-      {/* Bubble body */}
       <div
         style={{
           background: "rgba(18, 18, 28, 0.92)",
@@ -103,7 +99,6 @@ function ClearBubble({ visible, onClick }: { visible: boolean; onClick: () => vo
 type AnimState = "open" | "opening" | "closing" | "closed";
 
 export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrChange }: AXChatPopupProps) {
-  // If visible is true on initial mount, start in "open" state (no animation)
   const [animState, setAnimState] = useState<AnimState>(visible ? "open" : "closed");
   const [clearBubbleVisible, setClearBubbleVisible] = useState(false);
   const isInitialMount = useRef(true);
@@ -117,10 +112,8 @@ export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrCh
   const { session, messages } = useStore(AXSDK.getChatStore());
 
   useEffect(() => {
-    // Skip the initial mount: animState is already set correctly in useState initializer
     if (isInitialMount.current) {
       isInitialMount.current = false;
-      // Emit open event if starting in open state
       if (visible) {
         AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.open' });
       }
@@ -205,7 +198,6 @@ export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrCh
     >
       {children}
 
-      {/* Unified split-layout body: top 2/3 messages, bottom 1/3 input */}
       {animState !== "closed" && (
         <div
           style={{
@@ -221,7 +213,6 @@ export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrCh
             height: "100%",
           }}
         >
-          {/* Top 2/3: messages area — content sticks to the bottom of this section */}
           <div
             style={{
               flex: 2,
@@ -235,7 +226,6 @@ export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrCh
             <AXChat ref={chatRef} messages={messages} />
           </div>
 
-          {/* Bottom 1/3: input area — content sticks to the top of this section */}
           <div
             onClick={(e) => e.stopPropagation()}
             onTouchEnd={(e) => e.stopPropagation()}
@@ -255,12 +245,10 @@ export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrCh
                 paddingBottom: "1.5rem"
               }}
             >
-              {/* Clear tooltip — positioned relative to this wrapper, pointing at the Clear button */}
               <ClearBubble
                 visible={clearBubbleVisible}
                 onClick={() => setClearBubbleVisible(false)}
               />
-              {/* Input area – card styling lives inside AXChatMessageInput, wrapping only the textarea */}
               <AXChatMessageInput
                 placeholder={AXSDK.t("chatInput")}
                 onSend={handleSend}
@@ -279,7 +267,6 @@ export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrCh
         </div>
       )}
 
-      {/* Inline keyframes */}
       <style>{`
         @keyframes axhint-in {
           from { opacity: 0; transform: translateY(-6px); }

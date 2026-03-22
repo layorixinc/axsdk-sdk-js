@@ -35,10 +35,10 @@ class AxSdk extends EventEmitter {
     const isUpdate = !!this.config;
     this.config = config;
 
-    console.log('AXSDK initialized');
+    if (config.debug) console.log('AXSDK initialized');
 
-    Config.baseURL = config.baseUrl || Config.baseURL
-    Config.basePath = config.basePath || Config.basePath
+    Config.baseURL = config.baseUrl || Config.baseURL;
+    Config.basePath = config.basePath || Config.basePath;
     appStore.getState().setApiKey(config.apiKey);
     appStore.getState().setAppId(config.appId);
     const browserLanguage = (typeof navigator !== 'undefined' && navigator.language)
@@ -54,7 +54,7 @@ class AxSdk extends EventEmitter {
       await AXCALL.start();
     }
 
-    const health = await api.health();
+    await api.health();
   }
 
   public async destroy() {

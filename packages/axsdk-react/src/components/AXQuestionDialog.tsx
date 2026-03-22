@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { AXSDK } from '@axsdk/core';
 
-// ─── Type definitions ────────────────────────────────────────────────────────
-
 export interface QuestionOption {
   label: string;
   description: string;
@@ -90,7 +88,6 @@ function OptionCard({ option, index, isSelected, onSelect }: OptionCardProps) {
           : "none",
       }}
     >
-      {/* Option label */}
       <div
         style={{
           display: "flex",
@@ -98,7 +95,6 @@ function OptionCard({ option, index, isSelected, onSelect }: OptionCardProps) {
           gap: 10,
         }}
       >
-        {/* Radio indicator */}
         <div
           style={{
             width: 18,
@@ -143,7 +139,6 @@ function OptionCard({ option, index, isSelected, onSelect }: OptionCardProps) {
         </span>
       </div>
 
-      {/* Option description */}
       {option.description && (
         <div
           style={{
@@ -182,7 +177,6 @@ function QuestionPanel({ question, questionIndex, selectedOption, onSelect, cust
         gap: 12,
       }}
     >
-      {/* Header */}
       <div
         style={{
           fontSize: "0.75rem",
@@ -198,7 +192,6 @@ function QuestionPanel({ question, questionIndex, selectedOption, onSelect, cust
         {question.header}
       </div>
 
-      {/* Question text */}
       <div
         style={{
           fontSize: "1.05rem",
@@ -211,7 +204,6 @@ function QuestionPanel({ question, questionIndex, selectedOption, onSelect, cust
         {question.question}
       </div>
 
-      {/* Scrollable answers area: options + textarea */}
       <div
         className="ax-scrollbar-hidden"
         style={{
@@ -222,7 +214,6 @@ function QuestionPanel({ question, questionIndex, selectedOption, onSelect, cust
           gap: 8,
         }}
       >
-        {/* Options */}
         {question.options.map((option, optionIndex) => (
           <OptionCard
             key={optionIndex}
@@ -233,7 +224,6 @@ function QuestionPanel({ question, questionIndex, selectedOption, onSelect, cust
           />
         ))}
 
-        {/* Custom answer textarea */}
         <textarea
           value={customAnswer ?? ""}
           onChange={(e) => onCustomAnswerChange?.(e.target.value)}
@@ -361,7 +351,6 @@ export function AXQuestionDialog({
 
   function handleSubmit() {
     if (!hasCurrentAnswer) return;
-    // Collect all question indices that have either an option answer or a custom answer
     const allIndices = new Set<number>([
       ...Array.from(answers.keys()),
       ...Array.from(customAnswers.keys()).filter((k) => (customAnswers.get(k) ?? "").trim().length > 0),
@@ -410,7 +399,6 @@ export function AXQuestionDialog({
         width: "100%",
       }}
     >
-      {/* Dialog header */}
       <div
         style={{
           display: "flex",
@@ -419,7 +407,6 @@ export function AXQuestionDialog({
           marginBottom: 20,
         }}
       >
-        {/* AX icon orb (small) */}
         <div
           aria-hidden="true"
           style={{
@@ -468,7 +455,6 @@ export function AXQuestionDialog({
           </div>
         </div>
 
-        {/* Page indicator (only when multi-page) */}
         {isMultiPage && (
           <div
             style={{
@@ -486,12 +472,10 @@ export function AXQuestionDialog({
         )}
       </div>
 
-      {/* Top-right decline button — hidden once declined */}
       {!declined && !submitted && (
         <DeclineButton onDecline={handleDecline} />
       )}
 
-      {/* Current question — header/question fixed, answers scroll inside QuestionPanel */}
       <QuestionPanel
         key={currentPage}
         question={currentQuestion}
@@ -502,7 +486,6 @@ export function AXQuestionDialog({
         onCustomAnswerChange={handleCustomAnswerChange}
       />
 
-      {/* Submit / Decline / Pagination buttons */}
       <div style={{ marginTop: 20 }}>
         {submitted ? (
           <div
@@ -540,7 +523,6 @@ export function AXQuestionDialog({
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "row", gap: 10 }}>
-            {/* Prev button — shown when multi-page */}
             {isMultiPage && (
               <button
                 type="button"
@@ -566,9 +548,7 @@ export function AXQuestionDialog({
               </button>
             )}
 
-            {/* Middle / last page area */}
             {isLastPage ? (
-              /* Submit button */
               <button
                 type="button"
                 onClick={handleSubmit}
@@ -597,7 +577,6 @@ export function AXQuestionDialog({
                 {AXSDK.t("questionDialog.submit")}
               </button>
             ) : (
-              /* Next button — not on last page */
               <button
                 type="button"
                 onClick={handleNext}

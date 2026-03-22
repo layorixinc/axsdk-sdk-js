@@ -18,7 +18,7 @@ export async function processAXHandler(command: string, args: Record<string, unk
   if (!appResult) {
     result = 'OK';
   }
-  else if (typeof appResult == 'object') {
+  else if (typeof appResult === 'object') {
     result = JSON.stringify({ ...systemResult, ...appResult });
   }
   else {

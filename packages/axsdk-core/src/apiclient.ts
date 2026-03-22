@@ -86,16 +86,16 @@ export class ApiClient {
       'Content-Type': 'application/json',
       ...config.defaultHeaders,
     };
-    this.timeout = config.timeout || 30000; // 30 seconds default
+    this.timeout = config.timeout || 30000;
     this.requestInterceptors = config.requestInterceptors || [];
     this.responseInterceptors = config.responseInterceptors || [];
     this.errorInterceptors = config.errorInterceptors || [];
   }
 
   private buildUrl(endpoint: string, params?: Record<string, string | number | boolean>): string {
-    const baseURL = this.baseURL || Config.baseURL
-    const basePath = this.basePath || Config.basePath
-    const url = new URL(`${basePath[0] != '/' ? '/' : ''}${basePath}${endpoint}`, baseURL);
+    const baseURL = this.baseURL || Config.baseURL;
+    const basePath = this.basePath || Config.basePath;
+    const url = new URL(`${basePath[0] !== '/' ? '/' : ''}${basePath}${endpoint}`, baseURL);
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         url.searchParams.append(key, String(value));

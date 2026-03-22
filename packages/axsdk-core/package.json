@@ -1,6 +1,6 @@
 {
   "name": "@axsdk/core",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "private": false,
   "description": "axsdk core",
   "keywords": [],
@@ -13,7 +13,7 @@
     "url": "git+https://github.com/layorixinc/axsdk-sdk-js.git"
   },
   "license": "MIT",
-  "author": "layorixinc@gmail.com",
+  "author": "lordkeios@layorixinc.com",
   "type": "module",
   "exports": {
     ".": {

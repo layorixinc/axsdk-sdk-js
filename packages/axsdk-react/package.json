@@ -1,6 +1,6 @@
 {
   "name": "@axsdk/react",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "private": false,
   "description": "axsdk react",
   "keywords": [],
@@ -13,7 +13,7 @@
     "url": "git+https://github.com/layorixinc/axsdk-sdk-js.git"
   },
   "license": "MIT",
-  "author": "layorixinc@gmail.com",
+  "author": "lordkeios@layorixinc.com",
   "type": "module",
   "exports": {
     ".": {

@@ -58,8 +58,7 @@ export async function captureScreenshot(options?: ScreenshotOptions): Promise<st
   }
 
   try {
-    const dataUrl = canvas.toDataURL(type, quality);
-    return dataUrl;
+    return canvas.toDataURL(type, quality);
   } catch (err) {
     throw new Error(
       `[axtools] captureScreenshot: Failed to convert canvas to data URL. ${

@@ -19,19 +19,15 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const [isStripInteracting, setIsStripInteracting] = useState(false);
 
-  // Invisible scrollbar strip refs
   const leftStripRef = useRef<HTMLDivElement>(null);
   const rightStripRef = useRef<HTMLDivElement>(null);
 
-  // Inner content ref for rubber-band bounce effect
   const innerContentRef = useRef<HTMLDivElement>(null);
 
-  // Strip drag state (refs to avoid re-renders)
   const isStripDragging = useRef(false);
   const stripStartY = useRef(0);
   const stripScrollTopAtStart = useRef(0);
 
-  // Touch-scroll state for chat container scrolling
   const touchStartYRef = useRef(0);
 
   // Expose scrollToBottom imperatively so parent components (e.g. AXChatPopup)
@@ -45,7 +41,6 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
     },
   }), []);
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
     const el = scrollContainerRef.current;
     if (el) {
@@ -53,7 +48,6 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
     }
   }, [messages]);
 
-  // Recompute opacity for each message based on its distance from the bottom of the viewport
   const updateVisibility = useCallback(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -75,7 +69,6 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
         opacity = 1 - (ratio - 0.20) / 0.60;
       }
 
-      // Clamp to [0, 1]
       opacity = Math.min(1, Math.max(0, opacity));
       newMap.set(id, opacity);
     }
@@ -96,7 +89,6 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
 
     container.addEventListener("scroll", handleScroll, { passive: true });
 
-    // Wheel over the chat container scrolls the chat messages (not the page)
     const blockWheel = (e: WheelEvent) => {
       e.preventDefault();
       if (container) {
@@ -105,7 +97,6 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
     };
     container.addEventListener("wheel", blockWheel, { passive: false });
 
-    // Touch-drag over the chat container scrolls chat messages (not the page)
     const recordTouchStart = (e: TouchEvent) => {
       if (isStripDragging.current) return;
       const touch = e.touches[0];
@@ -114,7 +105,6 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
     };
 
     const blockTouchMove = (e: TouchEvent) => {
-      // Strip handler deals with strip drags
       if (isStripDragging.current) return;
       e.preventDefault();
       const touch = e.touches[0];
@@ -127,7 +117,6 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
     container.addEventListener("touchstart", recordTouchStart, { passive: true });
     container.addEventListener("touchmove", blockTouchMove, { passive: false });
 
-    // Initial measurement
     updateVisibility();
 
     const isStripTarget = (target: EventTarget | null): boolean => {
@@ -180,7 +169,6 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
     );
     if (!container || strips.length === 0) return;
 
-    // Mouse event handlers — strip drag scrolls the PAGE
     const onMouseDown = (e: MouseEvent) => {
       isStripDragging.current = true;
       stripStartY.current = e.clientY;
@@ -203,7 +191,6 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
       isStripDragging.current = false;
     };
 
-    // Touch event handlers — strip drag scrolls the PAGE
     const onTouchStart = (e: TouchEvent) => {
       const touch = e.touches[0];
       if (!touch) return;
@@ -230,7 +217,6 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
       isStripDragging.current = false;
     };
 
-    // Attach per-strip listeners
     for (const strip of strips) {
       strip.addEventListener("mousedown", onMouseDown);
       strip.addEventListener("touchstart", onTouchStart, { passive: false });
@@ -238,7 +224,6 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
       strip.addEventListener("touchend", onTouchEnd, { passive: true });
     }
 
-    // Global mousemove/mouseup to handle dragging outside the strip area
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
 
@@ -254,30 +239,12 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
     };
   }, []);
 
-  // Re-measure when messages list changes (new messages may shift layout)
   useEffect(() => {
     updateVisibility();
   }, [messages, updateVisibility]);
 
   const handleMessageClick = (id: string) => {
     setSelectedMessageId(id);
-
-    /*
-    if (false) {
-      if (getOpacity(id) === 1) {
-        const msgIndex = messages.findIndex((m) => m.info.id === id);
-        if (msgIndex > 0) {
-          const prevId = messages[msgIndex - 1].info.id;
-          const prevEl = messageRefsRef.current.get(prevId) as HTMLDivElement | undefined;
-          const containerEl = scrollContainerRef.current as HTMLDivElement | null;
-          if (prevEl != null && containerEl != null) {
-            const targetScrollTop = (prevEl as HTMLDivElement).offsetTop + (prevEl as HTMLDivElement).offsetHeight - (containerEl as HTMLDivElement).clientHeight;
-            (containerEl as HTMLDivElement).scrollTop = Math.max(0, targetScrollTop);
-          }
-        }
-      }
-    }
-    */
   };
 
   // Determine opacity for each message based on its DOM position within the scroll container.
@@ -291,7 +258,6 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
     return opacities.get(id) ?? 1;
   };
 
-  // Ref callback factory: register / unregister message elements
   const setMessageRef = (id: string) => (el: HTMLDivElement | null) => {
     if (el) {
       messageRefsRef.current.set(id, el);
@@ -302,7 +268,6 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
 
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", paddingTop: "2rem" }}>
-      {/* Left invisible scrollbar strip */}
       <div
         ref={leftStripRef}
         style={{
@@ -317,7 +282,6 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
           touchAction: "none",
         }}
       />
-      {/* Right invisible scrollbar strip */}
       <div
         ref={rightStripRef}
         style={{

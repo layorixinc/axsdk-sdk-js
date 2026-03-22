@@ -3,7 +3,7 @@ import { AXSDK } from '@axsdk/core';
 
 const LINE_HEIGHT_PX = 20;
 const COLLAPSED_LINES = 4;
-const COLLAPSED_HEIGHT_PX = LINE_HEIGHT_PX * COLLAPSED_LINES + 20; // 4 lines + vertical padding
+const COLLAPSED_HEIGHT_PX = LINE_HEIGHT_PX * COLLAPSED_LINES + 20;
 
 export interface AXChatNotificationPopoverProps {
   message: string;
@@ -20,7 +20,6 @@ export function AXChatNotificationPopover({
   const [expanded, setExpanded] = useState<boolean>(false);
 
   // Auto-expand when isBusy transitions to false (idle)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!isBusy) setExpanded(true); // intentional sync setState to mirror isBusy prop
   }, [isBusy]);
@@ -81,7 +80,6 @@ export function AXChatNotificationPopover({
           animation: "axnotif-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards",
         }}
       >
-        {/* Card */}
         <div
           style={{
             width: "100%",
@@ -102,7 +100,6 @@ export function AXChatNotificationPopover({
             flexDirection: "column",
           }}
         >
-          {/* Close button */}
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onClose(); }}
@@ -132,12 +129,10 @@ export function AXChatNotificationPopover({
             ×
           </button>
 
-          {/* Content wrapper */}
           <div className="ax-notif-content" style={wrapperStyle}>
             <div style={contentStyle}>{message}</div>
           </div>
 
-          {/* Expand/collapse toggle — inside card, at the bottom */}
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
@@ -148,7 +143,7 @@ export function AXChatNotificationPopover({
               gap: 4,
               width: "100%",
               marginTop: "auto",
-              background: "rgba(185, 74, 0, 0.97)",
+              background: "rgba(168, 85, 247, 0.12)",
               border: "none",
               borderTop: "1px solid rgba(168, 85, 247, 0.2)",
               cursor: "pointer",
@@ -168,7 +163,6 @@ export function AXChatNotificationPopover({
 
         </div>
 
-        {/* Right-pointing tail */}
         <div style={{
           position: "absolute",
           right: -10,

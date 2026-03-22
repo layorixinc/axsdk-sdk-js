@@ -8,7 +8,7 @@ export const api = new ApiClient({
 
 export function init(ri: RequestInterceptor, ei?: ErrorInterceptor) {
   api.addRequestInterceptor(ri);
-  if(ei) {
+  if (ei) {
     api.addErrorInterceptor(ei);
   }
 }
