@@ -99,6 +99,22 @@ export interface ToolPart extends BasePart {
 
 export type MessagePart = TextPart | ReasoningPart | StepStartPart | StepFinishPart | ToolPart;
 
+export interface MessageErrorData {
+  message: string;
+  statusCode: number;
+  isRetryable: boolean;
+  responseHeaders: Record<string, string>;
+  responseBody: string;
+  metadata: {
+    url: string;
+  };
+}
+
+export interface MessageError {
+  name: string;
+  data: MessageErrorData;
+}
+
 export interface UserMessageInfo {
   role: "user";
   time: MessageTime;
@@ -112,6 +128,7 @@ export interface UserMessageInfo {
 export interface AssistantMessageInfo {
   role: "assistant";
   time: MessageTime;
+  error?: MessageError;
   agent: string;
   parentID?: string;
   modelID?: string;
