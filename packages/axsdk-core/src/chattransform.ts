@@ -1,5 +1,20 @@
-import type { ChatMessage, ChatMessagePayload, MessagePart, MessageTime, MessageInfo } from './types/chat';
-import { chatStore } from './store';
+import type { ChatMessage, ChatMessagePayload, MessagePart, MessageTime, MessageInfo, MessageError } from './types/chat';
+import { errorStore, chatStore, type ApiError } from './store';
+
+export function setError(id: string, error: MessageError) {
+  errorStore.getState().removeError(id)
+  errorStore.getState().addError({
+    id: id,
+    timestamp: Date.now(),
+    url: `axsdk://${id}`,
+    method: '',
+    status: error.data?.statusCode,
+    statusText: error?.name ?? '',
+    message: error.data?.message ?? '',
+    requestBody: undefined,
+    responseBody: error.data?.responseBody
+  } as ApiError)
+}
 
 export async function updateFromMessages(payload: unknown) {
   const data = payload as ChatMessagePayload[];
@@ -13,7 +28,9 @@ export async function updateFromMessages(payload: unknown) {
     if (item.info?.sessionID != session.id) {
       continue;
     }
-    const message = (messages.find(x => x.info?.id == item.info.id) || item) as ChatMessage;
+    const prevMessage = messages.find(x => x.info?.id == item.info.id);
+    const message = (prevMessage || item) as ChatMessage;
+    message.info = item.info;
     const parts: MessagePart[] = message.parts ?? [];
     for (const updatedPart of item.parts) {
       const part = parts.find(x => x.id == updatedPart.id) as (MessagePart & { text?: string }) | undefined;
@@ -30,6 +47,10 @@ export async function updateFromMessages(payload: unknown) {
     const timestamp = item.info.time.completed ? new Date(item.info.time.completed) : new Date(item.info.time.created);
     const updatedMessage = { ...message, role: item.info.role, timestamp, parts, finish: item.info.finish };
     chatState.updateMessage(updatedMessage);
+
+    if(message.info?.error) {
+      setError(message.info.id, message.info.error as unknown as MessageError)
+    }
   }
 }
 
@@ -75,6 +96,10 @@ export async function updateFromMessageUpdate(payload: unknown) {
   const existing = chatState.messages.find(x => x.info.id === data.info.id)
     ?? { info: data.info };
   chatState.updateMessage({ ...existing, ...data });
+
+  if(data.info?.error) {
+    setError(data.info.id, data.info.error as unknown as MessageError)
+  }
 }
 
 export async function updateFromMessagePartUpdate(payload: unknown) {

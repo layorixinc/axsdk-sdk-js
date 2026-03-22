@@ -61,7 +61,7 @@ function ReasoningPartView({ part }: { part: ReasoningPart }) {
         }}
       >
         <span style={{ fontSize: "0.65rem" }}>{collapsed ? "▶" : "▼"}</span>
-        {AXSDK.t("chatThinking")}
+        {AXSDK.t("chatThought")}
       </button>
       {!collapsed && (
         <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", opacity: 0.85 }}>
@@ -206,7 +206,32 @@ function StepFinishView({ part }: { part: StepFinishPart }) {
   );
 }
 
-// ─── Thinking indicator ──────────────────────────────────────────────────────
+function AssistantErrorView({ name, message: msg }: { name: string; message: string }) {
+  return (
+    <div
+      role="alert"
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 6,
+        marginTop: 8,
+        padding: "7px 10px",
+        borderRadius: 8,
+        background: "rgba(220, 38, 38, 0.08)",
+        border: "1px solid rgba(220, 38, 38, 0.35)",
+        color: "rgba(185, 28, 28, 0.95)",
+        fontSize: "0.8rem",
+        lineHeight: 1.5,
+      }}
+    >
+      <span style={{ flexShrink: 0, fontSize: "0.9rem" }}>⚠</span>
+      <div>
+        <span style={{ fontWeight: 700, marginRight: 4 }}>Error{name ? ` · ${name}` : ""}:</span>
+        <span style={{ wordBreak: "break-word" }}>{msg}</span>
+      </div>
+    </div>
+  );
+}
 
 function ThinkingIndicator() {
   const dotStyle = (delayMs: number): React.CSSProperties => ({
@@ -235,8 +260,6 @@ function ThinkingIndicator() {
   );
 }
 
-// ─── Part dispatcher ─────────────────────────────────────────────────────────
-
 function renderPart(part: MessagePart, index: number): React.ReactNode {
   const partId = part.id ?? String(index);
 
@@ -256,11 +279,10 @@ function renderPart(part: MessagePart, index: number): React.ReactNode {
   return null;
 }
 
-// ─── Main component ──────────────────────────────────────────────────────────
-
 export function AXChatMessage({ message, onMessageClick, opacity = 1, messageRef, onClick }: AXChatMessageProps) {
   const isUser = message.info.role === "user";
-  const isThinking = !isUser && !message.finish && !message.info.finish;
+  const isThinking = !isUser && !message.finish && !message.info.finish && !message.info.error;
+  const messageError = !isUser && message.info.role === "assistant" ? message.info.error : undefined;
   const rawTs = message.timestamp;
   const timestamp: Date | undefined = rawTs instanceof Date
     ? rawTs
@@ -282,11 +304,6 @@ export function AXChatMessage({ message, onMessageClick, opacity = 1, messageRef
         .join("")
     : null;
 
-  // Track whether the entry animation has completed so that the dynamic
-  // opacity style prop (from AXChat scroll-based fade) can take effect.
-  // While the animation runs, `animation-fill-mode: both` would force
-  // opacity:1 at the end and override the style prop, so we clear the
-  // animation after it finishes.
   const [animationDone, setAnimationDone] = useState(false);
 
   return (
@@ -307,7 +324,6 @@ export function AXChatMessage({ message, onMessageClick, opacity = 1, messageRef
         transition: animationDone ? "opacity 0.3s ease" : undefined,
       }}
     >
-      {/* Message bubble */}
       <div
         style={{
           maxWidth: "85%",
@@ -335,11 +351,16 @@ export function AXChatMessage({ message, onMessageClick, opacity = 1, messageRef
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {parts.map((part: MessagePart, i: number) => renderPart(part, i))}
             {isThinking && <ThinkingIndicator />}
+            {messageError && (
+              <AssistantErrorView
+                name={messageError.name}
+                message={messageError.data.message}
+              />
+            )}
           </div>
         )}
       </div>
 
-      {/* Timestamp */}
       {formattedTime && (
         <div
           style={{

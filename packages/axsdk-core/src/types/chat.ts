@@ -118,6 +118,7 @@ export interface MessageError {
 export interface UserMessageInfo {
   role: "user";
   time: MessageTime;
+  error?: MessageError;
   agent: string;
   model: MessageModel;
   id: string;

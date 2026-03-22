@@ -5,7 +5,7 @@ import type { AXSDKConfig, AXHandler } from './types';
 export type * from './types';
 import { ApiError } from './apiclient';
 import * as api from './axapi';
-import { appStore, chatStore, errorStore, type AppState, type ChatState } from './store';
+import { appStore, chatStore, errorStore, type AppState, type ChatState, type ErrorState } from './store';
 import * as AXCHAT from './axchat';
 import * as AXCALL from './axcall';
 import { AXSDK_TRANSLATIONS } from './translations';
@@ -94,6 +94,10 @@ class AxSdk extends EventEmitter {
 
   public getChatStore(): StoreApi<ChatState> {
     return chatStore;
+  }
+
+  public getErrorStore(): StoreApi<ErrorState> {
+    return errorStore;
   }
 
   public getChatState(): ChatState {

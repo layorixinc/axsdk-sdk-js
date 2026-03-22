@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { AXSDK } from '@axsdk/core';
+import { useStore } from 'zustand';
 
 export interface AXChatMessageInputProps {
   onSend: (message: string) => void;
@@ -24,6 +25,12 @@ export function AXChatMessageInput({
 }: AXChatMessageInputProps) {
   const [message, setMessage] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { errors } = useStore(AXSDK.getErrorStore());
+  const { messages } = useStore(AXSDK.getChatStore());
+  const lastMessage = messages?.[messages.length - 1];
+  const latestError = errors[0] ?? null;
+  console.log(lastMessage, latestError)
+  const effectiveError = !latestError?.url?.startsWith("axsdk://") || lastMessage?.info?.id === latestError?.id ? latestError : null
 
   function handleSend() {
     const trimmed = message.trim();
@@ -112,6 +119,22 @@ export function AXChatMessageInput({
           overflowY: "auto",
         }}
       />
+
+      {effectiveError && (
+        <div
+          style={{
+            fontSize: "0.8125rem",
+            color: "#f87171",
+            padding: "4px 6px",
+            borderRadius: 6,
+            background: "rgba(248, 113, 113, 0.08)",
+            border: "1px solid rgba(248, 113, 113, 0.25)",
+            wordBreak: "break-word",
+          }}
+        >
+          {effectiveError.message}
+        </div>
+      )}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <button
