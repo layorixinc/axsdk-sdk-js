@@ -41,7 +41,7 @@ function App() {
           chatClear: 'Click here to start over.'
         }
       },
-      debug: false
+      debug: true
     });
     AXSDK.setAppAuthToken(env.VITE_AXSDK_APP_AUTH_TOKEN_EXAMPLE);
 

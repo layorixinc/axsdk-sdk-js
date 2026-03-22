@@ -13,11 +13,99 @@ export interface AXChatPopupProps {
   onInputFocusOrChange?: () => void;
 }
 
+/** Tooltip that appears below the Clear button in the input card, tail points UPWARD toward the button. */
+function ClearBubble({ visible, onClick }: { visible: boolean; onClick: () => void }) {
+  return (
+    <div
+      aria-hidden={!visible}
+      onClick={onClick}
+      style={{
+        position: "absolute",
+        // Position below the top of the input wrapper; the buttons row starts at ~0 and is ~3rem tall
+        bottom: "calc(0.25rem)",
+        // Align with the left side of the card where the Clear button sits (1rem card padding + center of ~3rem button)
+        left: "calc(1rem + 1.5rem)",
+        transform: "translateX(-50%)",
+        zIndex: 10004,
+        pointerEvents: visible ? "auto" : "none",
+        cursor: "pointer",
+        animation: visible
+          ? "axbubble-clear-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards"
+          : "axbubble-clear-out 0.2s ease-in forwards",
+        opacity: visible ? undefined : 0,
+      }}
+    >
+      {/* Upward-pointing CSS triangle arrow (border layer) */}
+      <div
+        style={{
+          position: "absolute",
+          top: -10,
+          left: "1rem",
+          transform: "translateX(-50%)",
+          width: 0,
+          height: 0,
+          borderLeft: "9px solid transparent",
+          borderRight: "9px solid transparent",
+          borderBottom: "9px solid rgba(255, 255, 255, 0.7)",
+          zIndex: -1,
+        }}
+      />
+      {/* Upward-pointing CSS triangle arrow (fill layer) */}
+      <div
+        style={{
+          position: "absolute",
+          top: -8,
+          left: "1rem",
+          transform: "translateX(-50%)",
+          width: 0,
+          height: 0,
+          borderLeft: "8px solid transparent",
+          borderRight: "8px solid transparent",
+          borderBottom: "8px solid rgba(18, 18, 28, 0.92)",
+          filter: "drop-shadow(0 -2px 2px rgba(0,0,0,0.3))",
+        }}
+      />
+
+      {/* Bubble body */}
+      <div
+        style={{
+          background: "rgba(18, 18, 28, 0.92)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          border: "1px solid rgba(255, 255, 255, 0.7)",
+          borderRadius: 12,
+          padding: "9px 16px",
+          boxShadow:
+            "0 4px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.06) inset",
+          whiteSpace: "nowrap",
+        }}
+      >
+        <span
+          style={{
+            color: "rgba(255, 255, 255, 0.92)",
+            fontSize: "0.875rem",
+            fontWeight: 500,
+            letterSpacing: "0.01em",
+            background:
+              "linear-gradient(90deg, #c084fc 0%, #818cf8 50%, #38bdf8 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}
+        >
+          {AXSDK.t("chatClear")}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 type AnimState = "open" | "opening" | "closing" | "closed";
 
 export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrChange }: AXChatPopupProps) {
   // If visible is true on initial mount, start in "open" state (no animation)
   const [animState, setAnimState] = useState<AnimState>(visible ? "open" : "closed");
+  const [clearBubbleVisible, setClearBubbleVisible] = useState(false);
   const isInitialMount = useRef(true);
   const prevVisible = useRef(visible);
   const chatRef = useRef<AXChatHandle>(null);
@@ -44,10 +132,12 @@ export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrCh
 
     if (visible) {
       setAnimState("opening");
+      setClearBubbleVisible(true);
     } else {
       setAnimState((prev) =>
         prev !== "closed" ? "closing" : "closed"
       );
+      setClearBubbleVisible(false);
     }
 
     if (visible) {
@@ -97,9 +187,6 @@ export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrCh
     return { clipPath: "inset(100% 0% 0% 100%)" };
   })();
 
-  // Height of the bottom input bar area (for positioning chat area)
-  const inputBarHeight = "4rem";
-
   return (
     <div
       onAnimationEnd={handleAnimationEnd}
@@ -118,7 +205,7 @@ export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrCh
     >
       {children}
 
-      {/* AXChat conversation area – fills the overlay minus the bottom input bar */}
+      {/* Unified split-layout body: top 2/3 messages, bottom 1/3 input */}
       {animState !== "closed" && (
         <div
           style={{
@@ -126,92 +213,68 @@ export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrCh
             top: 0,
             left: 0,
             right: 0,
-            bottom: inputBarHeight,
-            paddingTop: "1.5rem",
-            paddingBottom: "1.0rem",
+            bottom: 0,
             zIndex: 10000,
             pointerEvents: "auto",
             display: "flex",
             flexDirection: "column",
+            height: "100%",
           }}
         >
-          <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
+          {/* Top 2/3: messages area — content sticks to the bottom of this section */}
+          <div
+            style={{
+              flex: 2,
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-end",
+              paddingTop: "1.5rem",
+            }}
+          >
             <AXChat ref={chatRef} messages={messages} />
           </div>
-        </div>
-      )}
 
-      {/* Guide text above the input bar */}
-      {animState !== "closed" && (
-        <>
-          {session?.status === "busy" && AXSDK.t("chatBusyGuide") && (
+          {/* Bottom 1/3: input area — content sticks to the top of this section */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-start",
+              alignItems: "center",
+            }}
+          >
             <div
               style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                bottom: inputBarHeight,
-                zIndex: 10002,
-                fontSize: "1rem",
-                color: "rgba(255, 255, 255, 1)",
-                padding: "4px 12px 1.2rem",
-                textAlign: "center",
-                whiteSpace: "pre-wrap",
+                position: "relative",
+                width: "min(680px, 90vw)",
+                animation: "axchat-input-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards",
+                paddingBottom: "1.5rem"
               }}
             >
-              {AXSDK.t("chatBusyGuide")}
+              {/* Clear tooltip — positioned relative to this wrapper, pointing at the Clear button */}
+              <ClearBubble
+                visible={clearBubbleVisible}
+                onClick={() => setClearBubbleVisible(false)}
+              />
+              {/* Input area – card styling lives inside AXChatMessageInput, wrapping only the textarea */}
+              <AXChatMessageInput
+                placeholder={AXSDK.t("chatInput")}
+                onSend={handleSend}
+                onClear={handleClear}
+                onFocus={() => { scrollChatToBottom(); onInputFocusOrChange?.(); setClearBubbleVisible(false); }}
+                onInputChange={() => { scrollChatToBottom(); onInputFocusOrChange?.(); setClearBubbleVisible(false); }}
+                guideText={
+                  !messages.length ? AXSDK.t("chatEmpty") :
+                  session?.status === "busy" ? AXSDK.t("chatBusyGuide") :
+                  session?.status === "idle" || !session?.status ? AXSDK.t("chatIdleGuide") :
+                  undefined
+                }
+              />
             </div>
-          )}
-          {session?.status === "idle" && AXSDK.t("chatIdleGuide") && (
-            <div
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                bottom: inputBarHeight,
-                zIndex: 10002,
-                fontSize: "1rem",
-                color: "rgba(255, 255, 255, 1)",
-                padding: "4px 12px 1.2rem",
-                textAlign: "center",
-                whiteSpace: "pre-wrap",
-              }}
-            >
-              {AXSDK.t("chatIdleGuide")}
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Fixed bottom full-width input bar */}
-      {animState !== "closed" && (
-        <div
-          onClick={(e) => e.stopPropagation()}
-          onTouchEnd={(e) => e.stopPropagation()}
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 10002,
-            background: "rgba(12, 12, 18, 0.97)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            borderTop: "1px solid rgba(255, 255, 255, 0.1)",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "flex-end",
-            boxSizing: "border-box",
-          }}
-        >
-          <div style={{ height: inputBarHeight, display: "flex", alignItems: "center", width: "100%" }}>
-            <AXChatMessageInput
-              placeholder={AXSDK.t("chatInput")}
-              onSend={handleSend}
-              onClear={handleClear}
-              onFocus={() => { scrollChatToBottom(); onInputFocusOrChange?.(); }}
-              onInputChange={() => { scrollChatToBottom(); onInputFocusOrChange?.(); }}
-            />
           </div>
         </div>
       )}
@@ -221,6 +284,18 @@ export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrCh
         @keyframes axhint-in {
           from { opacity: 0; transform: translateY(-6px); }
           to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes axchat-input-in {
+          from { opacity: 0; transform: translateY(24px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes axbubble-clear-in {
+          from { opacity: 0; transform: translateX(0%) translateY(6px) scale(0.95); }
+          to   { opacity: 1; transform: translateX(0%) translateY(0) scale(1); }
+        }
+        @keyframes axbubble-clear-out {
+          from { opacity: 1; transform: translateX(0%) translateY(0) scale(1); }
+          to   { opacity: 0; transform: translateX(0%) translateY(6px) scale(0.95); }
         }
       `}</style>
     </div>

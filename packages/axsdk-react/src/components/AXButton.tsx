@@ -19,6 +19,11 @@ export interface AXButtonProps {
    * Defaults to `64` (pixels). All layers scale proportionally.
    */
   size?: number | string;
+  /**
+   * Session status. When `"busy"`, a swirling vortex animation is overlaid
+   * on the button to indicate that the AI is processing.
+   */
+  status?: string;
 }
 
 type AnimState = "show" | "idle" | "hide" | "unmounted";
@@ -35,6 +40,7 @@ export function AXButton({
   isOpen = false,
   className = "",
   size = 64,
+  status,
 }: AXButtonProps) {
   // If visible is true on initial mount, start in "idle" state (fully shown, no entrance animation)
   const [animState, setAnimState] = useState<AnimState>(visible ? "idle" : "unmounted");
@@ -84,6 +90,9 @@ export function AXButton({
 
   // pxSize used for all internal arithmetic
   const pxSize = isViewportUnit ? measuredPx : initialPxSize;
+
+  // Whether the button is in a busy/processing state
+  const isBusy = status === "busy";
 
   // Derived size values (arithmetic always uses pxSize)
   const ringSize = pxSize + 16;
@@ -291,21 +300,88 @@ export function AXButton({
           justifyContent: "center",
         }}
       >
-        <span
-          style={{
-            color: "white",
-            fontWeight: 600,
-            fontSize: fontSize,
-            letterSpacing: "0.2em",
-            textShadow: "0 0 10px rgba(255,255,255,1)",
-            userSelect: "none",
-          }}
-        >
-          AX
-        </span>
-      </div>
+      {/* ── Layer 5: Busy vortex swirl overlay (only when status === "busy") ── */}
+      {isBusy && (
+        <>
+          {/* Outer rotating conic-gradient ring — gives the swirling vortex border */}
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              width: pxSize + 6,
+              height: pxSize + 6,
+              top: -3,
+              left: -3,
+              borderRadius: "50%",
+              background:
+                "conic-gradient(from 0deg, " +
+                "rgba(168,85,247,0) 0%, " +
+                "rgba(168,85,247,1) 20%, " +
+                "rgba(139,92,246,1) 35%, " +
+                "rgba(99,102,241,1) 50%, " +
+                "rgba(168,85,247,0.6) 70%, " +
+                "rgba(168,85,247,0) 100%)",
+              animation: "ax-busy-spin 1.2s linear infinite",
+              zIndex: 10,
+              pointerEvents: "none",
+            }}
+          />
+          {/* Inner mask disk — sits on top of the outer ring to restore the button face,
+              leaving only a thin swirling border visible around the edge */}
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              width: pxSize - 4,
+              height: pxSize - 4,
+              top: 2,
+              left: 2,
+              borderRadius: "50%",
+              background: "radial-gradient(circle at center, #7c3aed, #1d4ed8)",
+              zIndex: 11,
+              pointerEvents: "none",
+            }}
+          />
+          {/* Counter-rotating inner vortex shimmer for depth */}
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              width: pxSize - 4,
+              height: pxSize - 4,
+              top: 2,
+              left: 2,
+              borderRadius: "50%",
+              background:
+                "conic-gradient(from 180deg, " +
+                "rgba(192,132,252,0.0) 0%, " +
+                "rgba(192,132,252,0.35) 25%, " +
+                "rgba(192,132,252,0.0) 50%, " +
+                "rgba(139,92,246,0.25) 75%, " +
+                "rgba(192,132,252,0.0) 100%)",
+              animation: "ax-busy-spin 2s linear infinite reverse, ax-busy-pulse 1.2s ease-in-out infinite",
+              zIndex: 12,
+              pointerEvents: "none",
+            }}
+          />
+        </>
+      )}
+      <span
+        style={{
+          color: "white",
+          fontWeight: 600,
+          fontSize: fontSize,
+          letterSpacing: "0.2em",
+          textShadow: "0 0 10px rgba(255,255,255,1)",
+          userSelect: "none",
+          zIndex: 20,
+        }}
+      >
+        AX
+      </span>
+    </div>
 
-      {/* ── Layer 5: Ripple splashes ── */}
+      {/* ── Layer 6: Ripple splashes ── */}
       {ripples.map((r) => (
         <span
           key={r.id}

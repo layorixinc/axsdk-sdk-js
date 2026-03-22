@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { AXChatMessage } from './AXChatMessage';
-import { AXSDK, type ChatMessage } from '@axsdk/core';
+import { type ChatMessage } from '@axsdk/core';
 
 export interface AXChatHandle {
   scrollToBottom: () => void;
@@ -285,6 +285,7 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
   // Strip drag (page scroll) → hide all messages.
   // Chat scroll (wheel/touch) → messages remain normally visible (no forced hide).
   const getOpacity = (id: string): number => {
+    return 1
     if (isStripInteracting) return 0;   // strip drag (page scroll) → hide all messages
     if (id === selectedMessageId) return 1;
     return opacities.get(id) ?? 1;
@@ -342,52 +343,30 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
           overflowY: "auto",
           pointerEvents: "auto",
           scrollbarWidth: "none",
-          paddingBottom: "2.5rem",
         }}
       >
-        {messages.length === 0 ? (
-          <div
-            style={{
-              marginTop: "auto",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "rgba(255, 255, 255, 1.0)",
-              fontSize: "1.25rem",
-              fontWeight: 500,
-              letterSpacing: "0.04em",
-              userSelect: "none",
-              padding: "24px",
-              textAlign: "center",
-              whiteSpace: "pre-wrap",
-            }}
-          >
-            {AXSDK.t("chatEmpty")}
-          </div>
-        ) : (
-          <div
-            ref={innerContentRef}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              // Push messages to the bottom when they don't fill the container
-              marginTop: "auto",
-              paddingBottom: "1rem",
-            }}
-          >
-            {messages.map((message) => (
-              <AXChatMessage
-                key={message.info.id}
-                message={message}
-                onMessageClick={onMessageClick}
-                opacity={getOpacity(message.info.id)}
-                messageRef={setMessageRef(message.info.id)}
-                isSelected={selectedMessageId === message.info.id}
-                onClick={() => handleMessageClick(message.info.id)}
-              />
-            ))}
-          </div>
-        )}
+        <div
+          ref={innerContentRef}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            // Push messages to the bottom when they don't fill the container
+            marginTop: "auto",
+            paddingBottom: "1rem",
+          }}
+        >
+          {messages.map((message) => (
+            <AXChatMessage
+              key={message.info.id}
+              message={message}
+              onMessageClick={onMessageClick}
+              opacity={getOpacity(message.info.id)}
+              messageRef={setMessageRef(message.info.id)}
+              isSelected={selectedMessageId === message.info.id}
+              onClick={() => handleMessageClick(message.info.id)}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

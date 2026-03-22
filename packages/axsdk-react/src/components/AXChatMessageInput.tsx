@@ -9,6 +9,8 @@ export interface AXChatMessageInputProps {
   onClear?: () => void;
   disabled?: boolean;
   placeholder?: string;
+  /** Optional guide text rendered at the top of the input card (e.g. busy/idle status hint). */
+  guideText?: string;
 }
 
 export function AXChatMessageInput({
@@ -18,6 +20,7 @@ export function AXChatMessageInput({
   onClear,
   disabled = false,
   placeholder = "Message",
+  guideText,
 }: AXChatMessageInputProps) {
   const [message, setMessage] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -39,62 +42,34 @@ export function AXChatMessageInput({
   return (
     <div
       style={{
-        display: "flex",
-        alignItems: "center",
-        padding: "0 16px",
-        gap: 10,
         width: "100%",
         boxSizing: "border-box",
+        background: "rgba(12, 12, 18, 0.97)",
+        backdropFilter: "blur(24px)",
+        WebkitBackdropFilter: "blur(24px)",
+        border: "1px solid rgba(255, 255, 255, 0.12)",
+        borderRadius: "1.25rem",
+        boxShadow: "0 8px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(120,80,255,0.15)",
+        padding: "1rem",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        minHeight: guideText ? "11rem" : "9rem",
       }}
     >
-      {/* Clear button */}
-      <button
-        type="button"
-        onClick={() => onClear?.()}
-        disabled={disabled}
-        title={AXSDK.t("chatClearTooltip")}
+      <div
         style={{
-          flexShrink: 0,
-          background: "rgba(255, 255, 255, 0.07)",
-          border: "none",
-          borderRadius: 10,
-          color: "rgba(255, 255, 255, 0.45)",
-          width: "3rem",
-          height: "3rem",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          cursor: disabled ? "default" : "pointer",
-          transition: "background 0.18s, color 0.18s, transform 0.1s",
-          padding: 0,
-        }}
-        onMouseEnter={(e) => {
-          if (disabled) return;
-          (e.currentTarget as HTMLButtonElement).style.background = "rgba(255, 255, 255, 0.13)";
-          (e.currentTarget as HTMLButtonElement).style.color = "rgba(255, 255, 255, 0.85)";
-          (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.07)";
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.background = "rgba(255, 255, 255, 0.07)";
-          (e.currentTarget as HTMLButtonElement).style.color = "rgba(255, 255, 255, 0.45)";
-          (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
+          fontSize: "1rem",
+          color: "rgba(255, 255, 255, 0.75)",
+          padding: "8px 4px",
+          textAlign: "center",
+          whiteSpace: "pre-wrap",
+          border: "1px solid rgba(255, 255, 255, 0.15)",
+          minHeight: "2rem",
         }}
       >
-        <svg
-          width="32"
-          height="32"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth="1.5"
-          stroke="currentColor"
-          aria-hidden="true"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.021-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-        </svg>
-      </button>
-
-      {/* Textarea */}
+        {guideText}
+      </div>
       <textarea
         ref={textareaRef}
         value={message}
@@ -116,9 +91,9 @@ export function AXChatMessageInput({
         }}
         placeholder={placeholder}
         disabled={disabled}
-        rows={1}
+        rows={2}
         style={{
-          flex: 1,
+          width: "100%",
           resize: "none",
           background: "rgba(255, 255, 255, 0.07)",
           border: "1px solid rgba(255, 255, 255, 0.12)",
@@ -132,45 +107,107 @@ export function AXChatMessageInput({
           boxSizing: "border-box",
           caretColor: "#a78bfa",
           transition: "border-color 0.15s",
-          maxHeight: "4rem",
+          minHeight: "3.5rem",
+          maxHeight: "8rem",
           overflowY: "auto",
         }}
       />
 
-      {/* Send button */}
-      <button
-        type="button"
-        onClick={handleSend}
-        disabled={disabled || !message.trim()}
-        style={{
-          flexShrink: 0,
-          background: message.trim()
-            ? "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)"
-            : "rgba(255, 255, 255, 0.07)",
-          border: "none",
-          borderRadius: 10,
-          color: message.trim() ? "#fff" : "rgba(255, 255, 255, 0.25)",
-          fontSize: "1rem",
-          fontWeight: 600,
-          padding: "10px 16px",
-          cursor: message.trim() && !disabled ? "pointer" : "default",
-          transition: "background 0.18s, color 0.18s, transform 0.1s",
-          letterSpacing: "0.04em",
-          display: "flex",
-          alignItems: "center",
-          gap: 5,
-          whiteSpace: "nowrap",
-        }}
-        onMouseEnter={(e) => {
-          if (!message.trim() || disabled) return;
-          (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.04)";
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
-        }}
-      >
-        {AXSDK.t("chatSend")}
-      </button>
+      {/* Buttons row – Clear (left) and Send (right) */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        {/* Clear button */}
+        <button
+          type="button"
+          onClick={() => onClear?.()}
+          disabled={disabled}
+          title={AXSDK.t("chatClearTooltip")}
+          style={{
+            flexShrink: 0,
+            background: "rgba(255, 255, 255, 0.07)",
+            border: "none",
+            borderRadius: 10,
+            color: "rgba(255, 255, 255, 0.45)",
+            width: "3rem",
+            height: "3rem",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: disabled ? "default" : "pointer",
+            transition: "background 0.18s, color 0.18s, transform 0.1s",
+            padding: 0,
+          }}
+          onMouseEnter={(e) => {
+            if (disabled) return;
+            (e.currentTarget as HTMLButtonElement).style.background = "rgba(255, 255, 255, 0.13)";
+            (e.currentTarget as HTMLButtonElement).style.color = "rgba(255, 255, 255, 0.85)";
+            (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.07)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background = "rgba(255, 255, 255, 0.07)";
+            (e.currentTarget as HTMLButtonElement).style.color = "rgba(255, 255, 255, 0.45)";
+            (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
+          }}
+        >
+          <svg
+            width="32"
+            height="32"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth="1.5"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.021-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+          </svg>
+        </button>
+        {/* Send button */}
+        <button
+          type="button"
+          onClick={handleSend}
+          disabled={disabled || !message.trim()}
+          style={{
+            flexShrink: 0,
+            background: message.trim()
+              ? "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)"
+              : "rgba(255, 255, 255, 0.07)",
+            border: "none",
+            borderRadius: 10,
+            color: message.trim() ? "#fff" : "rgba(255, 255, 255, 0.25)",
+            fontSize: "1rem",
+            fontWeight: 600,
+            padding: "10px 16px",
+            cursor: message.trim() && !disabled ? "pointer" : "default",
+            transition: "background 0.18s, color 0.18s, transform 0.1s",
+            letterSpacing: "0.04em",
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            whiteSpace: "nowrap",
+          }}
+          onMouseEnter={(e) => {
+            if (!message.trim() || disabled) return;
+            (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.04)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
+          }}
+        >
+          <svg
+            width="18"
+            height="18"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth="2"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12zm0 0h7.5" />
+          </svg>
+          {AXSDK.t("chatSend")}
+        </button>
+      </div>
     </div>
   );
 }

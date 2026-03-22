@@ -199,7 +199,7 @@ function StepFinishView({ part }: { part: StepFinishPart }) {
           <span>in:{fmt(part.tokens.input)}</span>
           <span>out:{fmt(part.tokens.output)}</span>
           <span>reas:{fmt(part.tokens.reasoning)}</span>
-          <span>cache: {fmt(part.tokens.cache.read)}/{fmt(part.tokens.cache.write)} R/W</span>
+          <span>cache R/W: {fmt(part.tokens.cache.read)}/{fmt(part.tokens.cache.write)}</span>
         </>
       )}
     </div>

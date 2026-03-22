@@ -4,3 +4,6 @@ export * from './AXChatPopup';
 export * from './AXChat';
 export * from './AXChatMessage';
 export * from './AXChatMessageInput';
+export * from './AXChatNotificationPopover';
+export * from './AXDevTools';
+export * from './AXQuestionDialog';
