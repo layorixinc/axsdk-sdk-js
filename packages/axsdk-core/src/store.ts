@@ -75,7 +75,10 @@ export const appStore = createStore<AppState>()(
     }),
     {
       name: 'axsdk:app',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => (typeof window !== 'undefined' ? localStorage : (() => {
+        const noop = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+        return noop;
+      })())),
       partialize: (state) => ({ apiKey: state.apiKey, appId: state.appId, appUserId: state.appUserId }),
     }
   ),
@@ -125,7 +128,10 @@ export const chatStore = createStore<ChatState>()(
     }),
     {
       name: 'axsdk:chat',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => (typeof window !== 'undefined' ? localStorage : (() => {
+        const noop = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+        return noop;
+      })())),
       partialize: (state) => ({ session: state.session, messages: state.messages, isOpen: state.isOpen }),
     }
   ),

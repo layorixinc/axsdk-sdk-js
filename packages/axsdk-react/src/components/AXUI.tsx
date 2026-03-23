@@ -187,7 +187,7 @@ export function AXUI({ children }: AXUIProps) {
   const [lastAnswer, setLastAnswer] = useState<{ questionIndex: number; selectedOption: number; label: string } | null>(null);
   const [submitLog, setSubmitLog] = useState<string | null>(null);
   const [inputTopOffset, setInputTopOffset] = useState<number | null>(null);
-  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= DESKTOP_BREAKPOINT);
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= DESKTOP_BREAKPOINT);
   const [scrollTrigger, setScrollTrigger] = useState(0);
   const [focusTrigger, setFocusTrigger] = useState(0);
   const messageInputWrapperRef = useRef<HTMLDivElement | null>(null);
