@@ -35,7 +35,7 @@ export function AXDevTools({ debug, messages }: AXDevToolsProps) {
           position: 'fixed',
           left: 16,
           bottom: 16,
-          zIndex: 100010,
+          zIndex: 9000,
           width: 48,
           height: 48,
           borderRadius: '50%',
@@ -73,7 +73,7 @@ export function AXDevTools({ debug, messages }: AXDevToolsProps) {
           style={{
             position: 'fixed',
             inset: 0,
-            zIndex: 100020,
+            zIndex: 9001,
             background: 'rgba(8, 8, 16, 0.97)',
             display: 'flex',
             flexDirection: 'column',

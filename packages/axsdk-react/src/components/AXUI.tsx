@@ -383,6 +383,7 @@ export function AXUI({ children }: AXUIProps) {
 
   const content = <div>
     {children}
+    <AXDevTools debug={AXSDK.config?.debug} messages={messages} />
     {false && <AXChatPopup visible={isOpen} onSendMessage={handleSend}></AXChatPopup>}
     <SpeechBubbleClosed visible={!isOpen && !chatWasEverOpened} />
     {false &&<SpeechBubbleOpen visible={isOpen} />}
@@ -500,7 +501,6 @@ export function AXUI({ children }: AXUIProps) {
     }}>
       {AXSDK.t('poweredBy')}
     </div>
-    <AXDevTools debug={AXSDK.config?.debug} messages={messages} />
   </div>
 
   return ReactDOM.createPortal(content, portalTarget);
