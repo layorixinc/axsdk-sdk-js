@@ -15,10 +15,31 @@ interface Call {
   updatedAt: string;
 }
 
+const CALL_ID_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const processedCallIds = new Map<string, number>();
+
+function purgeExpiredCallIds(): void {
+  const now = Date.now();
+  for (const [id, timestamp] of processedCallIds) {
+    if (now - timestamp > CALL_ID_TTL_MS) {
+      processedCallIds.delete(id);
+    }
+  }
+}
+
 export async function handleAXSDKCall(properties: unknown) {
   const { sessionID, call } = properties as { sessionID: string; call: Call };
-  const session = chatStore.getState().session;
 
+  purgeExpiredCallIds();
+
+  const now = Date.now();
+  const cachedAt = processedCallIds.get(call.id);
+  if (cachedAt !== undefined && now - cachedAt <= CALL_ID_TTL_MS) {
+    return;
+  }
+  processedCallIds.set(call.id, now);
+
+  const session = chatStore.getState().session;
 
   let status: string = 'completed';
   let result: string = '';
