@@ -1,6 +1,6 @@
 {
   "name": "@axsdk/react",
-  "version": "0.3.11",
+  "version": "0.3.12",
   "private": false,
   "description": "axsdk react",
   "keywords": [],
@@ -33,7 +33,7 @@
     "dev": "vite --port 3334",
     "build": "tsc -b && vite build && bun build:types",
     "build:types": "bunx tsc --project tsconfig.build.json",
-    "publish": "bun run build && npm publish --access public",
+    "publish": "bun run build && npm publish --access=public",
     "lint": "eslint .",
     "preview": "vite preview"
   },

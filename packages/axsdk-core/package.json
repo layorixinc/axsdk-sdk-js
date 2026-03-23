@@ -1,6 +1,6 @@
 {
   "name": "@axsdk/core",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "private": false,
   "description": "axsdk core",
   "keywords": [],
@@ -33,7 +33,7 @@
     "dev": "bun ./src/index.ts",
     "build": "bun ./build.ts && bun build:types",
     "build:types": "bunx tsc --emitDeclarationOnly",
-    "publish": "bun run build && npm publish --access public"
+    "publish": "bun run build && npm publish --access=public"
   },
   "dependencies": {
     "eventemitter3": "^5.0.4",

@@ -68,7 +68,13 @@ export const appStore = createStore<AppState>()(
       language: 'en',
       setApiKey: (apiKey: string | undefined) => set({ apiKey }),
       setAppId: (appId: string | undefined) => set({ appId }),
-      getAppUserId: () => { const appUserId = get().appUserId || `${get().appId}-user-${nanoid()}`; set({ appUserId }); return appUserId; },
+      getAppUserId: () => {
+        let appUserId = get().appUserId;
+        if(!appUserId || !appUserId.startsWith(get().appId || ''))
+          appUserId = `${get().appId}-user-${nanoid()}`;
+        set({ appUserId });
+        return appUserId;
+      },
       resetAppUserId: () => set({ appUserId: undefined }),
       setAppAuthToken: (token: string | undefined) => set({ appAuthToken: token }),
       setLanguage: (language: string) => set({ language }),

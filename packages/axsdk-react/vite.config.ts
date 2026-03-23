@@ -6,6 +6,9 @@ import preserveUseClientDirective from 'rollup-plugin-preserve-use-client';
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), preserveUseClientDirective()],
+  define: {
+    'process.env': {}
+  },
   build: {
     lib: {
       entry: resolve(import.meta.dirname, "src/lib.ts"),

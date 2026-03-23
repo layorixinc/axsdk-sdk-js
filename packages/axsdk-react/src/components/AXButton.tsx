@@ -171,8 +171,8 @@ export function AXButton({
       style={{
         position: "fixed",
         zIndex: 10000,
-        bottom: "0.25rem",
-        right: "0.25rem",
+        bottom: "1rem",
+        right: "1rem",
         width: sizeCSS,
         height: sizeCSS,
         transform: outerTransform,

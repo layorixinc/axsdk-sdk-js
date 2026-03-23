@@ -68,7 +68,7 @@ export function AXChatMessagePopoverBase({
   // When the chat is open, align the popover's bottom edge with the top of the message input.
   // Use the measured inputBottomOffset (px) when available; fall back to a CSS estimate.
   const bottomOffset = isOpen
-    ? (inputBottomOffset != null ? `${inputBottomOffset}px` : "calc(1.25rem + 75px + 8px)")
+    ? (inputBottomOffset != null ? `${inputBottomOffset > 0 ? inputBottomOffset : -1024}px` : "calc(1.25rem + 75px + 8px)")
     : "1.25rem";
 
   const wrapperStyle: React.CSSProperties = expanded
@@ -143,7 +143,7 @@ export function AXChatMessagePopoverBase({
           position: "fixed",
           cursor: "pointer",
           bottom: bottomOffset,
-          right: "calc(1.25rem + 12vh + 16px)",
+          right: "calc(1.25rem + 12vh)",
           zIndex: 10001,
           width: "min(420px, calc(100vw - 12vh - 1rem - 16px))",
           display: "flex",
