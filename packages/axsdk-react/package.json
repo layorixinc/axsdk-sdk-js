@@ -1,6 +1,6 @@
 {
   "name": "@axsdk/react",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "private": false,
   "description": "axsdk react",
   "keywords": [],
@@ -53,6 +53,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
+    "rollup-plugin-preserve-use-client": "^3.0.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.56.1",
     "vite": "^8.0.0"

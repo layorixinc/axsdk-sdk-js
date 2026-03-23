@@ -1,10 +1,11 @@
 import { resolve } from 'node:path'
 import { defineConfig, esmExternalRequirePlugin } from 'vite'
 import react from '@vitejs/plugin-react'
+import preserveUseClientDirective from 'rollup-plugin-preserve-use-client';
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), preserveUseClientDirective()],
   build: {
     lib: {
       entry: resolve(import.meta.dirname, "src/lib.ts"),
