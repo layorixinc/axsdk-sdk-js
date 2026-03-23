@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { AXChatMessagePopoverBase } from './AXChatMessagePopoverBase';
 
 export interface AXChatLastMessageProps {
