@@ -1,0 +1,47 @@
+{
+  "name": "@axsdk/browser",
+  "version": "0.1.5",
+  "private": false,
+  "description": "axsdk browser - embed AXSDK widget in web",
+  "keywords": [],
+  "homepage": "https://github.com/layorixinc/axsdk-sdk-js",
+  "bugs": {
+    "url": "https://github.com/layorixinc/axsdk-sdk-js/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/layorixinc/axsdk-sdk-js.git"
+  },
+  "license": "MIT",
+  "author": "lordkeios@layorixinc.com",
+  "type": "module",
+  "exports": {
+    ".": "./dist/axsdk-browser.js",
+    "./frame": {
+      "default": "./dist/axsdk-browser-frame.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build:browser": "vite build --config vite.config.browser.ts",
+    "build:frame": "vite build --config vite.config.frame.ts",
+    "build": "bun run build:browser && bun run build:frame",
+    "dev": "vite --config vite.config.browser.ts",
+    "publish": "bun run build && npm publish --access=public"
+  },
+  "dependencies": {
+    "@axsdk/core": "workspace:*",
+    "@axsdk/react": "workspace:*",
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4",
+    "typescript": "^5",
+    "vite": "^6"
+  }
+}

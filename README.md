@@ -1,21 +1,81 @@
-# axsdk-sdk-js
+# AXSDK — JavaScript SDK Monorepo
 
-These packages are code for integrating with the AXSDK (https://axsdk.ai) platform.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A JavaScript/TypeScript SDK monorepo for integrating AI chat into web applications. Provides a framework-agnostic core and a ready-to-use React UI layer.
+JavaScript/TypeScript SDK packages for integrating the [AXSDK](https://axsdk.ai) AI chat platform into web applications. Provides a framework-agnostic core, a React UI component library, and a vanilla JS browser embed — choose the layer that fits your stack.
+
+---
 
 ## Packages
 
-| Package | Description |
-|---|---|
-| [`@axsdk/core`](./packages/axsdk-core) | Framework-agnostic core: SDK initialization, session management, SSE streaming, and type definitions |
-| [`@axsdk/react`](./packages/axsdk-react) | React components: drop-in chat UI built on top of `@axsdk/core` |
+| Package | Version | Description |
+|---|---|---|
+| [`@axsdk/core`](./packages/axsdk-core/README.md) | [![npm](https://img.shields.io/npm/v/@axsdk/core)](https://www.npmjs.com/package/@axsdk/core) | Framework-agnostic core — SDK initialization, session management, SSE streaming, event bus, and type definitions |
+| [`@axsdk/browser`](./packages/axsdk-browser/README.md) | [![npm](https://img.shields.io/npm/v/@axsdk/browser)](https://www.npmjs.com/package/@axsdk/browser) | Vanilla JS browser embed — drop a `<script>` tag on any page to embed the chat widget inside a sandboxed iframe |
+| [`@axsdk/react`](./packages/axsdk-react/README.md) | [![npm](https://img.shields.io/npm/v/@axsdk/react)](https://www.npmjs.com/package/@axsdk/react) | React component library — drop-in `<AXUI />` component and composable chat UI primitives built on `@axsdk/core` |
 
-## Requirements
+---
 
-- **Node.js** ≥ 18 (for non-Bun usage)
-- **Bun** ≥ 1.0 (recommended — used for builds and workspace management)
-- **TypeScript** ≥ 5
+## Getting Started
+
+Choose the package that matches your setup:
+
+### Vanilla JS / CDN (no build step)
+
+Use **`@axsdk/browser`** to embed the widget with a single script tag:
+
+```html
+<script src="https://unpkg.com/@axsdk/browser/dist/axsdk-browser.js"></script>
+<script>
+  AXSDKBrowser.init({
+    apiKey: 'YOUR_API_KEY',
+    appId:  'YOUR_APP_ID',
+  });
+</script>
+```
+
+→ See the [`@axsdk/browser` README](./packages/axsdk-browser/README.md) for the full guide.
+
+### React
+
+Use **`@axsdk/react`** for a drop-in React chat UI:
+
+```bash
+npm install @axsdk/react @axsdk/core
+```
+
+```tsx
+import { AXSDK } from '@axsdk/core';
+import { AXUI } from '@axsdk/react';
+import '@axsdk/react/index.css';
+
+AXSDK.init({ apiKey: 'YOUR_API_KEY', appId: 'YOUR_APP_ID' });
+
+export default function App() {
+  return <AXUI />;
+}
+```
+
+→ See the [`@axsdk/react` README](./packages/axsdk-react/README.md) for the full guide.
+
+### Custom integration / headless
+
+Use **`@axsdk/core`** directly to drive sessions, streaming, and events with your own UI:
+
+```bash
+npm install @axsdk/core
+```
+
+```ts
+import { AXSDK } from '@axsdk/core';
+
+await AXSDK.init({ apiKey: 'YOUR_API_KEY', appId: 'YOUR_APP_ID' });
+AXSDK.sendMessage('Hello!');
+```
+
+→ See the [`@axsdk/core` README](./packages/axsdk-core/README.md) for the full guide.
+
+---
 
 ## Repository Structure
 
@@ -23,44 +83,57 @@ A JavaScript/TypeScript SDK monorepo for integrating AI chat into web applicatio
 axsdk-sdk-js/
 ├── packages/
 │   ├── axsdk-core/      # @axsdk/core
+│   ├── axsdk-browser/   # @axsdk/browser
 │   └── axsdk-react/     # @axsdk/react
 ├── package.json         # Bun workspace root
 └── tsconfig.json        # Shared TypeScript config
 ```
 
-## Bootstrap
+---
 
-This repo uses [Bun workspaces](https://bun.sh/docs/install/workspaces).
+## Monorepo Development
+
+This repository uses [Bun workspaces](https://bun.sh/docs/install/workspaces).
+
+### Requirements
+
+- [Bun](https://bun.sh) ≥ 1.0
+- TypeScript ≥ 5
+
+### Install all dependencies
 
 ```bash
-# Install all workspace dependencies
 bun install
 ```
 
 ### Build individual packages
 
 ```bash
-# Build @axsdk/core
-cd packages/axsdk-core
-bun run build
+# @axsdk/core
+cd packages/axsdk-core && bun run build
 
-# Build @axsdk/react
-cd packages/axsdk-react
-bun run build
+# @axsdk/browser (builds both loader + iframe bundles)
+cd packages/axsdk-browser && bun run build
+
+# @axsdk/react
+cd packages/axsdk-react && bun run build
 ```
 
-### Development
+### Development servers
 
 ```bash
-# Run @axsdk/core in dev mode
-cd packages/axsdk-core
-bun run dev
+# @axsdk/core (watch mode)
+cd packages/axsdk-core && bun run dev
 
-# Run @axsdk/react dev server (Vite, port 3334)
-cd packages/axsdk-react
-bun run dev
+# @axsdk/browser
+cd packages/axsdk-browser && bun run dev
+
+# @axsdk/react (Vite dev server)
+cd packages/axsdk-react && bun run dev
 ```
+
+---
 
 ## License
 
-MIT
+MIT © [Layorix Inc.](https://github.com/layorixinc)
