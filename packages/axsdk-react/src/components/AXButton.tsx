@@ -159,10 +159,10 @@ export function AXButton({
 
   const outerTransform = isOpen
     ? pressed
-      ? "translate(55%, 55%) scale(0.77)"
-      : "translate(55%, 55%)"
+      ? "translate(40%, 40%) scale(0.9)"
+      : "translate(40%, 40%)"
     : pressed
-    ? "scale(0.77)"
+    ? "scale(0.9)"
     : undefined;
 
   return (
@@ -171,8 +171,8 @@ export function AXButton({
       style={{
         position: "fixed",
         zIndex: 10000,
-        bottom: "1.25rem",
-        right: "1.25rem",
+        bottom: "0.25rem",
+        right: "0.25rem",
         width: sizeCSS,
         height: sizeCSS,
         transform: outerTransform,

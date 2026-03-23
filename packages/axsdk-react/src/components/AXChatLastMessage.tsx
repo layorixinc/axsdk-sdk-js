@@ -55,7 +55,7 @@ export function AXChatLastMessage({
     }
   }, [scrollToBottomTrigger]);
 
-  if (!visible) return null;
+  if (!visible || (!message && !userMessage)) return null;
 
   // When the chat is open, align the popover's bottom edge with the top of the message input.
   // Use the measured inputBottomOffset (px) when available; fall back to a CSS estimate.

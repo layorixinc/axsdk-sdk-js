@@ -264,7 +264,7 @@ export function AXUI({ children }: AXUIProps) {
 
   const notificationKey = `${latestUserMessage?.info?.id ?? ''}:${latestAssistantMessage?.info?.id ?? ''}`
 
-  const notifVisible = (!!userMessage || !!userMessage) && dismissedNotification !== notificationKey
+  const notifVisible = (!!assistantMessage || !!userMessage) && dismissedNotification !== notificationKey
 
   // Measure input wrapper top position to align notification popover.
   // Re-measure whenever isOpen changes so we capture the on-screen position
