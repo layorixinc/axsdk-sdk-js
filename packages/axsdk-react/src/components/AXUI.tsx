@@ -234,12 +234,13 @@ export function AXUI({ children }: AXUIProps) {
     }
   }, [messages]);
 
-  const assistantMessage = latestAssistantMessage && latestAssistantMessage.parts && latestAssistantMessage.parts.length &&
+  const assistantMessageText = latestAssistantMessage && latestAssistantMessage.parts && latestAssistantMessage.parts.length &&
     latestAssistantMessage.parts
       .filter((p): p is TextPart => p.type === "text")
       .map((p) => p.text ?? "")
       .join("")
       .trim();
+  const assistantMessage = latestAssistantMessage?.info?.id && { id: latestAssistantMessage?.info?.id, text: assistantMessageText || '' } || undefined
 
   const latestUserMessage = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -255,16 +256,16 @@ export function AXUI({ children }: AXUIProps) {
     return undefined;
   }, [messages]);
 
-  const userMessage = latestUserMessage && latestUserMessage.parts && latestUserMessage.parts.length && 
+  const userMessageText = latestUserMessage && latestUserMessage.parts && latestUserMessage.parts.length && 
     latestUserMessage.parts
       .filter((p): p is TextPart => p.type === "text")
       .map((p) => p.text ?? "")
       .join("")
       .trim();
-
+  const userMessage = latestUserMessage?.info?.id && { id: latestUserMessage?.info?.id, text: userMessageText || '' } || undefined
+  
   const notificationKey = `${latestUserMessage?.info?.id ?? ''}:${latestAssistantMessage?.info?.id ?? ''}`
-
-  const notifVisible = (!!assistantMessage || !!userMessage) && dismissedNotification !== notificationKey
+  const notifVisible = (!!assistantMessageText || !!userMessageText) && dismissedNotification !== notificationKey
 
   // Measure input wrapper top position to align notification popover.
   // Re-measure whenever isOpen changes so we capture the on-screen position
@@ -388,8 +389,8 @@ export function AXUI({ children }: AXUIProps) {
     {false &&<SpeechBubbleOpen visible={isOpen} />}
     {isOpen ? (
       <AXChatLastMessage
-        message={assistantMessage || ''}
-        userMessage={userMessage || ''}
+        message={assistantMessage}
+        userMessage={userMessage}
         onOpen={() => setIsOpen(true)}
         visible={true}
         isBusy={isBusy}
@@ -400,8 +401,8 @@ export function AXUI({ children }: AXUIProps) {
       />
     ) : (
       <AXChatNotificationPopover
-        message={assistantMessage || ''}
-        userMessage={userMessage || ''}
+        message={assistantMessage}
+        userMessage={userMessage}
         visible={notifVisible}
         onClose={() => setDismissedNotification(notificationKey)}
         onOpen={() => setIsOpen(true)}

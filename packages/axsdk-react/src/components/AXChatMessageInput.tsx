@@ -56,7 +56,7 @@ export function AXChatMessageInput({
   const { messages } = useStore(AXSDK.getChatStore());
   const lastMessage = messages?.[messages.length - 1];
   const latestError = errors[0] ?? null;
-  const effectiveError = !latestError?.url?.startsWith("axsdk://") || lastMessage?.info?.id === latestError?.id ? latestError : null
+  const effectiveError = !latestError?.url?.startsWith("axsdk://") || latestError?.method == "session" || (lastMessage?.info?.id === latestError?.id) ? latestError : null
 
   function handleSend() {
     const trimmed = message.trim();
