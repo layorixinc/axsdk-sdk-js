@@ -157,8 +157,8 @@ export function AXButton({
 
   const outerTransform = isOpen
     ? pressed
-      ? "translate(65%, 65%) scale(0.77)"
-      : "translate(65%, 65%)"
+      ? "translate(55%, 55%) scale(0.77)"
+      : "translate(55%, 55%)"
     : pressed
     ? "scale(0.77)"
     : undefined;

@@ -5,5 +5,6 @@ export * from './AXChat';
 export * from './AXChatMessage';
 export * from './AXChatMessageInput';
 export * from './AXChatNotificationPopover';
+export * from './AXChatLastMessage';
 export * from './AXDevTools';
 export * from './AXQuestionDialog';

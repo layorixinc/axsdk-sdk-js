@@ -6,6 +6,7 @@ import { useStore } from 'zustand';
 import { AXChatPopup } from './AXChatPopup';
 import { AXButton } from './AXButton';
 import { AXChatNotificationPopover } from './AXChatNotificationPopover';
+import { AXChatLastMessage } from './AXChatLastMessage';
 import { AXChatMessageInput } from './AXChatMessageInput';
 import { AXDevTools } from './AXDevTools';
 import { AXQuestionDialog } from './AXQuestionDialog';
@@ -373,18 +374,32 @@ export function AXUI({ children }: AXUIProps) {
     {false && <AXChatPopup visible={isOpen} onSendMessage={handleSend}></AXChatPopup>}
     <SpeechBubbleClosed visible={!isOpen && !chatWasEverOpened} />
     {false &&<SpeechBubbleOpen visible={isOpen} />}
-    <AXChatNotificationPopover
-      message={latestAssistantMessage}
-      userMessage={latestUserMessage}
-      visible={notifVisible}
-      onClose={() => setNotifDismissed(true)}
-      onOpen={() => setIsOpen(true)}
-      isBusy={isBusy}
-      isOpen={isOpen}
-      isDesktop={isDesktop}
-      inputBottomOffset={inputTopOffset ?? undefined}
-      scrollToBottomTrigger={scrollTrigger}
-    />
+    {isOpen ? (
+      <AXChatLastMessage
+        message={latestAssistantMessage}
+        userMessage={latestUserMessage}
+        visible={notifVisible}
+        onClose={() => setNotifDismissed(true)}
+        onOpen={() => setIsOpen(true)}
+        isBusy={isBusy}
+        isOpen={isOpen}
+        isDesktop={isDesktop}
+        inputBottomOffset={inputTopOffset ?? undefined}
+        scrollToBottomTrigger={scrollTrigger}
+      />
+    ) : (
+      <AXChatNotificationPopover
+        message={latestAssistantMessage}
+        userMessage={latestUserMessage}
+        visible={notifVisible}
+        onClose={() => setNotifDismissed(true)}
+        onOpen={() => setIsOpen(true)}
+        isBusy={isBusy}
+        isDesktop={isDesktop}
+        inputBottomOffset={inputTopOffset ?? undefined}
+        scrollToBottomTrigger={scrollTrigger}
+      />
+    )}
     <div
       style={{
         position: "fixed",
