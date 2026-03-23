@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { AXSDK } from '@axsdk/core';
 import { AXChatErrorBar } from './AXChatErrorBar';
 
@@ -90,8 +92,112 @@ export function AXChatMessagePopoverBase({
     fontSize: "0.95rem",
     lineHeight: `${LINE_HEIGHT_PX}px`,
     color: "rgba(255, 255, 255, 0.88)",
-    whiteSpace: "pre-wrap",
     wordBreak: "break-word",
+  };
+
+  const mdComponents: React.ComponentProps<typeof ReactMarkdown>['components'] = {
+    p: ({ children }) => (
+      <p style={{ margin: "0 0 0.6em 0", lineHeight: `${LINE_HEIGHT_PX}px` }}>{children}</p>
+    ),
+    ul: ({ children }) => (
+      <ul style={{ margin: "0 0 0.6em 0", paddingLeft: "1.4em" }}>{children}</ul>
+    ),
+    ol: ({ children }) => (
+      <ol style={{ margin: "0 0 0.6em 0", paddingLeft: "1.4em" }}>{children}</ol>
+    ),
+    li: ({ children }) => (
+      <li style={{ marginBottom: "0.2em", lineHeight: `${LINE_HEIGHT_PX}px` }}>{children}</li>
+    ),
+    h1: ({ children }) => (
+      <h1 style={{ fontSize: "1.3em", fontWeight: 700, margin: "0.6em 0 0.4em", color: "rgba(255,255,255,0.95)", lineHeight: 1.3 }}>{children}</h1>
+    ),
+    h2: ({ children }) => (
+      <h2 style={{ fontSize: "1.15em", fontWeight: 700, margin: "0.6em 0 0.4em", color: "rgba(255,255,255,0.93)", lineHeight: 1.3 }}>{children}</h2>
+    ),
+    h3: ({ children }) => (
+      <h3 style={{ fontSize: "1.05em", fontWeight: 600, margin: "0.5em 0 0.35em", color: "rgba(255,255,255,0.92)", lineHeight: 1.3 }}>{children}</h3>
+    ),
+    h4: ({ children }) => (
+      <h4 style={{ fontSize: "1em", fontWeight: 600, margin: "0.5em 0 0.3em", color: "rgba(255,255,255,0.90)", lineHeight: 1.3 }}>{children}</h4>
+    ),
+    h5: ({ children }) => (
+      <h5 style={{ fontSize: "0.95em", fontWeight: 600, margin: "0.4em 0 0.25em", color: "rgba(255,255,255,0.88)", lineHeight: 1.3 }}>{children}</h5>
+    ),
+    h6: ({ children }) => (
+      <h6 style={{ fontSize: "0.9em", fontWeight: 600, margin: "0.4em 0 0.25em", color: "rgba(255,255,255,0.85)", lineHeight: 1.3 }}>{children}</h6>
+    ),
+    code: ({ children, className }) => {
+      const isBlock = Boolean(className);
+      if (isBlock) {
+        return (
+          <code style={{
+            display: "block",
+            fontFamily: "'Fira Mono', 'Consolas', 'Menlo', monospace",
+            fontSize: "0.85em",
+            color: "rgba(220, 220, 255, 0.92)",
+          }}>{children}</code>
+        );
+      }
+      return (
+        <code style={{
+          background: "rgba(168, 85, 247, 0.15)",
+          borderRadius: 4,
+          padding: "0.1em 0.35em",
+          fontSize: "0.87em",
+          fontFamily: "'Fira Mono', 'Consolas', 'Menlo', monospace",
+          color: "rgba(220, 200, 255, 0.95)",
+          border: "1px solid rgba(168, 85, 247, 0.25)",
+        }}>{children}</code>
+      );
+    },
+    pre: ({ children }) => (
+      <pre style={{
+        background: "rgba(0, 0, 0, 0.4)",
+        borderRadius: 8,
+        padding: "10px 12px",
+        margin: "0.5em 0 0.7em",
+        overflowX: "auto",
+        border: "1px solid rgba(168, 85, 247, 0.2)",
+        fontSize: "0.87em",
+        lineHeight: 1.5,
+      }}>{children}</pre>
+    ),
+    a: ({ children, href }) => (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          color: "rgba(168, 85, 247, 0.9)",
+          textDecoration: "none",
+          borderBottom: "1px solid rgba(168, 85, 247, 0.4)",
+        }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.textDecoration = "underline"; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.textDecoration = "none"; }}
+      >{children}</a>
+    ),
+    strong: ({ children }) => (
+      <strong style={{ fontWeight: 700, color: "rgba(255, 255, 255, 0.97)" }}>{children}</strong>
+    ),
+    em: ({ children }) => (
+      <em style={{ fontStyle: "italic", color: "rgba(220, 200, 255, 0.9)" }}>{children}</em>
+    ),
+    blockquote: ({ children }) => (
+      <blockquote style={{
+        borderLeft: "3px solid rgba(168, 85, 247, 0.65)",
+        margin: "0.5em 0 0.7em",
+        paddingLeft: "0.85em",
+        color: "rgba(255, 255, 255, 0.72)",
+        fontStyle: "italic",
+      }}>{children}</blockquote>
+    ),
+    hr: () => (
+      <hr style={{
+        border: "none",
+        borderTop: "1px solid rgba(168, 85, 247, 0.3)",
+        margin: "0.75em 0",
+      }} />
+    ),
   };
 
   return (
@@ -230,7 +336,11 @@ export function AXChatMessagePopoverBase({
             ref={scrollableRef}
             style={wrapperStyle}
           >
-            <div style={contentStyle}>{message?.text || ''}</div>
+            <div style={contentStyle}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+                {message?.text || ''}
+              </ReactMarkdown>
+            </div>
           </div>
 
           {false && <button

@@ -1,6 +1,6 @@
 {
   "name": "@axsdk/react",
-  "version": "0.3.12",
+  "version": "0.3.13",
   "private": false,
   "description": "axsdk react",
   "keywords": [],
@@ -41,6 +41,8 @@
     "@axsdk/core": "^0.2.4",
     "react": "^19",
     "react-dom": "^19",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
