@@ -183,7 +183,7 @@ const DESKTOP_BREAKPOINT = 768;
 
 export function AXUI({ children }: AXUIProps) {
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
-  const [notifDismissed, setNotifDismissed] = useState(false);
+  const [dismissedNotification, setDismissedNotification] = useState("");
   const [lastAnswer, setLastAnswer] = useState<{ questionIndex: number; selectedOption: number; label: string } | null>(null);
   const [submitLog, setSubmitLog] = useState<string | null>(null);
   const [inputTopOffset, setInputTopOffset] = useState<number | null>(null);
@@ -214,11 +214,8 @@ export function AXUI({ children }: AXUIProps) {
   useEffect(() => {
     if (isOpen) {
       setChatWasEverOpened(true);
-      setNotifDismissed(false);
-    } else {
-      setNotifDismissed(true);
     }
-  }, [isOpen, setChatWasEverOpened, setNotifDismissed]);
+  }, [isOpen, setChatWasEverOpened]);
 
   const latestAssistantMessage = useMemo(() => {
     for(let i = messages.length - 1; i >= 0; i--) {
@@ -232,10 +229,17 @@ export function AXUI({ children }: AXUIProps) {
           .map((p) => p.text ?? "")
           .join("")
           .trim();
-        if (text) return text;
+        if (text) return msg;
       }
     }
   }, [messages]);
+
+  const assistantMessage = latestAssistantMessage && latestAssistantMessage.parts && latestAssistantMessage.parts.length &&
+    latestAssistantMessage.parts
+      .filter((p): p is TextPart => p.type === "text")
+      .map((p) => p.text ?? "")
+      .join("")
+      .trim();
 
   const latestUserMessage = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -246,16 +250,22 @@ export function AXUI({ children }: AXUIProps) {
         .map((p) => (p as TextPart).text ?? '')
         .join('')
         .trim();
-      if (text) return text;
+      if (text) return msg;
     }
     return undefined;
   }, [messages]);
 
-  useEffect(() => {
-    setNotifDismissed(false);
-  }, [latestUserMessage, latestAssistantMessage]);
+  const userMessage = latestUserMessage && latestUserMessage.parts && latestUserMessage.parts.length && 
+    latestUserMessage.parts
+      .filter((p): p is TextPart => p.type === "text")
+      .map((p) => p.text ?? "")
+      .join("")
+      .trim();
 
-  const notifVisible = (!!latestUserMessage || !!latestAssistantMessage) && !notifDismissed;
+  const notificationKey = `${latestUserMessage?.info?.id ?? ''}:${latestAssistantMessage?.info?.id ?? ''}`
+
+  const notifVisible = (!!userMessage || !!userMessage) && dismissedNotification !== notificationKey
+  console.log(userMessage, userMessage, dismissedNotification, notificationKey);
 
   // Measure input wrapper top position to align notification popover.
   // Re-measure whenever isOpen changes so we capture the on-screen position
@@ -378,11 +388,10 @@ export function AXUI({ children }: AXUIProps) {
     {false &&<SpeechBubbleOpen visible={isOpen} />}
     {isOpen ? (
       <AXChatLastMessage
-        message={latestAssistantMessage}
-        userMessage={latestUserMessage}
-        visible={notifVisible}
-        onClose={() => setNotifDismissed(true)}
+        message={assistantMessage || ''}
+        userMessage={userMessage || ''}
         onOpen={() => setIsOpen(true)}
+        visible={true}
         isBusy={isBusy}
         isOpen={isOpen}
         isDesktop={isDesktop}
@@ -391,10 +400,10 @@ export function AXUI({ children }: AXUIProps) {
       />
     ) : (
       <AXChatNotificationPopover
-        message={latestAssistantMessage}
-        userMessage={latestUserMessage}
+        message={assistantMessage || ''}
+        userMessage={userMessage || ''}
         visible={notifVisible}
-        onClose={() => setNotifDismissed(true)}
+        onClose={() => setDismissedNotification(notificationKey)}
         onOpen={() => setIsOpen(true)}
         isBusy={isBusy}
         isDesktop={isDesktop}

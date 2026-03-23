@@ -222,6 +222,7 @@ export function AXChatMessageInput({
             border: "none",
             borderRadius: 10,
             marginLeft: "0.5rem",
+            marginRight: "2rem",
             height: "3rem",
             color: message.trim() ? "#fff" : "rgba(255, 255, 255, 0.25)",
             fontSize: "1rem",

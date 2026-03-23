@@ -10,7 +10,7 @@ const COLLAPSED_HEIGHT_PX = LINE_HEIGHT_PX * COLLAPSED_LINES + 20;
 export interface AXChatLastMessageProps {
   message?: string|null;
   userMessage?: string;
-  onClose: () => void;
+  onClose?: () => void;
   onOpen?: () => void;
   visible: boolean;
   /** True while the AI session is streaming/responding */
@@ -187,9 +187,9 @@ export function AXChatLastMessage({
             )}
           </div>
 
-          <button
+          {false && <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); onClose(); }}
+            onClick={(e) => { e.stopPropagation(); onClose?.(); }}
             aria-label="Close notification"
             style={{
               position: "absolute",
@@ -214,7 +214,7 @@ export function AXChatLastMessage({
             onMouseLeave={(e) => { const b = e.currentTarget as HTMLButtonElement; b.style.background = "rgba(255, 255, 255, 0.2)"; b.style.border = "1px solid rgba(168, 85, 247, 0.4)"; b.style.color = "rgba(255,255,255,0.85)"; }}
           >
             ×
-          </button>
+          </button>}
 
           <div className="ax-notif-content"
             ref={scrollableRef}
