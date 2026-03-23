@@ -7,7 +7,7 @@ export function setError(id: string, error: MessageError) {
     id: id,
     timestamp: Date.now(),
     url: `axsdk://${id}`,
-    method: '',
+    method: 'message',
     status: error.data?.statusCode,
     statusText: error?.name ?? '',
     message: error.data?.message ?? '',
@@ -60,12 +60,29 @@ export async function updateFromSessionStatus(payload: unknown) {
   if (!session) {
     return;
   }
-  const data = payload as { status: { type: string }; sessionID: string };
+  const data = payload as { status: { type: string, message: string }; sessionID: string };
   if (session.id !== data.sessionID) {
     return;
   }
   const status = data.status.type;
   chatState.setSession({ ...session, status });
+
+  const GOOD_STATUS = ['', 'idle', 'busy']
+  if(!GOOD_STATUS.includes(data.status.type)) {
+    const id = data.sessionID
+    errorStore.getState().removeError(id)
+    errorStore.getState().addError({
+      id: id,
+      timestamp: Date.now(),
+      url: `axsdk://${id}`,
+      method: 'session',
+      status: 500,
+      statusText: data.status.type ?? '',
+      message: data.status.message ?? '',
+      requestBody: undefined,
+      responseBody: data.status.message
+    } as ApiError)
+  }
   return status;
 }
 
