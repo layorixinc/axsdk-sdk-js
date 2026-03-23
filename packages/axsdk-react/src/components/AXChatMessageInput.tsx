@@ -161,7 +161,7 @@ export function AXChatMessageInput({
         </div>
       )}
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 1rem", }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.25rem" }}>
         <button
           type="button"
           onClick={() => onClear?.()}
@@ -173,7 +173,7 @@ export function AXChatMessageInput({
             border: "none",
             borderRadius: 10,
             color: "rgba(255, 255, 255, 0.45)",
-            width: "3rem",
+            width: "4rem",
             height: "3rem",
             display: "flex",
             alignItems: "center",
@@ -212,12 +212,15 @@ export function AXChatMessageInput({
           onClick={handleSend}
           disabled={disabled || !message.trim()}
           style={{
+            flex: 1,
             flexShrink: 0,
             background: message.trim()
               ? "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)"
               : "rgba(255, 255, 255, 0.07)",
             border: "none",
             borderRadius: 10,
+            marginLeft: "0.5rem",
+            height: "3rem",
             color: message.trim() ? "#fff" : "rgba(255, 255, 255, 0.25)",
             fontSize: "1rem",
             fontWeight: 600,
@@ -227,6 +230,7 @@ export function AXChatMessageInput({
             letterSpacing: "0.04em",
             display: "flex",
             alignItems: "center",
+            justifyContent: "center",
             gap: 5,
             whiteSpace: "nowrap",
           }}

@@ -361,6 +361,10 @@ export function AXUI({ children }: AXUIProps) {
   const handleSend = (text: string) => {
     AXSDK.sendMessage(text);
   }
+  function handleClear() {
+    AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.cancel' });
+    AXSDK.resetSession();
+  }
 
   if (!portalTarget) return null;
 
@@ -415,6 +419,7 @@ export function AXUI({ children }: AXUIProps) {
         <AXChatMessageInput
           placeholder={AXSDK.t("chatInput")}
           onSend={handleSend}
+          onClear={handleClear}
           autoFocus
           focusTrigger={focusTrigger}
           guideText={
