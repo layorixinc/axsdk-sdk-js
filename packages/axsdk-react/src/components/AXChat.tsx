@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useRef, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { AXChatMessage } from './AXChatMessage';
 import { type ChatMessage } from '@axsdk/core';

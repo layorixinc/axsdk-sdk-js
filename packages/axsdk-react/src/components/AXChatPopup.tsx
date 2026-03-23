@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AXChat } from './AXChat';
 import type { AXChatHandle } from './AXChat';

@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useRef, useState, useEffect } from 'react';
 import { AXSDK } from '@axsdk/core';
 import { useStore } from 'zustand';

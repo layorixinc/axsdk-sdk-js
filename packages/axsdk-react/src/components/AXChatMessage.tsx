@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import type { ChatMessage, MessagePart, TextPart, ReasoningPart, StepFinishPart, ToolPart } from '@axsdk/core';
 import { AXSDK } from '@axsdk/core';
