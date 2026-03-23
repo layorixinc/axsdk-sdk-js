@@ -16,6 +16,11 @@ export interface AXChatMessageInputProps {
   autoFocus?: boolean;
   /** Called when the textarea is focused automatically (via autoFocus). */
   onAutoFocus?: () => void;
+  /**
+   * Increment this value to programmatically focus the message textarea.
+   * Typically incremented after the open animation completes (~300ms after isOpen becomes true).
+   */
+  focusTrigger?: number;
 }
 
 export function AXChatMessageInput({
@@ -28,6 +33,7 @@ export function AXChatMessageInput({
   guideText,
   autoFocus = false,
   onAutoFocus,
+  focusTrigger,
 }: AXChatMessageInputProps) {
   const [message, setMessage] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -38,6 +44,12 @@ export function AXChatMessageInput({
       onAutoFocus?.();
     }
   }, [autoFocus]);
+
+  // Focus the textarea whenever focusTrigger increments
+  useEffect(() => {
+    if (focusTrigger == null) return;
+    textareaRef.current?.focus();
+  }, [focusTrigger]);
   const { errors } = useStore(AXSDK.getErrorStore());
   const { messages } = useStore(AXSDK.getChatStore());
   const lastMessage = messages?.[messages.length - 1];
@@ -69,7 +81,8 @@ export function AXChatMessageInput({
         border: "1px solid rgba(255, 255, 255, 0.12)",
         borderRadius: "1.25rem",
         boxShadow: "0 8px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(120,80,255,0.15)",
-        padding: "1rem",
+        padding: "0.5rem",
+        paddingBottom: "0.25rem",
         display: "flex",
         flexDirection: "column",
         gap: 10,
@@ -148,7 +161,7 @@ export function AXChatMessageInput({
         </div>
       )}
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 1rem", }}>
         <button
           type="button"
           onClick={() => onClear?.()}

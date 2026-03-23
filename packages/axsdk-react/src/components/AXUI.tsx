@@ -6,6 +6,7 @@ import { useStore } from 'zustand';
 import { AXChatPopup } from './AXChatPopup';
 import { AXButton } from './AXButton';
 import { AXChatNotificationPopover } from './AXChatNotificationPopover';
+import { AXChatMessageInput } from './AXChatMessageInput';
 import { AXDevTools } from './AXDevTools';
 import { AXQuestionDialog } from './AXQuestionDialog';
 
@@ -33,7 +34,6 @@ function SpeechBubbleClosed({ visible }: { visible: boolean }) {
         opacity: visible ? undefined : 0,
       }}
     >
-      {/* Bubble body */}
       <div
         style={{
           background: "rgba(18, 18, 28, 0.92)",
@@ -176,16 +176,28 @@ function SpeechBubbleOpen({ visible }: { visible: boolean }) {
   );
 }
 
+const DESKTOP_BREAKPOINT = 768;
+
 export function AXUI({ children }: AXUIProps) {
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
-  // Track the message text that was manually dismissed; when a different (new) message arrives,
-  // the popover will show again automatically — no useEffect needed.
-  const [dismissedMessage, setDismissedMessage] = useState<string | undefined>(undefined);
+  const [notifDismissed, setNotifDismissed] = useState(false);
   const [lastAnswer, setLastAnswer] = useState<{ questionIndex: number; selectedOption: number; label: string } | null>(null);
   const [submitLog, setSubmitLog] = useState<string | null>(null);
+  const [inputTopOffset, setInputTopOffset] = useState<number | null>(null);
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= DESKTOP_BREAKPOINT);
+  const [scrollTrigger, setScrollTrigger] = useState(0);
+  const [focusTrigger, setFocusTrigger] = useState(0);
+  const messageInputWrapperRef = useRef<HTMLDivElement | null>(null);
 
   const { isOpen, setIsOpen, chatWasEverOpened, setChatWasEverOpened, messages, questions, setQuestions, session } = useStore(AXSDK.getChatStore());
   const isBusy = session?.status === 'busy';
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(min-width: ${DESKTOP_BREAKPOINT}px)`);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   const prevStatusRef = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -199,8 +211,11 @@ export function AXUI({ children }: AXUIProps) {
   useEffect(() => {
     if (isOpen) {
       setChatWasEverOpened(true);
+      setNotifDismissed(false);
+    } else {
+      setNotifDismissed(true);
     }
-  }, [isOpen, setChatWasEverOpened]);
+  }, [isOpen, setChatWasEverOpened, setNotifDismissed]);
 
   const latestAssistantMessage = useMemo(() => {
     for(let i = messages.length - 1; i >= 0; i--) {
@@ -233,7 +248,61 @@ export function AXUI({ children }: AXUIProps) {
     return undefined;
   }, [messages]);
 
-  const notifVisible = !isOpen && (!!latestUserMessage || (!!latestAssistantMessage || latestAssistantMessage !== dismissedMessage));
+  useEffect(() => {
+    setNotifDismissed(false);
+  }, [latestUserMessage, latestAssistantMessage]);
+
+  const notifVisible = (!!latestUserMessage || !!latestAssistantMessage) && !notifDismissed;
+
+  // Measure input wrapper top position to align notification popover.
+  // Re-measure whenever isOpen changes so we capture the on-screen position
+  // after the slide-in transition completes (the container uses translateY).
+  useEffect(() => {
+    const wrapper = messageInputWrapperRef.current;
+    if (!wrapper || !isOpen) return;
+
+    const measure = () => {
+      const rect = wrapper.getBoundingClientRect();
+      // distance from the bottom of viewport to the top of the input wrapper
+      setInputTopOffset(window.innerHeight - rect.top + 8);
+    };
+
+    // Small delay to let the CSS transition finish before measuring.
+    // After measuring, also trigger scroll-to-bottom on the notification popover
+    // and focus on the message input.
+    const timerId = setTimeout(() => {
+      measure();
+      setScrollTrigger(n => n + 1);
+      setFocusTrigger(n => n + 1);
+    }, 320);
+
+    const ro = new ResizeObserver(measure);
+    ro.observe(wrapper);
+    window.addEventListener('resize', measure);
+
+    return () => {
+      clearTimeout(timerId);
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [isOpen]);
+
+  // On initial mount, if isOpen is already true (e.g. after page refresh),
+  // the [isOpen] effect above won't fire a transition-triggered measurement.
+  // This effect runs once at mount and handles that case.
+  useEffect(() => {
+    if (!isOpen) return;
+    const timerId = setTimeout(() => {
+      const wrapper = messageInputWrapperRef.current;
+      if (!wrapper) return;
+      const rect = wrapper.getBoundingClientRect();
+      setInputTopOffset(window.innerHeight - rect.top + 8);
+      setScrollTrigger(n => n + 1);
+      setFocusTrigger(n => n + 1);
+    }, 320);
+    return () => clearTimeout(timerId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     // Inject keyframe animations into the document head once
@@ -297,17 +366,67 @@ export function AXUI({ children }: AXUIProps) {
 
   const content = <div>
     {children}
-    <AXChatPopup visible={isOpen} onSendMessage={handleSend}></AXChatPopup>
+    {false && <AXChatPopup visible={isOpen} onSendMessage={handleSend}></AXChatPopup>}
     <SpeechBubbleClosed visible={!isOpen && !chatWasEverOpened} />
-    <SpeechBubbleOpen visible={isOpen} />
+    {false &&<SpeechBubbleOpen visible={isOpen} />}
     <AXChatNotificationPopover
       message={latestAssistantMessage}
       userMessage={latestUserMessage}
       visible={notifVisible}
-      onClose={() => setDismissedMessage(latestAssistantMessage)}
+      onClose={() => setNotifDismissed(true)}
       onOpen={() => setIsOpen(true)}
       isBusy={isBusy}
+      isOpen={isOpen}
+      isDesktop={isDesktop}
+      inputBottomOffset={inputTopOffset ?? undefined}
+      scrollToBottomTrigger={scrollTrigger}
     />
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: isOpen && isDesktop ? "flex-end" : "center",
+        zIndex: 10000,
+        pointerEvents: "none",
+        transition: "transform 0.3s ease",
+        transform: isOpen ? "translateY(0)" : "translateY(100%)",
+      }}
+    >
+      <div style={{ flex: 3 }} />
+      <div
+        ref={messageInputWrapperRef}
+        style={{
+          flex: 1,
+          width: isOpen && isDesktop ? "min(420px, 40vw)" : "min(680px, 90vw)",
+          marginRight: isOpen && isDesktop ? "1.25rem" : undefined,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "flex-start",
+          alignItems: "center",
+          boxSizing: "border-box",
+          pointerEvents: isOpen ? "auto" : "none",
+        }}
+      >
+        <AXChatMessageInput
+          placeholder={AXSDK.t("chatInput")}
+          onSend={handleSend}
+          autoFocus
+          focusTrigger={focusTrigger}
+          guideText={
+            !messages.length ? AXSDK.t("chatEmpty") :
+            session?.status === "busy" ? AXSDK.t("chatBusyGuide") :
+            session?.status === "idle" || !session?.status ? AXSDK.t("chatIdleGuide") :
+            undefined
+          }
+        />
+      </div>
+    </div>
+
     {questions && (
       <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 99999, width: '100%', maxWidth: '420px' }}>
         {AXSDK.config?.debug && lastAnswer && (
