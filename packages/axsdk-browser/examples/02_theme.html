@@ -88,8 +88,35 @@ Get in touch with us through the appropriate channel for your needs.
           console.log(command, args);
           throw new Error(`Unknown command: ${command}`);
         },
+        // Example: Light mode with a custom bot button image
+        // theme: {
+        //   colorMode: 'light',
+        //   buttonImageUrl: 'https://example.com/bot.png',
+        //   buttonAnimationImageUrl: 'https://example.com/bot-busy.gif',
+        // },
+
+        // Example: Dark mode with custom brand colors
+        // theme: {
+        //   colorMode: 'dark',
+        //   colors: {
+        //     primary: {
+        //       primary: '#e11d48',
+        //       primaryDark: '#be123c',
+        //     },
+        //   },
+        // },
+        theme: {
+          colorMode: 'light',
+          buttonImageUrl: 'https://objectstorage.ap-seoul-1.oraclecloud.com/n/axqpxq9illpn/b/axsdk/o/favicon-196x196.png',
+          buttonAnimationImageUrl: 'https://objectstorage.ap-seoul-1.oraclecloud.com/n/axqpxq9illpn/b/axsdk/o/axsdk.gif',
+          colors: {
+            primary: {
+              primaryLight: '#ccc',
+            }
+          },
+        },
       });
     </script>
-    
+
   </body>
 </html>

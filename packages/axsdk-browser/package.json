@@ -1,6 +1,6 @@
 {
   "name": "@axsdk/browser",
-  "version": "0.1.8",
+  "version": "0.2.0",
   "private": false,
   "description": "axsdk browser - embed AXSDK widget in web",
   "keywords": [],
