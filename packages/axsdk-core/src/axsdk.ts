@@ -5,7 +5,7 @@ import type { AXSDKConfig, AXHandler } from './types';
 export type * from './types';
 import { ApiError } from './apiclient';
 import * as api from './axapi';
-import { appStore, chatStore, errorStore, type AppState, type ChatState, type ErrorState } from './store';
+import { appStore, chatStore, envStore, dataStore, errorStore, type AppState, type ChatState, type EnvState, type DataState, type ErrorState } from './store';
 import * as AXCHAT from './axchat';
 import * as AXCALL from './axcall';
 import { AXSDK_TRANSLATIONS } from './translations';
@@ -19,7 +19,8 @@ class AxSdk extends EventEmitter {
 
     EventBus.on('message', async (data: unknown) => {
       const { payload: { type, properties } } = data as { payload: { type: string; properties: unknown } };
-      if (type === 'session.status'
+      if (type === 'server.connected'
+        || type === 'session.status'
         || type === 'session.updated'
         || type === 'message.updated'
         || type === 'message.part.updated'
@@ -47,6 +48,8 @@ class AxSdk extends EventEmitter {
     appStore.getState().setLanguage(config.language ?? browserLanguage ?? 'en');
     const translations = Object.fromEntries([...Object.keys(AXSDK_TRANSLATIONS), ...Object.keys(config?.translations ?? {})].map(lang => [lang, { ...AXSDK_TRANSLATIONS[lang], ...config?.translations?.[lang] }]));
     chatStore.getState().setTranslations(translations || {});
+    envStore.getState().setEnv(config.env && (typeof config.env == 'function' ? await config.env() : config.env) || {});
+    dataStore.getState().setData(config.data && (typeof config.data == 'function' ? await config.data() : config.data) || {});
 
     if (!isUpdate) {
       api.init(this.requestInterceptor.bind(this), this.errorInterceptor.bind(this));
@@ -96,12 +99,24 @@ class AxSdk extends EventEmitter {
     return chatStore;
   }
 
+  public getEnvStore(): StoreApi<EnvState> {
+    return envStore;
+  }
+
+  public getDataStore(): StoreApi<DataState> {
+    return dataStore;
+  }
+
   public getErrorStore(): StoreApi<ErrorState> {
     return errorStore;
   }
 
   public getChatState(): ChatState {
     return chatStore.getState();
+  }
+
+  public getDataState(): DataState {
+    return dataStore.getState();
   }
 
   public resetSession() {
@@ -113,6 +128,33 @@ class AxSdk extends EventEmitter {
 
   public sendMessage(text: string) {
     AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.message', data: { text } });
+  }
+
+  public setData(data?: any): void {
+    this.getDataState().setData(data)
+  }
+
+  public updateData(key: string, data?: any[]): void {
+    this.getDataState().updateData({ [key]: data })
+  }
+
+  public clearData() {
+    this.getDataState().clearData()
+  }
+
+  public getData(key: string): any[] | undefined {
+    return this.getDataState().data?.[key] as any;
+  }
+
+  public getAllData(): any[] | undefined {
+    const data = this.getDataState().data as any;
+    if(!data) {
+      return data
+    }
+    if(typeof data == 'object') {
+      return Object.keys(data).map(key => ({ key, data: data[key] }))
+    }
+    return data
   }
 
   private async errorInterceptor(error: ApiError): Promise<ApiError> {

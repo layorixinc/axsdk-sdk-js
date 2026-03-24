@@ -1,4 +1,4 @@
-import type { ChatSession, MessagePart, QuestionData } from './types';
+import type { ChatMessage, ChatSession, MessagePart, QuestionData } from './types';
 import * as api from './axapi';
 import { getSSEService, type SSE } from './sse';
 import { appStore, chatStore } from './store';
@@ -135,6 +135,16 @@ async function handleQuestionAsked(data: unknown) {
   chatStore.getState().setQuestions(data as QuestionData);
 }
 
+async function handleServerConnected(data: unknown) {
+  const { app, state: { session, messages }} = data as { app: any, state: { session: ChatSession, messages: ChatMessage[] } };
+  if(session) {
+    updateFromSessionUpdate({ info: session });
+  }
+  if(messages) {
+    updateFromMessages(messages)
+  }
+}
+
 async function handleMessage(properties: unknown) {
   const { type, data } = properties as { type: string, data: unknown };
 
@@ -173,6 +183,9 @@ async function handleMessage(properties: unknown) {
   }
   else if (type === 'question.asked') {
     return handleQuestionAsked(data);
+  }
+  else if (type == 'server.connected') {
+    return handleServerConnected(data);
   }
 }
 

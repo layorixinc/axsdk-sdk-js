@@ -142,3 +142,59 @@ export const chatStore = createStore<ChatState>()(
     }
   ),
 );
+
+export interface EnvState {
+  isLoading: boolean;
+  env?: Record<string, unknown>;
+  setEnv: (env?: Record<string, unknown>) => void;
+  updateEnv: (env?: Record<string, unknown>) => void;
+  clear: () => void;
+}
+
+export const envStore = createStore<EnvState>()(
+  persist(
+    (set, get) => ({
+      isLoading: false,
+      env: undefined,
+      setEnv: (env?: Record<string, unknown>) => set({ env }),
+      updateEnv: (env?: Record<string, unknown>) => set({ env: { ...get().env, ...env } }),
+      clear: () => set({ env: undefined }),
+    }),
+    {
+      name: 'axsdk:env',
+      storage: createJSONStorage(() => (typeof window !== 'undefined' ? localStorage : (() => {
+        const noop = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+        return noop;
+      })())),
+      partialize: (state) => ({ }),
+    }
+  ),
+);
+
+export interface DataState {
+  isLoading: boolean;
+  data?: Record<string, unknown>;
+  setData: (data?: Record<string, unknown>) => void;
+  updateData: (data?: Record<string, unknown>) => void;
+  clearData: () => void;
+}
+
+export const dataStore = createStore<DataState>()(
+  persist(
+    (set, get) => ({
+      isLoading: false,
+      data: undefined,
+      setData: (data?: Record<string, unknown>) => set({ data }),
+      updateData: (data?: Record<string, unknown>) => set({ data: { ...get().data, ...data } }),
+      clearData: () => set({ data: undefined }),
+    }),
+    {
+      name: 'axsdk:data',
+      storage: createJSONStorage(() => (typeof window !== 'undefined' ? localStorage : (() => {
+        const noop = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+        return noop;
+      })())),
+      partialize: (state) => ({ }),
+    }
+  ),
+);

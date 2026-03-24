@@ -26,6 +26,12 @@ export async function processAXHandler(command: string, args: Record<string, unk
   const systemResult: Record<string, unknown> = {};
   if (command === 'AX_get_env') {
     systemResult['now'] = new Date().toISOString();
+
+    const envState = AXSDK.getEnvStore().getState();
+    const env = AXSDK.config?.env && (typeof AXSDK.config?.env == 'function' ? await AXSDK.config?.env() : AXSDK.config?.env) || {}
+    envState.setEnv(env);
+
+    Object.assign(systemResult, env);
   }
   if (command === 'AX_clear') {
     AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.cancel' });

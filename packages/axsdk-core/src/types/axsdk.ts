@@ -15,5 +15,13 @@ export const AXSDKConfigSchema = z.object({
   language: z.string().optional(),
   debug: z.boolean().optional(),
   translations: z.record(z.string(), AXSDKTranslationsSchema).optional(),
+  env: z.union([
+    z.function().output(z.promise(z.record(z.string(), z.any()))),
+    z.record(z.string(), z.any())
+  ]).optional(),
+  data: z.union([
+    z.function().output(z.promise(z.record(z.string(), z.any()))),
+    z.record(z.string(), z.any())
+  ]).optional(),
 });
 export type AXSDKConfig = z.infer<typeof AXSDKConfigSchema>;
