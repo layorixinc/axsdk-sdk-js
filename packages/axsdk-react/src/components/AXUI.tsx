@@ -214,6 +214,9 @@ export function AXUI({ children }: AXUIProps) {
   useEffect(() => {
     if (isOpen) {
       setChatWasEverOpened(true);
+      AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.open' });
+    } else {
+      AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.close' });
     }
   }, [isOpen, setChatWasEverOpened]);
 
