@@ -27,13 +27,12 @@ export async function processAXHandler(command: string, args: Record<string, unk
   if (command === 'AX_get_env') {
     systemResult['now'] = new Date().toISOString();
   }
-  if (command === 'AXSDK_clear') {
+  if (command === 'AX_clear') {
     AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.cancel' });
     AXSDK.resetSession();
     return 'OK'
   }
-
-  if (command === 'AXSDK_screenshot') {
+  if (command === 'AX_screenshot') {
     const dataUrl = await captureScreenshot();
     return dataUrl;
   }
