@@ -66,13 +66,33 @@ window.addEventListener('message', async (event: MessageEvent) => {
     });
   };
 
+  async function _axHandler(command: string, args: unknown): Promise<string | { '$': string | (() => Promise<void>), message: string }> {
+    const result = await axHandler(command, args) as string | { '$': string | (() => Promise<void>), message: string };
+    if(typeof result == 'string') {
+      return result
+    }
+    if(result.$) {
+      const callbackId = result.$;
+      result.$ = async () => {
+        window.parent.postMessage(
+          {
+            type: 'AXSDK_HANDLER_CALLBACK',
+            callbackId
+          },
+          '*',
+        );
+      }
+    }
+    return result;
+  }
+
   // ---------------------------------------------------------------------------
   // Initialise the AXSDK core with the forwarded config + RPC axHandler
   // ---------------------------------------------------------------------------
 
   AXSDK.init({
     ...config,
-    axHandler,
+    axHandler: _axHandler,
   });
 
   // ---------------------------------------------------------------------------

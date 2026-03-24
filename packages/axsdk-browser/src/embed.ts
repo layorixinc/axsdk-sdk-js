@@ -6,6 +6,8 @@
  * exposes the global `AXSDKBrowser` API for postMessage-based communication.
  */
 
+import { handleAX, executeCallback, type AXHandler } from "./axhandler";
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -13,7 +15,7 @@
 export interface AXSDKBrowserConfig {
   apiKey: string;
   appId: string;
-  axHandler?: (command: string, args: unknown) => Promise<unknown>;
+  axHandler?: AXHandler;
   [key: string]: unknown;
 }
 
@@ -22,7 +24,7 @@ export interface AXSDKBrowserConfig {
 // ---------------------------------------------------------------------------
 
 let _iframe: HTMLIFrameElement | null = null;
-let _axHandler: ((command: string, args: unknown) => Promise<unknown>) | undefined;
+let _axHandler: AXHandler | undefined;
 
 // ---------------------------------------------------------------------------
 // Responsive sizing
@@ -90,7 +92,8 @@ window.addEventListener('message', async (event: MessageEvent) => {
     };
 
     try {
-      const result = await _axHandler(command, args);
+      const result = await handleAX(_axHandler, command, args);
+
       _iframe.contentWindow?.postMessage(
         { type: 'AXSDK_HANDLER_RESPONSE', requestId, result },
         '*',
@@ -101,6 +104,16 @@ window.addEventListener('message', async (event: MessageEvent) => {
         { type: 'AXSDK_HANDLER_RESPONSE', requestId, error: errorMessage },
         '*',
       );
+    }
+  } else if (data?.type === 'AXSDK_HANDLER_CALLBACK') {
+    const { callbackId } = data as {
+      callbackId: string;
+    };
+
+    try {
+      await executeCallback(callbackId);
+    } catch (err) {
+      console.error('Error handling callback:', err);
     }
   }
 });

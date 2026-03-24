@@ -30,30 +30,37 @@ function purgeExpiredCallIds(): void {
 export async function handleAXSDKCall(properties: unknown) {
   const { sessionID, call } = properties as { sessionID: string; call: Call };
 
-  purgeExpiredCallIds();
-
-  const now = Date.now();
-  const cachedAt = processedCallIds.get(call.id);
-  if (cachedAt !== undefined && now - cachedAt <= CALL_ID_TTL_MS) {
-    return;
-  }
-  processedCallIds.set(call.id, now);
-
-  const session = chatStore.getState().session;
-
-  let status: string = 'completed';
-  let result: string = '';
   try {
-    const args = typeof call.args === 'string' ? JSON.parse(call.args) : call.args;
-    result = await processAXHandler(call.command, args);
-  }
-  catch (e) {
-    console.error('axHandler: error:', e);
-    status = 'failed';
-    result = `ERROR: ${e}`;
-  }
+    purgeExpiredCallIds();
 
-  await api.updateCall(call.id, status, result);
+    const now = Date.now();
+    const cachedAt = processedCallIds.get(call.id);
+    if (cachedAt !== undefined && now - cachedAt <= CALL_ID_TTL_MS) {
+      return;
+    }
+    processedCallIds.set(call.id, now);
+
+    let status: string = 'completed';
+    let result: string | { "$": () => Promise<void>, message: string };
+    try {
+      const args = typeof call.args === 'string' ? JSON.parse(call.args) : call.args;
+      result = await processAXHandler(call.command, args);
+    }
+    catch (e) {
+      console.error('axHandler: error:', e);
+      status = 'failed';
+      result = `ERROR: ${e}`;
+    }
+
+    if(typeof result === 'string') {
+      await api.updateCall(call.id, status, result);
+    } else {
+      await api.updateCall(call.id, status, result.message);
+      await result.$();
+    }
+  } catch (e) {
+    console.error('handleAXSDKCall: error:', e);
+  }
 }
 
 let pollingInterval: ReturnType<typeof setInterval> | undefined = undefined;
