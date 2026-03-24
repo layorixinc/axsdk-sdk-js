@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { AXSDK } from '@axsdk/core';
 import { AXChatErrorBar } from './AXChatErrorBar';
+
+const ReactMarkdown = React.lazy(() => import('react-markdown'))
 
 const LINE_HEIGHT_PX = 20;
 const COLLAPSED_LINES = 4;
@@ -52,6 +52,11 @@ export function AXChatMessagePopoverBase({
 }: AXChatMessagePopoverBaseProps) {
   const [expanded, setExpanded] = useState<boolean>(false);
   const scrollableRef = useRef<HTMLDivElement>(null);
+  const [remarkGfm, setRemarkGfm] = useState<unknown>(null)
+
+  useEffect(() => {
+    import('remark-gfm').then((module) => setRemarkGfm(module.default));
+  }, []);
 
   // Auto-expand when isBusy transitions to false (idle)
   useEffect(() => {
@@ -337,7 +342,10 @@ export function AXChatMessagePopoverBase({
             style={wrapperStyle}
           >
             <div style={contentStyle}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+              <ReactMarkdown
+                /*
+                // @ts-expect-error ignore the type error for remarkGfm */
+                remarkPlugins={[remarkGfm]} components={mdComponents}>
                 {message?.text || ''}
               </ReactMarkdown>
             </div>
