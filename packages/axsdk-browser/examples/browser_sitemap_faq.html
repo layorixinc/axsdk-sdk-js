@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>axsdk-browser</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="https://unpkg.com/@axsdk/browser/dist/axsdk-browser.js"></script>
+    <script>
+      AXSDK.init({
+        apiKey: 'YOUR-API-KEY',
+        appId:  'YOUR-APP-ID',
+        debug: true,
+        env: {
+          me: "lordkeios@layorix.ai",
+          sitemap: `# Navigation Demo Site
+> AXSDK demo site showcasing a multi-level navigation structure with products, services, company information, and contact pages.
+
+## Home
+- [Home](/): The main landing page of the Navigation Demo Site.
+
+## Products
+Overview of all product offerings including software and hardware categories.
+- [Products](/products): Browse all available products.
+- [Software](/products/software): Explore the full range of software products.
+- [Web Apps](/products/software/web-apps): Browser-based web application solutions.
+- [Mobile Apps](/products/software/mobile-apps): Mobile applications for iOS and Android platforms.
+- [Desktop Apps](/products/software/desktop-apps): Desktop applications for Windows, macOS, and Linux.
+- [Hardware](/products/hardware): Explore the full range of hardware products.
+- [Computers](/products/hardware/computers): Desktop and laptop computer systems.
+- [Peripherals](/products/hardware/peripherals): Keyboards, mice, monitors, and other accessories.
+- [Networking](/products/hardware/networking): Routers, switches, and networking equipment.
+
+## Services
+Professional services including consulting, support, and training.
+- [Services](/services): Overview of all available services.
+- [Consulting](/services/consulting): Expert consulting services for your business needs.
+- [IT Consulting](/services/consulting/it-consulting): Technology strategy and IT infrastructure consulting.
+- [Business Consulting](/services/consulting/business-consulting): Business process improvement and management consulting.
+- [Strategy](/services/consulting/strategy): Long-term strategic planning and advisory services.
+- [Support](/services/support): Comprehensive support services for customers.
+- [Technical Support](/services/support/technical): Technical troubleshooting and issue resolution.
+- [Customer Service](/services/support/customer-service): General customer service and inquiries.
+- [Knowledge Base](/services/support/knowledge-base): Self-service documentation and guides.
+- [Training](/services/training): Educational programs to develop your team's skills.
+- [Online Courses](/services/training/online-courses): Self-paced online learning modules and video courses.
+- [Workshops](/services/training/workshops): Hands-on instructor-led training workshops.
+- [Certifications](/services/training/certifications): Professional certification programs and exams.
+
+## About
+Learn more about our company, career opportunities, and latest news.
+- [About](/about): Overview of the company and its mission.
+- [Company](/about/company): Detailed information about the organization.
+- [History](/about/company/history): The founding story and milestones of the company.
+- [Mission](/about/company/mission): Our core values, vision, and mission statement.
+- [Team](/about/company/team): Meet the leadership and key team members.
+- [Careers](/about/careers): Explore opportunities to join our team.
+- [Open Positions](/about/careers/open-positions): Current job openings and available roles.
+- [Benefits](/about/careers/benefits): Employee benefits, perks, and compensation details.
+- [Culture](/about/careers/culture): Our workplace culture, values, and environment.
+- [News](/about/news): Stay up to date with the latest company news.
+- [Press Releases](/about/news/press-releases): Official press releases and announcements.
+- [Blog](/about/news/blog): Articles, insights, and updates from our team.
+- [Events](/about/news/events): Upcoming and past company events and conferences.
+
+## Contact
+Get in touch with us through the appropriate channel for your needs.
+- [Contact](/contact): Overview of all contact options.
+- [General Inquiries](/contact/general): For general questions and feedback.
+- [Sales](/contact/sales): Connect with our sales team for pricing and demos.
+- [Support](/contact/support): Reach our support team for technical or account help.
+`        },
+        data: {
+          'faq': [
+  { id: 1, question: 'What is the Navigation Demo Site?', answer: 'It is an AXSDK demo site showcasing a multi-level navigation structure with products, services, company information, and contact pages.' },
+  { id: 2, question: 'What types of products do you offer?', answer: 'We offer a wide range of Software products (Web, Mobile, and Desktop Apps) and Hardware products (Computers, Peripherals, and Networking equipment).' },
+  { id: 3, question: 'What professional services are available?', answer: 'We provide expert Consulting (IT, Business, and Strategy), comprehensive Support, and Training educational programs.' },
+  { id: 4, question: 'Is there a place where I can find self-service guides?', answer: 'Yes, you can visit our Knowledge Base under the Support services section to find self-service documentation and guides.' },
+  { id: 5, question: 'What kind of training programs do you offer?', answer: 'Our training services include self-paced online learning modules, hands-on instructor-led workshops, and professional certification programs.' },
+  { id: 6, question: 'Where can I find information about job opportunities?', answer: 'You can explore the Careers section under the About page to view open positions, employee benefits, and learn about our workplace culture.' },
+  { id: 7, question: 'How can I stay updated on company news?', answer: 'You can stay up to date by visiting the News section, which features official press releases, blog articles, and details about company events.' },
+  { id: 8, question: 'How can I get in touch for pricing and demos?', answer: 'You can connect with our sales team through the Sales option located on the Contact page.' }
+]
+        },
+        axHandler: async (command, args) => {
+          console.log(command, args);
+          throw new Error(`Unknown command: ${command}`);
+        },
+      });
+    </script>
+    
+  </body>
+</html>

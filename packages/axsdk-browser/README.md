@@ -63,7 +63,7 @@ Both files **must be served from the same path prefix** — the loader automatic
 
 ```html
 <!-- Both files must live at the same URL prefix -->
-<script src="https://unpkg.com/@axsdk/browser@latest/dist/axsdk-browser.js"></script>
+<script src="https://unpkg.com/@axsdk/browser/dist/axsdk-browser.js"></script>
 ```
 
 ---
@@ -119,7 +119,7 @@ AXSDKBrowser.init(config: AXSDKBrowserConfig): void
 #### Example with `axHandler`
 
 ```html
-<script src="https://unpkg.com/@axsdk/browser/axsdk-browser.js"></script>
+<script src="https://unpkg.com/@axsdk/browser/dist/axsdk-browser.js"></script>
 <script>
   AXSDKBrowser.init({
     apiKey: 'YOUR_API_KEY',
