@@ -3,6 +3,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { AXSDK } from '@axsdk/core';
 import { useStore } from 'zustand';
+import { useAXTheme } from '../AXThemeContext';
 
 export interface AXChatMessageInputProps {
   onSend: (message: string) => void;
@@ -37,6 +38,7 @@ export function AXChatMessageInput({
   onAutoFocus,
   focusTrigger,
 }: AXChatMessageInputProps) {
+  const { theme } = useAXTheme();
   const [message, setMessage] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -47,7 +49,6 @@ export function AXChatMessageInput({
     }
   }, [autoFocus]);
 
-  // Focus the textarea whenever focusTrigger increments
   useEffect(() => {
     if (focusTrigger == null) return;
     textareaRef.current?.focus();
@@ -77,10 +78,10 @@ export function AXChatMessageInput({
       style={{
         width: "100%",
         boxSizing: "border-box",
-        background: "rgba(12, 12, 18, 0.97)",
+        background: "var(--ax-bg-base)",
         backdropFilter: "blur(24px)",
         WebkitBackdropFilter: "blur(24px)",
-        border: "1px solid rgba(255, 255, 255, 0.12)",
+        border: "1px solid var(--ax-border-surface, rgba(255, 255, 255, 0.12))",
         borderRadius: "1.25rem",
         boxShadow: "0 8px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(120,80,255,0.15)",
         padding: "0.5rem",
@@ -89,17 +90,19 @@ export function AXChatMessageInput({
         flexDirection: "column",
         gap: 10,
         minHeight: guideText ? "11rem" : "9rem",
+        ...theme.styles?.input?.card,
       }}
     >
       <div
         style={{
           fontSize: "1rem",
-          color: "rgba(255, 255, 255, 0.75)",
+          color: "var(--ax-text-muted)",
           padding: "8px 4px",
           textAlign: "center",
           whiteSpace: "pre-wrap",
-          border: "1px solid rgba(255, 255, 255, 0.15)",
+          border: "1px solid var(--ax-border-surface, rgba(255, 255, 255, 0.15))",
           minHeight: "2rem",
+          ...theme.styles?.input?.guideText,
         }}
       >
         {guideText}
@@ -114,13 +117,13 @@ export function AXChatMessageInput({
         onKeyDown={handleKeyDown}
         onFocus={() => {
           if (textareaRef.current) {
-            textareaRef.current.style.borderColor = "rgba(167, 139, 250, 0.55)";
+            textareaRef.current.style.borderColor = "var(--ax-color-primary-light, rgba(167, 139, 250, 0.55))";
           }
           onFocus?.();
         }}
         onBlur={() => {
           if (textareaRef.current) {
-            textareaRef.current.style.borderColor = "rgba(255, 255, 255, 0.12)";
+            textareaRef.current.style.borderColor = "var(--ax-border-surface, rgba(255, 255, 255, 0.12))";
           }
         }}
         placeholder={placeholder}
@@ -129,21 +132,22 @@ export function AXChatMessageInput({
         style={{
           width: "100%",
           resize: "none",
-          background: "rgba(255, 255, 255, 0.07)",
-          border: "1px solid rgba(255, 255, 255, 0.12)",
+          background: "var(--ax-bg-input-textarea)",
+          border: "1px solid var(--ax-border-surface, rgba(255, 255, 255, 0.12))",
           borderRadius: 10,
-          color: "rgba(255, 255, 255, 0.92)",
+          color: "var(--ax-text-primary)",
           fontSize: "1rem",
           lineHeight: 1.5,
           padding: "10px 14px",
           outline: "none",
           fontFamily: "inherit",
           boxSizing: "border-box",
-          caretColor: "#a78bfa",
+          caretColor: "var(--ax-text-caret)",
           transition: "border-color 0.15s",
           minHeight: "3.5rem",
           maxHeight: "8rem",
           overflowY: "auto",
+          ...theme.styles?.input?.textarea,
         }}
       />
 
@@ -151,11 +155,11 @@ export function AXChatMessageInput({
         <div
           style={{
             fontSize: "0.8125rem",
-            color: "#f87171",
+            color: "var(--ax-text-error)",
             padding: "4px 6px",
             borderRadius: 6,
-            background: "rgba(248, 113, 113, 0.08)",
-            border: "1px solid rgba(248, 113, 113, 0.25)",
+            background: "var(--ax-bg-error, rgba(248, 113, 113, 0.08))",
+            border: "1px solid var(--ax-border-error, rgba(248, 113, 113, 0.25))",
             wordBreak: "break-word",
           }}
         >
@@ -171,10 +175,10 @@ export function AXChatMessageInput({
           title={AXSDK.t("chatClearTooltip")}
           style={{
             flexShrink: 0,
-            background: "rgba(255, 255, 255, 0.07)",
+            background: "var(--ax-bg-input-textarea)",
             border: "none",
             borderRadius: 10,
-            color: "rgba(255, 255, 255, 0.45)",
+            color: "var(--ax-text-dim)",
             width: "4rem",
             height: "3rem",
             display: "flex",
@@ -183,16 +187,17 @@ export function AXChatMessageInput({
             cursor: disabled ? "default" : "pointer",
             transition: "background 0.18s, color 0.18s, transform 0.1s",
             padding: 0,
+            ...theme.styles?.input?.clearButton,
           }}
           onMouseEnter={(e) => {
             if (disabled) return;
             (e.currentTarget as HTMLButtonElement).style.background = "rgba(255, 255, 255, 0.13)";
-            (e.currentTarget as HTMLButtonElement).style.color = "rgba(255, 255, 255, 0.85)";
+            (e.currentTarget as HTMLButtonElement).style.color = "var(--ax-text-muted)";
             (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.07)";
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = "rgba(255, 255, 255, 0.07)";
-            (e.currentTarget as HTMLButtonElement).style.color = "rgba(255, 255, 255, 0.45)";
+            (e.currentTarget as HTMLButtonElement).style.background = "var(--ax-bg-input-textarea)";
+            (e.currentTarget as HTMLButtonElement).style.color = "var(--ax-text-dim)";
             (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
           }}
         >
@@ -217,14 +222,14 @@ export function AXChatMessageInput({
             flex: 1,
             flexShrink: 0,
             background: message.trim()
-              ? "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)"
-              : "rgba(255, 255, 255, 0.07)",
+              ? `linear-gradient(135deg, var(--ax-color-primary, #7c3aed) 0%, var(--ax-color-primary-dark, #4f46e5) 100%)`
+              : "var(--ax-bg-input-textarea)",
             border: "none",
             borderRadius: 10,
             marginLeft: "0.5rem",
             marginRight: "2rem",
             height: "3rem",
-            color: message.trim() ? "#fff" : "rgba(255, 255, 255, 0.25)",
+            color: message.trim() ? "#fff" : "var(--ax-text-dim)",
             fontSize: "1rem",
             fontWeight: 600,
             padding: "10px 16px",
@@ -236,6 +241,7 @@ export function AXChatMessageInput({
             justifyContent: "center",
             gap: 5,
             whiteSpace: "nowrap",
+            ...theme.styles?.input?.sendButton,
           }}
           onMouseEnter={(e) => {
             if (!message.trim() || disabled) return;

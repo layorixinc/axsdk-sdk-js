@@ -81,7 +81,6 @@ export async function handleAX(handler: AXHandler, command: string, args: unknow
   try {
     result = await handler(command, args);
   } catch(err) {
-    // execute default handlers
     result = await AX_PROXY[command as keyof typeof AX_FUNCTIONS](args);
   }
   if(!!result && typeof result === 'object' && (result as any).$) {

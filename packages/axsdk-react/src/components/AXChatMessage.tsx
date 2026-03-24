@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import type { ChatMessage, MessagePart, TextPart, ReasoningPart, StepFinishPart, ToolPart } from '@axsdk/core';
 import { AXSDK } from '@axsdk/core';
+import { useAXTheme } from '../AXThemeContext';
 
 export type AXChatMessageRole = "user" | "assistant";
 
@@ -19,8 +20,6 @@ export interface AXChatMessageProps {
   /** Called when the message is clicked (for selection toggling). */
   onClick?: () => void;
 }
-
-// ─── Part renderers ─────────────────────────────────────────────────────────
 
 function TextPartView({ part }: { part: TextPart }) {
   if (!part.text) return null;
@@ -100,7 +99,6 @@ function ToolPartView({ part }: { part: ToolPart }) {
         fontSize: "0.8rem",
       }}
     >
-      {/* Header row */}
       <button
         onClick={() => setCollapsed((c) => !c)}
         style={{
@@ -132,7 +130,6 @@ function ToolPartView({ part }: { part: ToolPart }) {
         </span>
       </button>
 
-      {/* Expanded detail */}
       {!collapsed && (
         <div style={{ padding: "0 10px 8px 10px", borderTop: "1px solid rgba(0,0,0,0.08)" }}>
           {part.state.input && (
@@ -240,7 +237,7 @@ function ThinkingIndicator() {
     width: 8,
     height: 8,
     borderRadius: "50%",
-    background: "rgba(100, 80, 180, 0.6)",
+    background: "var(--ax-color-primary-muted, rgba(100, 80, 180, 0.6))",
     animation: `axchat-thinking-bounce 1.2s ease-in-out ${delayMs}ms infinite`,
   });
 
@@ -282,6 +279,7 @@ function renderPart(part: MessagePart, index: number): React.ReactNode {
 }
 
 export function AXChatMessage({ message, onMessageClick, opacity = 1, messageRef, onClick }: AXChatMessageProps) {
+  const { theme } = useAXTheme();
   const isUser = message.info.role === "user";
   const isThinking = !isUser && !message.finish && !message.info.finish && !message.info.error;
   const messageError = !isUser && message.info.role === "assistant" ? message.info.error : undefined;
@@ -298,7 +296,6 @@ export function AXChatMessage({ message, onMessageClick, opacity = 1, messageRef
 
   const parts: MessagePart[] = message.parts ?? [];
 
-  // For user messages, extract simple text from text parts
   const userText = isUser
     ? parts
         .filter((p: MessagePart) => p.type === "text")
@@ -324,25 +321,27 @@ export function AXChatMessage({ message, onMessageClick, opacity = 1, messageRef
         animation: animationDone ? undefined : "axchat-message-in 0.3s ease-out both",
         opacity: animationDone ? opacity : undefined,
         transition: animationDone ? "opacity 0.3s ease" : undefined,
+        ...theme.styles?.message?.row,
       }}
     >
       <div
         style={{
           maxWidth: "85%",
           background: isUser
-            ? "linear-gradient(135deg, rgba(124, 58, 237, 1.0) 0%, rgba(79, 70, 229, 1.0) 100%)"
-            : "rgba(255, 255, 255, 1.0)",
+            ? "var(--ax-bg-user-message)"
+            : "var(--ax-bg-assistant-message)",
           border: isUser
             ? "1px solid rgba(167, 139, 250, 0.3)"
             : "1px solid rgba(255, 255, 255, 0.1)",
           borderRadius: isUser ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
           padding: "10px 14px",
-          color: isUser ? "rgba(255, 255, 255, 0.92)" : "rgba(33, 33, 33, 0.92)",
+          color: isUser ? "var(--ax-text-primary)" : "var(--ax-text-assistant)",
           fontSize: "1.25rem",
           lineHeight: 1.6,
           boxShadow: isUser
             ? "0 2px 12px rgba(124, 58, 237, 0.2)"
             : "0 2px 8px rgba(0, 0, 0, 0.25)",
+          ...(isUser ? theme.styles?.message?.userBubble : theme.styles?.message?.assistantBubble),
         }}
       >
         {isUser ? (
@@ -367,9 +366,10 @@ export function AXChatMessage({ message, onMessageClick, opacity = 1, messageRef
         <div
           style={{
             fontSize: "0.62rem",
-            color: "rgba(255, 255, 255, 0.28)",
+            color: "var(--ax-text-timestamp)",
             marginTop: 4,
             userSelect: "none",
+            ...theme.styles?.message?.timestamp,
           }}
         >
           {formattedTime}

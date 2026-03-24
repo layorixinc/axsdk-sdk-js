@@ -163,7 +163,6 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
     };
   }, [updateVisibility]);
 
-  // Attach invisible scrollbar strip event listeners (mouse + touch)
   useEffect(() => {
     const container = scrollContainerRef.current;
     const strips = [leftStripRef.current, rightStripRef.current].filter(

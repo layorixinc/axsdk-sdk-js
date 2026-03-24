@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useAXTheme } from '../AXThemeContext';
 
 export interface AXButtonProps {
   onClick?: () => void;
@@ -44,6 +45,8 @@ export function AXButton({
   size = 64,
   status,
 }: AXButtonProps) {
+  const { theme } = useAXTheme();
+
   const [animState, setAnimState] = useState<AnimState>(visible ? "idle" : "unmounted");
   const isInitialMount = useRef(true);
   const [pressed, setPressed] = useState(false);
@@ -165,6 +168,10 @@ export function AXButton({
     ? "scale(0.9)"
     : undefined;
 
+  const buttonImageUrl = theme.buttonImageUrl;
+  const buttonAnimationImageUrl = theme.buttonAnimationImageUrl ?? buttonImageUrl;
+  const useCustomImage = Boolean(buttonImageUrl);
+
   return (
     <div
       className={className}
@@ -179,6 +186,7 @@ export function AXButton({
         transition: pressed
           ? "transform 0.08s ease-out"
           : "transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        ...theme.styles?.button?.wrapper,
       }}
     >
     <button
@@ -206,77 +214,118 @@ export function AXButton({
         // implicit animationPlayState: "running" reset
         animationPlayState: isOpen ? "paused" : undefined,
         outline: "none",
+        ...theme.styles?.button?.button,
       }}
     >
-      {/* ── Layer 1: Animated conic-gradient ring (outermost) ── */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          width: ringSize,
-          height: ringSize,
-          top: ringOffset,
-          left: ringOffset,
-          borderRadius: "50%",
-          background:
-            "conic-gradient(from 0deg, #a855f7, #3b82f6, #06b6d4, #ec4899, #a855f7)",
-          filter: "blur(2px)",
-          animation: "ax-rotate 4s linear infinite",
-        }}
-      />
+      {useCustomImage ? (
+        /* ── Custom image mode: replace gradient layers with user's image ── */
+        <>
+          {isBusy && buttonAnimationImageUrl ? (
+            <img
+              src={buttonAnimationImageUrl}
+              alt=""
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                width: "100%",
+                height: "100%",
+                top: 0,
+                left: 0,
+                borderRadius: "50%",
+                objectFit: "cover",
+              }}
+            />
+          ) : (
+            <img
+              src={buttonImageUrl}
+              alt=""
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                width: "100%",
+                height: "100%",
+                top: 0,
+                left: 0,
+                borderRadius: "50%",
+                objectFit: "cover",
+              }}
+            />
+          )}
+        </>
+      ) : (
+        <>
+          {/* ── Layer 1: Animated conic-gradient ring (outermost) ── */}
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              width: ringSize,
+              height: ringSize,
+              top: ringOffset,
+              left: ringOffset,
+              borderRadius: "50%",
+              background:
+                `conic-gradient(from 0deg, var(--ax-color-accent1, #a855f7), var(--ax-color-accent2, #3b82f6), var(--ax-color-accent3, #06b6d4), var(--ax-color-accent4, #ec4899), var(--ax-color-accent1, #a855f7))`,
+              filter: "blur(2px)",
+              animation: "ax-rotate 4s linear infinite",
+            }}
+          />
 
-      {/* ── Layer 2: Glow halo (blurred, pulsing opacity) ── */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          width: ringSize,
-          height: ringSize,
-          top: ringOffset,
-          left: ringOffset,
-          borderRadius: "50%",
-          background:
-            "conic-gradient(from 0deg, #a855f7, #3b82f6, #06b6d4, #ec4899, #a855f7)",
-          filter: "blur(16px)",
-          opacity: 0.7,
-          animation:
-            "ax-rotate 4s linear infinite, ax-glow 3s ease-in-out infinite",
-        }}
-      />
+          {/* ── Layer 2: Glow halo (blurred, pulsing opacity) ── */}
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              width: ringSize,
+              height: ringSize,
+              top: ringOffset,
+              left: ringOffset,
+              borderRadius: "50%",
+              background:
+                `conic-gradient(from 0deg, var(--ax-color-accent1, #a855f7), var(--ax-color-accent2, #3b82f6), var(--ax-color-accent3, #06b6d4), var(--ax-color-accent4, #ec4899), var(--ax-color-accent1, #a855f7))`,
+              filter: "blur(16px)",
+              opacity: 0.7,
+              animation:
+                "ax-rotate 4s linear infinite, ax-glow 3s ease-in-out infinite",
+            }}
+          />
 
-      {/* ── Layer 3: Main orb body (size×size) ── */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          width: sizeCSS,
-          height: sizeCSS,
-          top: 0,
-          left: 0,
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle at 35% 35%, rgba(255,255,255,0.3), transparent 60%), " +
-            "radial-gradient(circle at center, #7c3aed, #1d4ed8)",
-          backdropFilter: "blur(8px)",
-        }}
-      />
+          {/* ── Layer 3: Main orb body (size×size) ── */}
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              width: sizeCSS,
+              height: sizeCSS,
+              top: 0,
+              left: 0,
+              borderRadius: "50%",
+              background:
+                "radial-gradient(circle at 35% 35%, rgba(255,255,255,0.3), transparent 60%), " +
+                `radial-gradient(circle at center, var(--ax-color-primary, #7c3aed), var(--ax-color-primary-dark, #1d4ed8))`,
+              backdropFilter: "blur(8px)",
+              ...theme.styles?.button?.orb,
+            }}
+          />
 
-      {/* ── Layer 3b: Inner white shimmer highlight (top-left) ── */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          width: sizeCSS,
-          height: sizeCSS,
-          top: 0,
-          left: 0,
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle at 30% 25%, rgba(255,255,255,0.45) 0%, transparent 55%)",
-        }}
-      />
+          {/* ── Layer 3b: Inner white shimmer highlight (top-left) ── */}
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              width: sizeCSS,
+              height: sizeCSS,
+              top: 0,
+              left: 0,
+              borderRadius: "50%",
+              background:
+                "radial-gradient(circle at 30% 25%, rgba(255,255,255,0.45) 0%, transparent 55%)",
+            }}
+          />
+        </>
+      )}
 
-      {/* ── Layer 4: Center "AX" label ── */}
+      {/* ── Layer 4: Center "AX" label (only in default mode) or busy overlay ── */}
       <div
         style={{
           position: "absolute",
@@ -289,86 +338,89 @@ export function AXButton({
           justifyContent: "center",
         }}
       >
-      {/* ── Layer 5: Busy vortex swirl overlay (only when status === "busy") ── */}
-      {isBusy && (
-        <>
-          {/* Outer rotating conic-gradient ring — gives the swirling vortex border */}
-          <div
-            aria-hidden="true"
+        {/* ── Layer 5: Busy vortex swirl overlay (only when status === "busy" and no custom animation image) ── */}
+        {isBusy && !buttonAnimationImageUrl && (
+          <>
+            {/* Outer rotating conic-gradient ring — gives the swirling vortex border */}
+            <div
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                width: pxSize + 6,
+                height: pxSize + 6,
+                top: -3,
+                left: -3,
+                borderRadius: "50%",
+                background:
+                  `conic-gradient(from 0deg, ` +
+                  `rgba(var(--ax-color-primary-rgb, 168,85,247),0) 0%, ` +
+                  `rgba(var(--ax-color-primary-rgb, 168,85,247),1) 20%, ` +
+                  `rgba(139,92,246,1) 35%, ` +
+                  `rgba(99,102,241,1) 50%, ` +
+                  `rgba(var(--ax-color-primary-rgb, 168,85,247),0.6) 70%, ` +
+                  `rgba(var(--ax-color-primary-rgb, 168,85,247),0) 100%)`,
+                animation: "ax-busy-spin 1.2s linear infinite",
+                zIndex: 10,
+                pointerEvents: "none",
+              }}
+            />
+            {/* Inner mask disk — sits on top of the outer ring to restore the button face,
+                leaving only a thin swirling border visible around the edge */}
+            <div
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                width: pxSize - 4,
+                height: pxSize - 4,
+                top: 2,
+                left: 2,
+                borderRadius: "50%",
+                background: `radial-gradient(circle at center, var(--ax-color-primary, #7c3aed), var(--ax-color-primary-dark, #1d4ed8))`,
+                zIndex: 11,
+                pointerEvents: "none",
+              }}
+            />
+            {/* Counter-rotating inner vortex shimmer for depth */}
+            <div
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                width: pxSize - 4,
+                height: pxSize - 4,
+                top: 2,
+                left: 2,
+                borderRadius: "50%",
+                background:
+                  "conic-gradient(from 180deg, " +
+                  "rgba(192,132,252,0.0) 0%, " +
+                  "rgba(192,132,252,0.35) 25%, " +
+                  "rgba(192,132,252,0.0) 50%, " +
+                  "rgba(139,92,246,0.25) 75%, " +
+                  "rgba(192,132,252,0.0) 100%)",
+                animation: "ax-busy-spin 2s linear infinite reverse, ax-busy-pulse 1.2s ease-in-out infinite",
+                zIndex: 12,
+                pointerEvents: "none",
+              }}
+            />
+          </>
+        )}
+        {!useCustomImage && (
+          <span
             style={{
-              position: "absolute",
-              width: pxSize + 6,
-              height: pxSize + 6,
-              top: -3,
-              left: -3,
-              borderRadius: "50%",
-              background:
-                "conic-gradient(from 0deg, " +
-                "rgba(168,85,247,0) 0%, " +
-                "rgba(168,85,247,1) 20%, " +
-                "rgba(139,92,246,1) 35%, " +
-                "rgba(99,102,241,1) 50%, " +
-                "rgba(168,85,247,0.6) 70%, " +
-                "rgba(168,85,247,0) 100%)",
-              animation: "ax-busy-spin 1.2s linear infinite",
-              zIndex: 10,
-              pointerEvents: "none",
+              color: "white",
+              fontWeight: 600,
+              fontSize: fontSize,
+              letterSpacing: "0.2em",
+              textShadow: "0 0 10px rgba(255,255,255,1)",
+              userSelect: "none",
+              zIndex: 20,
+              ...theme.styles?.button?.label,
             }}
-          />
-          {/* Inner mask disk — sits on top of the outer ring to restore the button face,
-              leaving only a thin swirling border visible around the edge */}
-          <div
-            aria-hidden="true"
-            style={{
-              position: "absolute",
-              width: pxSize - 4,
-              height: pxSize - 4,
-              top: 2,
-              left: 2,
-              borderRadius: "50%",
-              background: "radial-gradient(circle at center, #ce0afffa, #8a3265)",
-              zIndex: 11,
-              pointerEvents: "none",
-            }}
-          />
-          {/* Counter-rotating inner vortex shimmer for depth */}
-          <div
-            aria-hidden="true"
-            style={{
-              position: "absolute",
-              width: pxSize - 4,
-              height: pxSize - 4,
-              top: 2,
-              left: 2,
-              borderRadius: "50%",
-              background:
-                "conic-gradient(from 180deg, " +
-                "rgba(192,132,252,0.0) 0%, " +
-                "rgba(192,132,252,0.35) 25%, " +
-                "rgba(192,132,252,0.0) 50%, " +
-                "rgba(139,92,246,0.25) 75%, " +
-                "rgba(192,132,252,0.0) 100%)",
-              animation: "ax-busy-spin 2s linear infinite reverse, ax-busy-pulse 1.2s ease-in-out infinite",
-              zIndex: 12,
-              pointerEvents: "none",
-            }}
-          />
-        </>
-      )}
-      <span
-        style={{
-          color: "white",
-          fontWeight: 600,
-          fontSize: fontSize,
-          letterSpacing: "0.2em",
-          textShadow: "0 0 10px rgba(255,255,255,1)",
-          userSelect: "none",
-          zIndex: 20,
-        }}
-      >
-        AX
-      </span>
-    </div>
+          >
+            AX
+          </span>
+        )}
+      </div>
 
       {/* ── Layer 6: Ripple splashes ── */}
       {ripples.map((r) => (

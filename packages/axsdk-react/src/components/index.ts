@@ -10,3 +10,24 @@ export * from './AXChatMessagePopoverBase';
 export { AXChatErrorBar } from './AXChatErrorBar';
 export * from './AXDevTools';
 export * from './AXQuestionDialog';
+
+export type {
+  AXTheme,
+  AXThemeColors,
+  AXThemeColorsPrimary,
+  AXThemeColorsBg,
+  AXThemeColorsBgDark,
+  AXThemeColorsBgLight,
+  AXThemeColorsText,
+  AXThemeBorderTokens,
+  AXThemeStyles,
+  AXThemeButtonStyles,
+  AXThemeInputStyles,
+  AXThemePopoverStyles,
+  AXThemeMessageStyles,
+  AXThemeQuestionDialogStyles,
+  AXThemeContextValue,
+} from '../theme';
+export { AXThemeProvider, useAXTheme } from '../AXThemeContext';
+export { AX_DEFAULT_DARK_THEME, AX_DEFAULT_LIGHT_THEME, mergeTheme } from '../defaultTheme';
+export { injectCSSVariables } from '../cssVariables';

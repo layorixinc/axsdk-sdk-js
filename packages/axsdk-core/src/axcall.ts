@@ -52,7 +52,7 @@ export async function handleAXSDKCall(properties: unknown) {
       result = `ERROR: ${e}`;
     }
 
-    if(typeof result === 'string') {
+    if (typeof result === 'string') {
       await api.updateCall(call.id, status, result);
     } else {
       await api.updateCall(call.id, status, result.message);

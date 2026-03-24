@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AXSDK } from '@axsdk/core';
 import { AXChatErrorBar } from './AXChatErrorBar';
+import { useAXTheme } from '../AXThemeContext';
 import remarkGfm from 'remark-gfm';
 const ReactMarkdown = React.lazy(() => import('react-markdown'))
 
@@ -50,6 +50,7 @@ export function AXChatMessagePopoverBase({
   isDesktop = false,
   scrollToBottomTrigger,
 }: AXChatMessagePopoverBaseProps) {
+  const { theme } = useAXTheme();
   const [expanded, setExpanded] = useState<boolean>(false);
   const scrollableRef = useRef<HTMLDivElement>(null);
 
@@ -58,7 +59,6 @@ export function AXChatMessagePopoverBase({
     if (!isBusy) setExpanded(true); // intentional sync setState to mirror isBusy prop
   }, [isBusy]);
 
-  // Scroll to bottom whenever the trigger increments
   useEffect(() => {
     if (scrollToBottomTrigger == null) return;
     const el = scrollableRef.current;
@@ -91,8 +91,9 @@ export function AXChatMessagePopoverBase({
     padding: "10px 14px 10px 14px",
     fontSize: "0.95rem",
     lineHeight: `${LINE_HEIGHT_PX}px`,
-    color: "rgba(255, 255, 255, 0.88)",
+    color: "var(--ax-text-primary)",
     wordBreak: "break-word",
+    ...theme.styles?.popover?.content,
   };
 
   const mdComponents: React.ComponentProps<typeof ReactMarkdown>['components'] = {
@@ -109,22 +110,22 @@ export function AXChatMessagePopoverBase({
       <li style={{ marginBottom: "0.2em", lineHeight: `${LINE_HEIGHT_PX}px` }}>{children}</li>
     ),
     h1: ({ children }) => (
-      <h1 style={{ fontSize: "1.3em", fontWeight: 700, margin: "0.6em 0 0.4em", color: "rgba(255,255,255,0.95)", lineHeight: 1.3 }}>{children}</h1>
+      <h1 style={{ fontSize: "1.3em", fontWeight: 700, margin: "0.6em 0 0.4em", color: "var(--ax-text-primary, rgba(255,255,255,0.95))", lineHeight: 1.3 }}>{children}</h1>
     ),
     h2: ({ children }) => (
-      <h2 style={{ fontSize: "1.15em", fontWeight: 700, margin: "0.6em 0 0.4em", color: "rgba(255,255,255,0.93)", lineHeight: 1.3 }}>{children}</h2>
+      <h2 style={{ fontSize: "1.15em", fontWeight: 700, margin: "0.6em 0 0.4em", color: "var(--ax-text-primary, rgba(255,255,255,0.93))", lineHeight: 1.3 }}>{children}</h2>
     ),
     h3: ({ children }) => (
-      <h3 style={{ fontSize: "1.05em", fontWeight: 600, margin: "0.5em 0 0.35em", color: "rgba(255,255,255,0.92)", lineHeight: 1.3 }}>{children}</h3>
+      <h3 style={{ fontSize: "1.05em", fontWeight: 600, margin: "0.5em 0 0.35em", color: "var(--ax-text-primary, rgba(255,255,255,0.92))", lineHeight: 1.3 }}>{children}</h3>
     ),
     h4: ({ children }) => (
-      <h4 style={{ fontSize: "1em", fontWeight: 600, margin: "0.5em 0 0.3em", color: "rgba(255,255,255,0.90)", lineHeight: 1.3 }}>{children}</h4>
+      <h4 style={{ fontSize: "1em", fontWeight: 600, margin: "0.5em 0 0.3em", color: "var(--ax-text-primary, rgba(255,255,255,0.90))", lineHeight: 1.3 }}>{children}</h4>
     ),
     h5: ({ children }) => (
-      <h5 style={{ fontSize: "0.95em", fontWeight: 600, margin: "0.4em 0 0.25em", color: "rgba(255,255,255,0.88)", lineHeight: 1.3 }}>{children}</h5>
+      <h5 style={{ fontSize: "0.95em", fontWeight: 600, margin: "0.4em 0 0.25em", color: "var(--ax-text-primary, rgba(255,255,255,0.88))", lineHeight: 1.3 }}>{children}</h5>
     ),
     h6: ({ children }) => (
-      <h6 style={{ fontSize: "0.9em", fontWeight: 600, margin: "0.4em 0 0.25em", color: "rgba(255,255,255,0.85)", lineHeight: 1.3 }}>{children}</h6>
+      <h6 style={{ fontSize: "0.9em", fontWeight: 600, margin: "0.4em 0 0.25em", color: "var(--ax-text-muted, rgba(255,255,255,0.85))", lineHeight: 1.3 }}>{children}</h6>
     ),
     code: ({ children, className }) => {
       const isBlock = Boolean(className);
@@ -134,30 +135,30 @@ export function AXChatMessagePopoverBase({
             display: "block",
             fontFamily: "'Fira Mono', 'Consolas', 'Menlo', monospace",
             fontSize: "0.85em",
-            color: "rgba(220, 220, 255, 0.92)",
+            color: "var(--ax-text-primary, rgba(220, 220, 255, 0.92))",
           }}>{children}</code>
         );
       }
       return (
         <code style={{
-          background: "rgba(168, 85, 247, 0.15)",
+          background: "var(--ax-bg-popover, rgba(168, 85, 247, 0.15))",
           borderRadius: 4,
           padding: "0.1em 0.35em",
           fontSize: "0.87em",
           fontFamily: "'Fira Mono', 'Consolas', 'Menlo', monospace",
-          color: "rgba(220, 200, 255, 0.95)",
-          border: "1px solid rgba(168, 85, 247, 0.25)",
+          color: "var(--ax-text-primary, rgba(220, 200, 255, 0.95))",
+          border: "1px solid var(--ax-border-primary, rgba(168, 85, 247, 0.25))",
         }}>{children}</code>
       );
     },
     pre: ({ children }) => (
       <pre style={{
-        background: "rgba(0, 0, 0, 0.4)",
+        background: "var(--ax-bg-popover, rgba(0, 0, 0, 0.4))",
         borderRadius: 8,
         padding: "10px 12px",
         margin: "0.5em 0 0.7em",
         overflowX: "auto",
-        border: "1px solid rgba(168, 85, 247, 0.2)",
+        border: "1px solid var(--ax-border-primary, rgba(168, 85, 247, 0.2))",
         fontSize: "0.87em",
         lineHeight: 1.5,
       }}>{children}</pre>
@@ -168,33 +169,33 @@ export function AXChatMessagePopoverBase({
         target="_blank"
         rel="noopener noreferrer"
         style={{
-          color: "rgba(168, 85, 247, 0.9)",
+          color: "var(--ax-color-primary-light, rgba(168, 85, 247, 0.9))",
           textDecoration: "none",
-          borderBottom: "1px solid rgba(168, 85, 247, 0.4)",
+          borderBottom: "1px solid var(--ax-border-primary, rgba(168, 85, 247, 0.4))",
         }}
         onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.textDecoration = "underline"; }}
         onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.textDecoration = "none"; }}
       >{children}</a>
     ),
     strong: ({ children }) => (
-      <strong style={{ fontWeight: 700, color: "rgba(255, 255, 255, 0.97)" }}>{children}</strong>
+      <strong style={{ fontWeight: 700, color: "var(--ax-text-primary, rgba(255, 255, 255, 0.97))" }}>{children}</strong>
     ),
     em: ({ children }) => (
-      <em style={{ fontStyle: "italic", color: "rgba(220, 200, 255, 0.9)" }}>{children}</em>
+      <em style={{ fontStyle: "italic", color: "var(--ax-text-muted, rgba(220, 200, 255, 0.9))" }}>{children}</em>
     ),
     blockquote: ({ children }) => (
       <blockquote style={{
-        borderLeft: "3px solid rgba(168, 85, 247, 0.65)",
+        borderLeft: "3px solid var(--ax-color-primary-light, rgba(168, 85, 247, 0.65))",
         margin: "0.5em 0 0.7em",
         paddingLeft: "0.85em",
-        color: "rgba(255, 255, 255, 0.72)",
+        color: "var(--ax-text-muted, rgba(255, 255, 255, 0.72))",
         fontStyle: "italic",
       }}>{children}</blockquote>
     ),
     hr: () => (
       <hr style={{
         border: "none",
-        borderTop: "1px solid rgba(168, 85, 247, 0.3)",
+        borderTop: "1px solid var(--ax-border-primary, rgba(168, 85, 247, 0.3))",
         margin: "0.75em 0",
       }} />
     ),
@@ -208,8 +209,8 @@ export function AXChatMessagePopoverBase({
           to   { opacity: 1; transform: translateX(0) scale(1); }
         }
         @keyframes axnotif-pulse {
-          0%, 100% { box-shadow: 0 4px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.06) inset, 0 0 10px 2px rgba(255, 255, 255, 0.4); }
-          50%       { box-shadow: 0 4px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.06) inset, 0 0 24px 8px rgba(255, 255, 255, 0.75); }
+          0%, 100% { box-shadow: 0 4px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.06) inset, 0 0 10px 2px var(--ax-color-primary-light, rgba(168, 85, 247, 0.4)); }
+          50%       { box-shadow: 0 4px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.06) inset, 0 0 24px 8px var(--ax-color-primary-light, rgba(168, 85, 247, 0.75)); }
         }
         .ax-notif-content::-webkit-scrollbar { display: none; }
       `}</style>
@@ -263,13 +264,13 @@ export function AXChatMessagePopoverBase({
           style={{
             width: "100%",
             position: "relative",
-            background: "rgba(18, 18, 28, 0.95)",
+            background: "var(--ax-bg-popover)",
             backdropFilter: "blur(12px)",
             WebkitBackdropFilter: "blur(12px)",
-            border: "1px solid rgba(168, 85, 247, 0.35)",
+            border: "1px solid var(--ax-border-primary, rgba(168, 85, 247, 0.35))",
             borderRadius: 12,
             boxShadow: !isBusy
-              ? "0 4px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.06) inset, 0 0 10px 2px rgba(168,85,247,0.4)"
+              ? "0 4px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.06) inset, 0 0 10px 2px var(--ax-color-primary-light, rgba(168,85,247,0.4))"
               : "0 4px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.06) inset",
             animation: !isBusy ? "axnotif-pulse 2s ease-in-out infinite" : "none",
             overflow: "hidden",
@@ -278,11 +279,12 @@ export function AXChatMessagePopoverBase({
             zIndex: 1,
             display: "flex",
             flexDirection: "column",
+            ...theme.styles?.popover?.card,
           }}
         >
           <div style={{
             padding: "10px 14px 6px 14px",
-            borderBottom: "1px solid rgba(168, 85, 247, 0.2)",
+            borderBottom: "1px solid var(--ax-border-primary, rgba(168, 85, 247, 0.2))",
             display: "flex",
             flexDirection: "column",
             gap: 4,
@@ -291,7 +293,7 @@ export function AXChatMessagePopoverBase({
               <div style={{
                 fontSize: "0.85rem",
                 fontWeight: 500,
-                color: "rgba(255, 255, 255, 0.75)",
+                color: "var(--ax-text-muted)",
                 whiteSpace: "nowrap" as const,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -311,9 +313,9 @@ export function AXChatMessagePopoverBase({
                 top: 6,
                 right: 6,
                 background: "rgba(255, 255, 255, 0.2)",
-                border: "1px solid rgba(168, 85, 247, 0.4)",
+                border: "1px solid var(--ax-border-primary, rgba(168, 85, 247, 0.4))",
                 cursor: "pointer",
-                color: "rgba(255, 255, 255, 0.85)",
+                color: "var(--ax-text-primary)",
                 fontSize: "1.25rem",
                 lineHeight: 1,
                 padding: 0,
@@ -324,9 +326,10 @@ export function AXChatMessagePopoverBase({
                 width: 28,
                 height: 28,
                 zIndex: 10002,
+                ...theme.styles?.popover?.closeButton,
               }}
-              onMouseEnter={(e) => { const b = e.currentTarget as HTMLButtonElement; b.style.background = "rgba(255, 255, 255, 0.4)"; b.style.border = "1px solid rgba(168, 85, 247, 0.7)"; b.style.color = "rgba(255,255,255,0.9)"; }}
-              onMouseLeave={(e) => { const b = e.currentTarget as HTMLButtonElement; b.style.background = "rgba(255, 255, 255, 0.2)"; b.style.border = "1px solid rgba(168, 85, 247, 0.4)"; b.style.color = "rgba(255,255,255,0.85)"; }}
+              onMouseEnter={(e) => { const b = e.currentTarget as HTMLButtonElement; b.style.background = "rgba(255, 255, 255, 0.4)"; b.style.border = "1px solid var(--ax-border-primary)"; b.style.color = "var(--ax-text-primary)"; }}
+              onMouseLeave={(e) => { const b = e.currentTarget as HTMLButtonElement; b.style.background = "rgba(255, 255, 255, 0.2)"; b.style.border = "1px solid var(--ax-border-primary, rgba(168, 85, 247, 0.4))"; b.style.color = "var(--ax-text-primary)"; }}
             >
               ×
             </button>
@@ -344,34 +347,6 @@ export function AXChatMessagePopoverBase({
             </div>
           </div>
 
-          {false && <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 4,
-              width: "100%",
-              marginTop: "auto",
-              background: "rgba(168, 85, 247, 0.12)",
-              border: "none",
-              borderTop: "1px solid rgba(168, 85, 247, 0.2)",
-              cursor: "pointer",
-              padding: "6px 0",
-              fontSize: "0.75rem",
-              color: "rgba(255, 255, 255, 0.9)",
-              fontWeight: 500,
-              letterSpacing: "0.02em",
-              transition: "background 0.15s",
-              flexShrink: 0,
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(168, 85, 247, 0.22)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(168, 85, 247, 0.12)"; }}
-          >
-            {expanded ? `${AXSDK.t("notifCollapse")} ▼` : `▲ ${AXSDK.t("notifShowMore")}`}
-          </button>}
-
           <AXChatErrorBar />
 
         </div>
@@ -384,7 +359,7 @@ export function AXChatMessagePopoverBase({
             width: 0, height: 0,
             borderTop: "9px solid transparent",
             borderBottom: "9px solid transparent",
-            borderLeft: "10px solid rgba(168, 85, 247, 0.35)",
+            borderLeft: "10px solid var(--ax-border-primary, rgba(168, 85, 247, 0.35))",
             zIndex: -1,
           }} />
           <div style={{
@@ -394,7 +369,7 @@ export function AXChatMessagePopoverBase({
             width: 0, height: 0,
             borderTop: "8px solid transparent",
             borderBottom: "8px solid transparent",
-            borderLeft: "8px solid rgba(18, 18, 28, 0.95)",
+            borderLeft: "8px solid var(--ax-bg-popover)",
           }} />
         </>}
       </div>

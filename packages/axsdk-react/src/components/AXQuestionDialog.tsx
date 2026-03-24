@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { AXSDK } from '@axsdk/core';
+import { useAXTheme } from '../AXThemeContext';
 
 export interface QuestionOption {
   label: string;
@@ -46,8 +47,6 @@ export interface AXQuestionDialogProps {
   visible?: boolean;
 }
 
-// ─── Option Card ─────────────────────────────────────────────────────────────
-
 interface OptionCardProps {
   option: QuestionOption;
   index: number;
@@ -56,6 +55,7 @@ interface OptionCardProps {
 }
 
 function OptionCard({ option, index, isSelected, onSelect }: OptionCardProps) {
+  const { theme } = useAXTheme();
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -68,12 +68,12 @@ function OptionCard({ option, index, isSelected, onSelect }: OptionCardProps) {
         width: "100%",
         textAlign: "left",
         background: isSelected
-          ? "linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(79, 70, 229, 0.15) 100%)"
+          ? `linear-gradient(135deg, rgba(var(--ax-color-primary-rgb, 124, 58, 237), 0.15) 0%, rgba(var(--ax-color-primary-rgb, 79, 70, 229), 0.15) 100%)`
           : hovered
-          ? "rgba(255, 255, 255, 0.08)"
-          : "rgba(255, 255, 255, 0.04)",
+          ? "var(--ax-bg-assistant-message, rgba(255, 255, 255, 0.08))"
+          : "var(--ax-bg-input-textarea, rgba(255, 255, 255, 0.04))",
         border: isSelected
-          ? "1.5px solid rgba(124, 58, 237, 0.7)"
+          ? "1.5px solid var(--ax-color-primary, rgba(124, 58, 237, 0.7))"
           : hovered
           ? "1.5px solid rgba(255, 255, 255, 0.2)"
           : "1.5px solid rgba(255, 255, 255, 0.1)",
@@ -86,8 +86,9 @@ function OptionCard({ option, index, isSelected, onSelect }: OptionCardProps) {
         transition: "all 0.15s ease",
         outline: "none",
         boxShadow: isSelected
-          ? "0 2px 12px rgba(124, 58, 237, 0.2)"
+          ? "0 2px 12px var(--ax-color-primary, rgba(124, 58, 237, 0.2))"
           : "none",
+        ...(isSelected ? theme.styles?.questionDialog?.optionSelected : theme.styles?.questionDialog?.optionUnselected),
       }}
     >
       <div
@@ -103,10 +104,10 @@ function OptionCard({ option, index, isSelected, onSelect }: OptionCardProps) {
             height: 18,
             borderRadius: "50%",
             border: isSelected
-              ? "2px solid rgba(124, 58, 237, 0.9)"
+              ? "2px solid var(--ax-color-primary, rgba(124, 58, 237, 0.9))"
               : "2px solid rgba(255, 255, 255, 0.3)",
             background: isSelected
-              ? "rgba(124, 58, 237, 0.9)"
+              ? "var(--ax-color-primary, rgba(124, 58, 237, 0.9))"
               : "transparent",
             flexShrink: 0,
             display: "flex",
@@ -132,8 +133,8 @@ function OptionCard({ option, index, isSelected, onSelect }: OptionCardProps) {
             fontWeight: 600,
             fontSize: "0.95rem",
             color: isSelected
-              ? "rgba(167, 139, 250, 1.0)"
-              : "rgba(255, 255, 255, 0.88)",
+              ? "var(--ax-color-primary-light, rgba(167, 139, 250, 1.0))"
+              : "var(--ax-text-primary, rgba(255, 255, 255, 0.88))",
             transition: "color 0.15s ease",
           }}
         >
@@ -145,7 +146,7 @@ function OptionCard({ option, index, isSelected, onSelect }: OptionCardProps) {
         <div
           style={{
             fontSize: "0.8rem",
-            color: "rgba(255, 255, 255, 0.45)",
+            color: "var(--ax-text-dim, rgba(255, 255, 255, 0.45))",
             paddingLeft: 28,
             lineHeight: 1.4,
           }}
@@ -156,8 +157,6 @@ function OptionCard({ option, index, isSelected, onSelect }: OptionCardProps) {
     </button>
   );
 }
-
-// ─── Single question panel ────────────────────────────────────────────────────
 
 interface QuestionPanelProps {
   question: Question;
@@ -185,9 +184,9 @@ function QuestionPanel({ question, questionIndex, selectedOption, onSelect, cust
           fontWeight: 700,
           letterSpacing: "0.08em",
           textTransform: "uppercase",
-          color: "rgba(167, 139, 250, 0.85)",
+          color: "var(--ax-color-primary-light, rgba(167, 139, 250, 0.85))",
           paddingBottom: 4,
-          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+          borderBottom: "1px solid var(--ax-border-surface, rgba(255, 255, 255, 0.08))",
           whiteSpace: "pre-wrap",
         }}
       >
@@ -198,7 +197,7 @@ function QuestionPanel({ question, questionIndex, selectedOption, onSelect, cust
         style={{
           fontSize: "1.05rem",
           fontWeight: 500,
-          color: "rgba(255, 255, 255, 0.92)",
+          color: "var(--ax-text-primary, rgba(255, 255, 255, 0.92))",
           lineHeight: 1.5,
           whiteSpace: "pre-wrap",
         }}
@@ -235,12 +234,12 @@ function QuestionPanel({ question, questionIndex, selectedOption, onSelect, cust
           style={{
             width: "100%",
             minHeight: "60px",
-            background: "rgba(255,255,255,0.05)",
+            background: "var(--ax-bg-input-textarea, rgba(255,255,255,0.05))",
             border: textareaFocused
-              ? "1px solid rgba(124,58,237,0.6)"
-              : "1px solid rgba(255,255,255,0.1)",
+              ? "1px solid var(--ax-color-primary, rgba(124,58,237,0.6))"
+              : "1px solid var(--ax-border-surface, rgba(255,255,255,0.1))",
             borderRadius: 8,
-            color: "rgba(255,255,255,0.85)",
+            color: "var(--ax-text-primary, rgba(255,255,255,0.85))",
             fontSize: "0.85rem",
             padding: "0.5rem 0.75rem",
             resize: "vertical",
@@ -255,13 +254,12 @@ function QuestionPanel({ question, questionIndex, selectedOption, onSelect, cust
   );
 }
 
-// ─── Top-right Decline Button ────────────────────────────────────────────────
-
 interface DeclineButtonProps {
   onDecline: () => void;
 }
 
 function DeclineButton({ onDecline }: DeclineButtonProps) {
+  const { theme } = useAXTheme();
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -278,23 +276,24 @@ function DeclineButton({ onDecline }: DeclineButtonProps) {
         fontSize: "0.7rem",
         padding: "0.25rem 0.5rem",
         borderRadius: 6,
-        border: "1px solid rgba(248, 113, 113, 0.3)",
-        background: hovered ? "rgba(248, 113, 113, 0.2)" : "rgba(248, 113, 113, 0.08)",
-        color: "rgba(248, 113, 113, 0.7)",
+        border: "1px solid var(--ax-border-error, rgba(248, 113, 113, 0.3))",
+        background: hovered
+          ? "var(--ax-bg-error, rgba(248, 113, 113, 0.08))"
+          : "var(--ax-bg-error, rgba(248, 113, 113, 0.08))",
+        color: "var(--ax-text-error, rgba(248, 113, 113, 0.7))",
         fontWeight: 600,
         cursor: "pointer",
         transition: "background 0.15s ease",
         whiteSpace: "nowrap",
         lineHeight: 1.4,
         letterSpacing: "0.02em",
+        ...theme.styles?.questionDialog?.declineButton,
       }}
     >
       {AXSDK.t("questionDialog.decline")}
     </button>
   );
 }
-
-// ─── Main component ──────────────────────────────────────────────────────────
 
 export function AXQuestionDialog({
   data,
@@ -303,6 +302,7 @@ export function AXQuestionDialog({
   onDecline,
   visible = true,
 }: AXQuestionDialogProps) {
+  const { theme } = useAXTheme();
   const [answers, setAnswers] = useState<Map<number, number>>(new Map());
   const [customAnswers, setCustomAnswers] = useState<Map<number, string>>(new Map());
   const [submitted, setSubmitted] = useState(false);
@@ -388,9 +388,8 @@ export function AXQuestionDialog({
       aria-label="Question dialog"
       style={{
         position: "relative",
-        background:
-          "linear-gradient(160deg, rgba(20, 15, 45, 0.97) 0%, rgba(10, 8, 30, 0.98) 100%)",
-        border: "1px solid rgba(167, 139, 250, 0.2)",
+        background: "var(--ax-bg-question-dialog)",
+        border: "1px solid var(--ax-color-primary-light, rgba(167, 139, 250, 0.2))",
         borderRadius: 20,
         padding: "24px 20px",
         boxShadow:
@@ -399,6 +398,7 @@ export function AXQuestionDialog({
         animation: "axqdialog-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both",
         maxWidth: 540,
         width: "100%",
+        ...theme.styles?.questionDialog?.card,
       }}
     >
       <div
@@ -417,8 +417,8 @@ export function AXQuestionDialog({
             borderRadius: "50%",
             background:
               "radial-gradient(circle at 35% 35%, rgba(255,255,255,0.3), transparent 60%), " +
-              "radial-gradient(circle at center, #7c3aed, #1d4ed8)",
-            boxShadow: "0 0 12px rgba(124, 58, 237, 0.4)",
+              `radial-gradient(circle at center, var(--ax-color-primary, #7c3aed), var(--ax-color-primary-dark, #1d4ed8))`,
+            boxShadow: "0 0 12px var(--ax-color-primary, rgba(124, 58, 237, 0.4))",
             flexShrink: 0,
             display: "flex",
             alignItems: "center",
@@ -438,30 +438,30 @@ export function AXQuestionDialog({
         </div>
 
         <div style={{ flex: 1 }}>
-          <div
-            style={{
-              fontSize: "0.85rem",
-              fontWeight: 600,
-              color: "rgba(255, 255, 255, 0.88)",
-            }}
-          >
-            {AXSDK.t("questionDialog.aiAssistant")}
-          </div>
-          <div
-            style={{
-              fontSize: "0.7rem",
-              color: "rgba(167, 139, 250, 0.65)",
-            }}
-          >
-            {AXSDK.t("questionDialog.title")}
-          </div>
+        <div
+          style={{
+            fontSize: "0.85rem",
+            fontWeight: 600,
+            color: "var(--ax-text-primary, rgba(255, 255, 255, 0.88))",
+          }}
+        >
+          {AXSDK.t("questionDialog.aiAssistant")}
         </div>
+        <div
+          style={{
+            fontSize: "0.7rem",
+            color: "var(--ax-color-primary-light, rgba(167, 139, 250, 0.65))",
+          }}
+        >
+          {AXSDK.t("questionDialog.title")}
+        </div>
+      </div>
 
         {isMultiPage && (
           <div
             style={{
               fontSize: "0.7rem",
-              color: "rgba(255, 255, 255, 0.4)",
+              color: "var(--ax-text-dim, rgba(255, 255, 255, 0.4))",
               fontWeight: 500,
               letterSpacing: "0.05em",
               flexShrink: 0,
@@ -494,7 +494,7 @@ export function AXQuestionDialog({
             style={{
               textAlign: "center",
               padding: "12px 0",
-              color: "rgba(52, 211, 153, 0.9)",
+              color: "var(--ax-text-success)",
               fontSize: "0.9rem",
               fontWeight: 600,
               display: "flex",
@@ -511,7 +511,7 @@ export function AXQuestionDialog({
             style={{
               textAlign: "center",
               padding: "12px 0",
-              color: "rgba(248, 113, 113, 0.9)",
+              color: "var(--ax-text-error)",
               fontSize: "0.9rem",
               fontWeight: 600,
               display: "flex",
@@ -536,7 +536,7 @@ export function AXQuestionDialog({
                   borderRadius: 12,
                   border: "1.5px solid rgba(255, 255, 255, 0.18)",
                   background: "rgba(255, 255, 255, 0.06)",
-                  color: "rgba(255, 255, 255, 0.75)",
+                  color: "var(--ax-text-muted)",
                   fontWeight: 600,
                   fontSize: "0.9rem",
                   cursor: isFirstPage ? "not-allowed" : "pointer",
@@ -561,11 +561,11 @@ export function AXQuestionDialog({
                   borderRadius: 12,
                   border: "none",
                   background: hasCurrentAnswer
-                    ? "linear-gradient(135deg, rgba(124, 58, 237, 1.0) 0%, rgba(79, 70, 229, 1.0) 100%)"
+                    ? `linear-gradient(135deg, var(--ax-color-primary, rgba(124,58,237,1)) 0%, var(--ax-color-primary-dark, rgba(79,70,229,1)) 100%)`
                     : "rgba(255, 255, 255, 0.07)",
                   color: hasCurrentAnswer
                     ? "rgba(255, 255, 255, 0.95)"
-                    : "rgba(255, 255, 255, 0.25)",
+                    : "var(--ax-text-dim)",
                   fontWeight: 600,
                   fontSize: "0.95rem",
                   cursor: hasCurrentAnswer ? "pointer" : "not-allowed",
@@ -574,6 +574,7 @@ export function AXQuestionDialog({
                     ? "0 2px 12px rgba(124, 58, 237, 0.35)"
                     : "none",
                   letterSpacing: "0.01em",
+                  ...theme.styles?.questionDialog?.submitButton,
                 }}
               >
                 {AXSDK.t("questionDialog.submit")}
@@ -589,11 +590,11 @@ export function AXQuestionDialog({
                   borderRadius: 12,
                   border: "none",
                   background: hasCurrentAnswer
-                    ? "linear-gradient(135deg, rgba(124, 58, 237, 1.0) 0%, rgba(79, 70, 229, 1.0) 100%)"
+                    ? `linear-gradient(135deg, var(--ax-color-primary, rgba(124,58,237,1)) 0%, var(--ax-color-primary-dark, rgba(79,70,229,1)) 100%)`
                     : "rgba(255, 255, 255, 0.07)",
                   color: hasCurrentAnswer
                     ? "rgba(255, 255, 255, 0.95)"
-                    : "rgba(255, 255, 255, 0.25)",
+                    : "var(--ax-text-dim)",
                   fontWeight: 600,
                   fontSize: "0.95rem",
                   cursor: hasCurrentAnswer ? "pointer" : "not-allowed",
@@ -603,6 +604,7 @@ export function AXQuestionDialog({
                     ? "0 2px 12px rgba(124, 58, 237, 0.35)"
                     : "none",
                   letterSpacing: "0.01em",
+                  ...theme.styles?.questionDialog?.submitButton,
                 }}
               >
                 {AXSDK.t("questionDialog.next")} →
@@ -612,7 +614,6 @@ export function AXQuestionDialog({
         )}
       </div>
 
-      {/* Inline keyframes */}
       <style>{`
         @keyframes axqdialog-in {
           from { opacity: 0; transform: translateY(16px) scale(0.97); }

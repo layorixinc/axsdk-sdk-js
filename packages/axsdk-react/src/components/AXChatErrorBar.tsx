@@ -31,14 +31,14 @@ export function AXChatErrorBar({ message } : AXChatErrorBarProps) {
       <span style={{
         fontSize: "0.75rem",
         lineHeight: "1.1rem",
-        color: "rgba(252, 165, 165, 0.95)",
+        color: "var(--ax-text-error)",
         flexShrink: 0,
         marginTop: 1,
       }}>⚠</span>
       <span style={{
         fontSize: "0.75rem",
         lineHeight: "1.1rem",
-        color: "rgba(252, 165, 165, 0.95)",
+        color: "var(--ax-text-error)",
         wordBreak: "break-word",
         flex: 1,
       }}>{effectiveError.message}</span>

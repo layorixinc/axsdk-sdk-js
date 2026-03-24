@@ -16,10 +16,7 @@ import { createRoot } from 'react-dom/client';
 import { AXSDK } from '@axsdk/core';
 import { AXUI } from '@axsdk/react';
 import '@axsdk/react/index.css';
-
-// ---------------------------------------------------------------------------
-// Listen for the AXSDK_INIT message from the parent page
-// ---------------------------------------------------------------------------
+import type { AXTheme } from './types';
 
 window.addEventListener('message', async (event: MessageEvent) => {
   const data = event.data as Record<string, unknown>;
@@ -27,10 +24,6 @@ window.addEventListener('message', async (event: MessageEvent) => {
   if (data?.type !== 'AXSDK_INIT') return;
 
   const config = data.config as Record<string, unknown>;
-
-  // ---------------------------------------------------------------------------
-  // Build postMessage-based axHandler that proxies calls to the parent page
-  // ---------------------------------------------------------------------------
 
   const axHandler = (command: string, args: unknown): Promise<unknown> => {
     const requestId = Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -53,7 +46,6 @@ window.addEventListener('message', async (event: MessageEvent) => {
 
       window.addEventListener('message', responseListener);
 
-      // Ask the parent page to run the real axHandler
       window.parent.postMessage(
         {
           type: 'AXSDK_HANDLER_REQUEST',
@@ -68,36 +60,40 @@ window.addEventListener('message', async (event: MessageEvent) => {
 
   async function _axHandler(command: string, args: unknown): Promise<string | { '$': string | (() => Promise<void>), message: string }> {
     const result = await axHandler(command, args) as string | { '$': string | (() => Promise<void>), message: string };
-    if(typeof result == 'string') {
-      return result
+    if (typeof result === 'string') {
+      return result;
     }
-    if(result.$) {
+    if (result.$) {
       const callbackId = result.$;
       result.$ = async () => {
         window.parent.postMessage(
           {
             type: 'AXSDK_HANDLER_CALLBACK',
-            callbackId
+            callbackId,
           },
           '*',
         );
-      }
+      };
     }
     return result;
   }
 
   // ---------------------------------------------------------------------------
-  // Initialise the AXSDK core with the forwarded config + RPC axHandler
+  // Extract theme from config before forwarding to AXSDK.init.
+  // The theme key is stripped from coreConfig since AXSDK.init doesn't know it.
   // ---------------------------------------------------------------------------
+
+  const { theme: rawTheme, ...coreConfig } = config;
+
+  // theme arrives as a plain JSON-serializable object via structured-clone
+  // (postMessage serialisation). Cast to local AXTheme; it is structurally
+  // compatible with @axsdk/react's AXTheme so AXUI accepts it at runtime.
+  const theme = rawTheme as AXTheme | undefined;
 
   AXSDK.init({
-    ...config,
+    ...coreConfig,
     axHandler: _axHandler,
   });
-
-  // ---------------------------------------------------------------------------
-  // Mount the React app
-  // ---------------------------------------------------------------------------
 
   const container = document.createElement('div');
   container.id = 'axsdk-browser-root';
@@ -105,5 +101,9 @@ window.addEventListener('message', async (event: MessageEvent) => {
   document.body.appendChild(container);
 
   const root = createRoot(container);
-  root.render(React.createElement(AXUI));
+
+  // Pass the theme prop to AXUI when provided. The local AXTheme type (types.ts)
+  // mirrors @axsdk/react's AXTheme structurally; a cast is needed because the
+  // two types live in separate compilation units with no shared declaration.
+  root.render(React.createElement(AXUI, theme ? { theme: theme as Parameters<typeof AXUI>[0]['theme'] } : null));
 });

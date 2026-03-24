@@ -5,7 +5,6 @@ import ReactDOM from 'react-dom';
 
 import { useStore } from 'zustand';
 
-import { AXChatPopup } from './AXChatPopup';
 import { AXButton } from './AXButton';
 import { AXChatNotificationPopover } from './AXChatNotificationPopover';
 import { AXChatLastMessage } from './AXChatLastMessage';
@@ -16,8 +15,16 @@ import { AXQuestionDialog } from './AXQuestionDialog';
 import { AXSDK } from '@axsdk/core';
 import type { TextPart } from '@axsdk/core';
 
+import type { AXTheme } from '../theme';
+import { AXThemeProvider } from '../AXThemeContext';
+import { injectCSSVariables } from '../cssVariables';
+
+export type { AXTheme };
+
 export interface AXUIProps {
   children?: React.ReactNode;
+  /** Optional theme configuration. All properties are optional; unset values fall back to the built-in dark defaults. */
+  theme?: AXTheme;
 }
 
 function SpeechBubbleClosed({ visible }: { visible: boolean }) {
@@ -39,10 +46,10 @@ function SpeechBubbleClosed({ visible }: { visible: boolean }) {
     >
       <div
         style={{
-          background: "rgba(18, 18, 28, 0.92)",
+          background: "var(--ax-bg-popover)",
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
-          border: "1px solid rgba(168, 85, 247, 0.35)",
+          border: "1px solid var(--ax-border-primary, rgba(168, 85, 247, 0.35))",
           borderRadius: 12,
           padding: "9px 16px",
           boxShadow:
@@ -52,12 +59,11 @@ function SpeechBubbleClosed({ visible }: { visible: boolean }) {
       >
         <span
           style={{
-            color: "rgba(255, 255, 255, 0.92)",
+            color: "var(--ax-text-primary)",
             fontSize: "0.875rem",
             fontWeight: 500,
             letterSpacing: "0.01em",
-            background:
-              "linear-gradient(90deg, #c084fc 0%, #818cf8 50%, #38bdf8 100%)",
+            background: "var(--ax-text-gradient)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
@@ -76,7 +82,7 @@ function SpeechBubbleClosed({ visible }: { visible: boolean }) {
           height: 0,
           borderLeft: "9px solid transparent",
           borderRight: "9px solid transparent",
-          borderTop: "9px solid rgba(168, 85, 247, 0.35)",
+          borderTop: "9px solid var(--ax-border-primary, rgba(168, 85, 247, 0.35))",
           zIndex: -1,
         }}
       />
@@ -89,7 +95,7 @@ function SpeechBubbleClosed({ visible }: { visible: boolean }) {
           height: 0,
           borderLeft: "8px solid transparent",
           borderRight: "8px solid transparent",
-          borderTop: "8px solid rgba(18, 18, 28, 0.92)",
+          borderTop: "8px solid var(--ax-bg-popover)",
           filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.3))",
         }}
       />
@@ -97,91 +103,9 @@ function SpeechBubbleClosed({ visible }: { visible: boolean }) {
   );
 }
 
-function SpeechBubbleOpen({ visible }: { visible: boolean }) {
-  return (
-    <div
-      aria-hidden={!visible}
-      style={{
-        position: "fixed",
-        // Vertically center with AXButton center: top-6 (1.5rem) + half of 12vh = 6vh
-        top: "calc(1.5rem)",
-        // Place bubble to the left of the button: right-6 (1.5rem) + button width (12vh) + gap (12px)
-        right: "calc(1.5rem + 6vh + 12px)",
-        transform: "translateY(-50%)",
-        zIndex: 10001,
-        pointerEvents: "none",
-        animation: visible
-          ? "axbubble-open-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards"
-          : "axbubble-open-out 0.2s ease-in forwards",
-        opacity: visible ? undefined : 0,
-      }}
-    >
-      {/* Bubble body */}
-      <div
-        style={{
-          position: "relative",
-          background: "rgba(18, 18, 28, 0.92)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          border: "1px solid rgba(168, 85, 247, 0.35)",
-          borderRadius: 12,
-          padding: "9px 16px",
-          boxShadow:
-            "0 4px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.06) inset",
-          whiteSpace: "nowrap",
-        }}
-      >
-        <span
-          style={{
-            color: "rgba(255, 255, 255, 0.92)",
-            fontSize: "0.875rem",
-            fontWeight: 500,
-            letterSpacing: "0.01em",
-            background:
-              "linear-gradient(90deg, #c084fc 0%, #818cf8 50%, #38bdf8 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}
-        >
-          {AXSDK.t("chatHide")}
-        </span>
-
-        <div
-          style={{
-            position: "absolute",
-            right: -10,
-            top: "50%",
-            transform: "translateY(-50%)",
-            width: 0,
-            height: 0,
-            borderTop: "10px solid transparent",
-            borderBottom: "10px solid transparent",
-            borderLeft: "10px solid rgba(168, 85, 247, 0.35)",
-            zIndex: -1,
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            right: -8,
-            top: "50%",
-            transform: "translateY(-50%)",
-            width: 0,
-            height: 0,
-            borderTop: "8px solid transparent",
-            borderBottom: "8px solid transparent",
-            borderLeft: "8px solid rgba(18, 18, 28, 0.92)",
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
 const DESKTOP_BREAKPOINT = 768;
 
-export function AXUI({ children }: AXUIProps) {
+export function AXUI({ children, theme }: AXUIProps) {
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
   const [dismissedNotification, setDismissedNotification] = useState("");
   const [lastAnswer, setLastAnswer] = useState<{ questionIndex: number; selectedOption: number; label: string } | null>(null);
@@ -259,14 +183,14 @@ export function AXUI({ children }: AXUIProps) {
     return undefined;
   }, [messages]);
 
-  const userMessageText = latestUserMessage && latestUserMessage.parts && latestUserMessage.parts.length && 
+  const userMessageText = latestUserMessage && latestUserMessage.parts && latestUserMessage.parts.length &&
     latestUserMessage.parts
       .filter((p): p is TextPart => p.type === "text")
       .map((p) => p.text ?? "")
       .join("")
       .trim();
-  const userMessage = latestUserMessage?.info?.id && { id: latestUserMessage?.info?.id, text: userMessageText || '' } || undefined
-  
+  const userMessage = latestUserMessage?.info?.id && { id: latestUserMessage?.info?.id, text: userMessageText || '' } || undefined;
+
   const notificationKey = `${latestUserMessage?.info?.id ?? ''}:${latestAssistantMessage?.info?.id ?? ''}`
   const notifVisible = (!!assistantMessageText || !!userMessageText) && dismissedNotification !== notificationKey
 
@@ -321,7 +245,6 @@ export function AXUI({ children }: AXUIProps) {
   }, []);
 
   useEffect(() => {
-    // Inject keyframe animations into the document head once
     const styleId = "axbubble-keyframes";
     if (!document.getElementById(styleId)) {
       const style = document.createElement("style");
@@ -334,22 +257,6 @@ export function AXUI({ children }: AXUIProps) {
         @keyframes axbubble-out {
           from { opacity: 1; transform: translateY(0) scale(1); }
           to   { opacity: 0; transform: translateY(-6px) scale(0.95); }
-        }
-        @keyframes axbubble-open-in {
-          from { opacity: 0; transform: translateY(-50%) translateX(6px) scale(0.95); }
-          to   { opacity: 1; transform: translateY(-50%) translateX(0) scale(1); }
-        }
-        @keyframes axbubble-open-out {
-          from { opacity: 1; transform: translateY(-50%) translateX(0) scale(1); }
-          to   { opacity: 0; transform: translateY(-50%) translateX(6px) scale(0.95); }
-        }
-        @keyframes axbubble-clear-in {
-          from { opacity: 0; transform: translateY(6px) scale(0.95); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes axbubble-clear-out {
-          from { opacity: 1; transform: translateY(0) scale(1); }
-          to   { opacity: 0; transform: translateY(6px) scale(0.95); }
         }
       `;
       document.head.appendChild(style);
@@ -370,6 +277,12 @@ export function AXUI({ children }: AXUIProps) {
     };
   }, []);
 
+  useEffect(() => {
+    if (portalTarget) {
+      injectCSSVariables(portalTarget, theme);
+    }
+  }, [portalTarget, theme]);
+
   const handleClick = () => {
     setIsOpen(!isOpen);
   };
@@ -384,12 +297,11 @@ export function AXUI({ children }: AXUIProps) {
 
   if (!portalTarget) return null;
 
-  const content = <div>
+  const content = <AXThemeProvider theme={theme}>
+    <div>
     {children}
     <AXDevTools debug={AXSDK.config?.debug} messages={messages} />
-    {false && <AXChatPopup visible={isOpen} onSendMessage={handleSend}></AXChatPopup>}
     <SpeechBubbleClosed visible={!isOpen && !chatWasEverOpened} />
-    {false &&<SpeechBubbleOpen visible={isOpen} />}
     {isOpen ? (
       <AXChatLastMessage
         message={assistantMessage}
@@ -465,7 +377,7 @@ export function AXUI({ children }: AXUIProps) {
     {questions && (
       <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 99999, width: '100%', maxWidth: '420px' }}>
         {AXSDK.config?.debug && lastAnswer && (
-          <div style={{ marginBottom: '0.5rem', padding: '0.4rem 0.8rem', background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.4)', borderRadius: '999px', color: '#c4b5fd', fontSize: '0.75rem', display: 'inline-block' }}>
+          <div style={{ marginBottom: '0.5rem', padding: '0.4rem 0.8rem', background: 'color-mix(in srgb, var(--ax-color-primary, #7c3aed) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--ax-color-primary, #7c3aed) 40%, transparent)', borderRadius: '999px', color: '#c4b5fd', fontSize: '0.75rem', display: 'inline-block' }}>
             Selected: <strong>{lastAnswer.label}</strong>
           </div>
         )}
@@ -504,7 +416,8 @@ export function AXUI({ children }: AXUIProps) {
     }}>
       {AXSDK.t('poweredBy')}
     </div>
-  </div>
+    </div>
+  </AXThemeProvider>;
 
   return ReactDOM.createPortal(content, portalTarget);
 }

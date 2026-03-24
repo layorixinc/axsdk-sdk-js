@@ -7,28 +7,41 @@
  */
 
 import { handleAX, executeCallback, type AXHandler } from "./axhandler";
+import type { AXTheme } from "./types";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+export type { AXTheme };
 
 export interface AXSDKBrowserConfig {
   apiKey: string;
   appId: string;
   axHandler?: AXHandler;
+  /**
+   * Optional theme configuration for the embedded AXUI widget.
+   *
+   * All properties are optional. Unspecified values fall back to the built-in
+   * dark-mode defaults, preserving full backward compatibility.
+   *
+   * The theme object must be JSON-serializable (no functions). It is forwarded
+   * to the iframe via the `AXSDK_INIT` postMessage and passed to `<AXUI theme={...} />`.
+   *
+   * @example
+   * ```js
+   * AXSDK.init({
+   *   apiKey: 'YOUR-API-KEY',
+   *   appId:  'YOUR-APP-ID',
+   *   theme: {
+   *     colorMode: 'light',
+   *     buttonImageUrl: 'https://example.com/bot.png',
+   *   },
+   * });
+   * ```
+   */
+  theme?: AXTheme;
   [key: string]: unknown;
 }
 
-// ---------------------------------------------------------------------------
-// Internal state
-// ---------------------------------------------------------------------------
-
 let _iframe: HTMLIFrameElement | null = null;
 let _axHandler: AXHandler | undefined;
-
-// ---------------------------------------------------------------------------
-// Responsive sizing
-// ---------------------------------------------------------------------------
 
 const _mql = window.matchMedia('(max-width: 767px)');
 
@@ -74,10 +87,6 @@ const _frameScriptUrl = _baseUrl
   ? _baseUrl + 'axsdk-browser-frame.js'
   : './axsdk-browser-frame.js';
 
-// ---------------------------------------------------------------------------
-// postMessage listener — handle axHandler RPC calls from iframe
-// ---------------------------------------------------------------------------
-
 window.addEventListener('message', async (event: MessageEvent) => {
   if (!_iframe) return;
   if (event.source !== _iframe.contentWindow) return;
@@ -118,10 +127,6 @@ window.addEventListener('message', async (event: MessageEvent) => {
   }
 });
 
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
-
 export default {
   /**
    * Initialize the AXSDK embed widget.
@@ -138,13 +143,11 @@ export default {
       return;
     }
 
-    // Store handler reference
     _axHandler = config.axHandler;
 
-    // Build serialisable config (strip the function before sending via postMessage)
+    // Strip the axHandler function before forwarding config via postMessage
     const { axHandler: _dropped, ...serializableConfig } = config;
 
-    // Create iframe
     const iframe = document.createElement('iframe');
     _iframe = iframe;
     updateIframeSize(_mql.matches);
@@ -168,7 +171,6 @@ export default {
       '</html>',
     ].join('');
 
-    // After the iframe loads, send the init config
     iframe.addEventListener('load', () => {
       iframe.contentWindow?.postMessage(
         { type: 'AXSDK_INIT', config: serializableConfig },
