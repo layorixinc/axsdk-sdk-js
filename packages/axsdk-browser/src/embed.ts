@@ -15,27 +15,6 @@ export interface AXSDKBrowserConfig {
   apiKey: string;
   appId: string;
   axHandler?: AXHandler;
-  /**
-   * Optional theme configuration for the embedded AXUI widget.
-   *
-   * All properties are optional. Unspecified values fall back to the built-in
-   * dark-mode defaults, preserving full backward compatibility.
-   *
-   * The theme object must be JSON-serializable (no functions). It is forwarded
-   * to the iframe via the `AXSDK_INIT` postMessage and passed to `<AXUI theme={...} />`.
-   *
-   * @example
-   * ```js
-   * AXSDK.init({
-   *   apiKey: 'YOUR-API-KEY',
-   *   appId:  'YOUR-APP-ID',
-   *   theme: {
-   *     colorMode: 'light',
-   *     buttonImageUrl: 'https://example.com/bot.png',
-   *   },
-   * });
-   * ```
-   */
   theme?: AXTheme;
   [key: string]: unknown;
 }

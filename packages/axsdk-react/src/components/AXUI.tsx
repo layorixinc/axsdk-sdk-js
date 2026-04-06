@@ -107,7 +107,7 @@ const DESKTOP_BREAKPOINT = 768;
 
 export function AXUI({ children, theme }: AXUIProps) {
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
-  const [dismissedNotification, setDismissedNotification] = useState("");
+  const [dismissedNotification, setDismissedNotification] = useState(false);
   const [lastAnswer, setLastAnswer] = useState<{ questionIndex: number; selectedOption: number; label: string } | null>(null);
   const [submitLog, setSubmitLog] = useState<string | null>(null);
   const [inputTopOffset, setInputTopOffset] = useState<number | null>(null);
@@ -191,8 +191,7 @@ export function AXUI({ children, theme }: AXUIProps) {
       .trim();
   const userMessage = latestUserMessage?.info?.id && { id: latestUserMessage?.info?.id, text: userMessageText || '' } || undefined;
 
-  const notificationKey = `${latestUserMessage?.info?.id ?? ''}:${latestAssistantMessage?.info?.id ?? ''}`
-  const notifVisible = (!!assistantMessageText || !!userMessageText) && dismissedNotification !== notificationKey
+  const notifVisible = (!!assistantMessageText || !!userMessageText) && !dismissedNotification
 
   // Measure input wrapper top position to align notification popover.
   // Re-measure whenever isOpen changes so we capture the on-screen position
@@ -319,7 +318,7 @@ export function AXUI({ children, theme }: AXUIProps) {
         message={assistantMessage}
         userMessage={userMessage}
         visible={notifVisible}
-        onClose={() => setDismissedNotification(notificationKey)}
+        onClose={() => setDismissedNotification(true)}
         onOpen={() => setIsOpen(true)}
         isBusy={isBusy}
         isDesktop={isDesktop}
