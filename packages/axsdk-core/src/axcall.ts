@@ -2,6 +2,7 @@ import { EventBus } from './eventbus';
 import { chatStore } from './store';
 import { processAXHandler } from './axhandler';
 import * as api from './axapi';
+import { isPromise } from './lib'
 
 interface Call {
   id: string;
@@ -41,7 +42,7 @@ export async function handleAXSDKCall(properties: unknown) {
     processedCallIds.set(call.id, now);
 
     let status: string = 'completed';
-    let result: string | { "$": () => Promise<void>, message: string };
+    let result: string | [string, Promise<void> | (() => void)];
     try {
       const args = typeof call.args === 'string' ? JSON.parse(call.args) : call.args;
       result = await processAXHandler(call.command, args);
@@ -55,8 +56,11 @@ export async function handleAXSDKCall(properties: unknown) {
     if (typeof result === 'string') {
       await api.updateCall(call.id, status, result);
     } else {
-      await api.updateCall(call.id, status, result.message);
-      await result.$();
+      await api.updateCall(call.id, status, result[0]);
+      if(!!result[1]) {
+        if(isPromise(result[1])) await result[1];
+        else if(typeof result[1] === 'function') result[1]();
+      }
     }
   } catch (e) {
     console.error('handleAXSDKCall: error:', e);
