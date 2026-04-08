@@ -1,6 +1,6 @@
 {
   "name": "@axsdk/browser",
-  "version": "0.2.0",
+  "version": "0.3.1",
   "private": false,
   "description": "axsdk browser - embed AXSDK widget in web",
   "keywords": [],
@@ -25,10 +25,8 @@
     "dist"
   ],
   "scripts": {
-    "build:browser": "vite build --config vite.config.browser.ts",
-    "build:frame": "vite build --config vite.config.frame.ts",
-    "build": "bun run build:browser && bun run build:frame",
-    "dev": "vite --config vite.config.browser.ts",
+    "build": "vite build --config vite.config.ts",
+    "dev": "vite --config vite.config.ts",
     "publish": "bun run build && npm publish --access=public"
   },
   "dependencies": {

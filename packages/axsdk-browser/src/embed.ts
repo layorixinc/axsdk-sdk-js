@@ -1,173 +1,88 @@
-/**
- * axsdk-browser: Parent page loader script
- *
- * This IIFE bundle is loaded via <script> tag on the host page.
- * It creates an iframe, injects the frame bundle via srcdoc, and
- * exposes the global `AXSDKBrowser` API for postMessage-based communication.
- */
-
-import { handleAX, executeCallback, type AXHandler } from "./axhandler";
-import type { AXTheme } from "./types";
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { AXSDK } from '@axsdk/core';
+import { AXUI } from '@axsdk/react';
+import { handleAX } from './axhandler';
+import '@axsdk/react/index.css';
+import type { AXTheme } from './types';
 
 export type { AXTheme };
 
 export interface AXSDKBrowserConfig {
   apiKey: string;
   appId: string;
-  axHandler?: AXHandler;
+  axHandler?: (command: string, args: unknown) => Promise<unknown>;
   theme?: AXTheme;
   [key: string]: unknown;
 }
 
-let _iframe: HTMLIFrameElement | null = null;
-let _axHandler: AXHandler | undefined;
+declare const __AXSDK_INLINED_CSS__: string;
+const _inlinedCss: string =
+  typeof __AXSDK_INLINED_CSS__ !== 'undefined' ? __AXSDK_INLINED_CSS__ : '';
 
-const _mql = window.matchMedia('(max-width: 767px)');
+let _root: ReactDOM.Root | null = null;
+let _hostElement: HTMLElement | null = null;
 
-function updateIframeSize(isMobile: boolean): void {
-  if (!_iframe) return;
-  if (isMobile) {
-    _iframe.style.cssText = [
-      'position:fixed',
-      'top:0',
-      'left:0',
-      'right:0',
-      'bottom:0',
-      'width:100%',
-      'height:100dvh',
-      'border:none',
-      'z-index:99999',
-      'background:transparent',
-    ].join(';');
-  } else {
-    _iframe.style.cssText = [
-      'position:fixed',
-      'right:0',
-      'bottom:0',
-      'width:420px',
-      'height:680px',
-      'border:none',
-      'z-index:99999',
-      'background:transparent',
-    ].join(';');
-  }
-}
-
-_mql.addEventListener('change', (e: MediaQueryListEvent) => {
-  updateIframeSize(e.matches);
-});
-
-// Detect the base URL of this script so we can derive the frame bundle URL.
-// `document.currentScript` is available synchronously when the script runs.
-const _currentScript = document.currentScript as HTMLScriptElement | null;
-const _scriptSrc = _currentScript?.src ?? '';
-const _baseUrl = _scriptSrc.replace(/axsdk-browser\.js$/, '');
-const _frameScriptUrl = _baseUrl
-  ? _baseUrl + 'axsdk-browser-frame.js'
-  : './axsdk-browser-frame.js';
-
-window.addEventListener('message', async (event: MessageEvent) => {
-  if (!_iframe) return;
-  if (event.source !== _iframe.contentWindow) return;
-
-  const data = event.data as Record<string, unknown>;
-
-  if (data?.type === 'AXSDK_HANDLER_REQUEST' && _axHandler) {
-    const { requestId, command, args } = data as {
-      requestId: string;
-      command: string;
-      args: unknown;
-    };
-
-    try {
-      const result = await handleAX(_axHandler, command, args);
-
-      _iframe.contentWindow?.postMessage(
-        { type: 'AXSDK_HANDLER_RESPONSE', requestId, result },
-        '*',
-      );
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      _iframe.contentWindow?.postMessage(
-        { type: 'AXSDK_HANDLER_RESPONSE', requestId, error: errorMessage },
-        '*',
-      );
-    }
-  } else if (data?.type === 'AXSDK_HANDLER_CALLBACK') {
-    const { callbackId } = data as {
-      callbackId: string;
-    };
-
-    try {
-      await executeCallback(callbackId);
-    } catch (err) {
-      console.error('Error handling callback:', err);
-    }
-  }
-});
-
-export default {
-  /**
-   * Initialize the AXSDK embed widget.
-   *
-   * Creates an iframe, loads the frame bundle inside it via srcdoc,
-   * and sends the init config via postMessage after the iframe has loaded.
-   *
-   * @param config - Embed configuration. `axHandler` is called on the parent
-   *   side; all other keys are forwarded to the iframe for `AXSDK.init()`.
-   */
+const AXSDKBrowser = {
   init(config: AXSDKBrowserConfig): void {
-    if (_iframe) {
+    if (_root) {
       console.warn('[AXSDKBrowser] Already initialized. Ignoring duplicate init() call.');
       return;
     }
 
-    _axHandler = config.axHandler;
+    const { axHandler, theme, ...axsdkConfig } = config;
 
-    // Strip the axHandler function before forwarding config via postMessage
-    const { axHandler: _dropped, ...serializableConfig } = config;
-
-    const iframe = document.createElement('iframe');
-    _iframe = iframe;
-    updateIframeSize(_mql.matches);
-
-    iframe.setAttribute('allowtransparency', 'true');
-    iframe.setAttribute('frameborder', '0');
-
-    // Use srcdoc so the frame script can be loaded with a predictable URL
-    // even when no server serves the HTML page.
-    iframe.srcdoc = [
-      '<!DOCTYPE html>',
-      '<html>',
-      '<head>',
-      '<meta charset="utf-8">',
-      '<meta name="viewport" content="width=device-width,initial-scale=1">',
-      '<style>*{margin:0;padding:0;box-sizing:border-box}html,body{height:100%;width:100%;overflow:hidden}</style>',
-      '</head>',
-      '<body>',
-      `<script src="${_frameScriptUrl}"><\/script>`,
-      '</body>',
-      '</html>',
-    ].join('');
-
-    iframe.addEventListener('load', () => {
-      iframe.contentWindow?.postMessage(
-        { type: 'AXSDK_INIT', config: serializableConfig },
-        '*',
-      );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    AXSDK.init({
+      ...(axsdkConfig as any),
+      axHandler: async function(command: string, args: unknown) {
+        if(!axHandler) {
+          throw new Error('axHandler is required')
+        }
+        const result = await handleAX(axHandler, command, args);
+        return result;
+      },
     });
 
-    document.body.appendChild(iframe);
+    // Inject CSS into document.head so that @keyframes and global rules
+    // are accessible from the portal content rendered in the light DOM
+    // (AXUI uses ReactDOM.createPortal into document.body, not Shadow DOM).
+    if (_inlinedCss && !document.getElementById('axsdk-browser-styles')) {
+      const style = document.createElement('style');
+      style.id = 'axsdk-browser-styles';
+      style.textContent = _inlinedCss;
+      document.head.appendChild(style);
+    }
+
+    _hostElement = document.createElement('div');
+    _hostElement.id = 'axsdk-browser-host';
+    _hostElement.style.cssText =
+      'position:fixed;top:0;left:0;width:0;height:0;overflow:visible;z-index:2147483647;pointer-events:none;';
+    document.body.appendChild(_hostElement);
+
+    const mountPoint = document.createElement('div');
+    mountPoint.id = 'axsdk-root';
+    mountPoint.style.cssText = 'position:relative;width:0;height:0;';
+    _hostElement.appendChild(mountPoint);
+
+    _root = ReactDOM.createRoot(mountPoint);
+    _root.render(
+      React.createElement(AXUI, theme ? { theme } : null),
+    );
   },
 
-  /**
-   * Destroy the embed widget and clean up resources.
-   */
   destroy(): void {
-    if (_iframe && _iframe.parentNode) {
-      _iframe.parentNode.removeChild(_iframe);
+    _root?.unmount();
+    _root = null;
+    _hostElement?.remove();
+    _hostElement = null;
+    document.getElementById('axsdk-browser-styles')?.remove();
+    if (typeof (AXSDK as unknown as Record<string, unknown>).destroy === 'function') {
+      (AXSDK as unknown as { destroy(): void }).destroy();
     }
-    _iframe = null;
-    _axHandler = undefined;
   },
 };
+
+(window as unknown as Record<string, unknown>).AXSDK = AXSDKBrowser;
+
+export default AXSDKBrowser;

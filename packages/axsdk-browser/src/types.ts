@@ -1,37 +1,10 @@
-/**
- * Local AXTheme type definition for axsdk-browser.
- *
- * This mirrors the AXTheme interface from @axsdk/react/src/theme.ts.
- * It is duplicated here to avoid workspace type-resolution issues when the
- * @axsdk/react package has not been built yet (i.e. dist/lib.d.ts missing).
- *
- * Keep in sync with packages/axsdk-react/src/theme.ts.
- */
-
 export interface AXTheme {
-  /**
-   * URL of the image to render as the default (idle) button icon.
-   * When provided, replaces the layered orb gradient with an <img> element.
-   */
   buttonImageUrl?: string;
 
-  /**
-   * URL of the image (or GIF) to render when the assistant is busy.
-   * Falls back to buttonImageUrl if not provided.
-   */
   buttonAnimationImageUrl?: string;
 
-  /**
-   * Color mode. Defaults to 'dark'.
-   * - 'dark': The current default dark UI.
-   * - 'light': Inverted palette suitable for light-background host pages.
-   */
   colorMode?: 'dark' | 'light';
 
-  /**
-   * Color token overrides. Merged on top of the built-in dark/light palette.
-   * Only specify what you want to change.
-   */
   colors?: {
     primary?: {
       primary?: string;
@@ -72,10 +45,6 @@ export interface AXTheme {
     };
   };
 
-  /**
-   * Per-component style overrides using React.CSSProperties (plain objects).
-   * Merged with the component's own default inline styles; user overrides win.
-   */
   styles?: {
     button?: {
       wrapper?: Record<string, unknown>;

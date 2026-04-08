@@ -5,24 +5,36 @@ import path from 'node:path';
 
 function inlineCssPlugin(): Plugin {
   return {
-    name: 'axsdk-inline-css',
+    name: 'axsdk-inline-css-shadow',
     apply: 'build',
     closeBundle() {
       const outDir = path.resolve('dist');
-      const cssFile = path.join(outDir, 'axsdk-browser.css');
-      const jsFile = path.join(outDir, 'axsdk-browser-frame.js');
+      const cssFile =
+        fs.existsSync(path.join(outDir, 'axsdk-browser.css'))
+          ? path.join(outDir, 'axsdk-browser.css')
+          : path.join(outDir, 'browser.css');
+      const jsFile = path.join(outDir, 'axsdk-browser.js');
 
       if (!fs.existsSync(cssFile)) return;
       if (!fs.existsSync(jsFile)) return;
 
       const css = fs.readFileSync(cssFile, 'utf-8');
-      // Escape backticks and backslashes so the CSS is safe inside a template literal
-      const escaped = css.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
-      const snippet = `(function(){var s=document.createElement('style');s.textContent=\`${escaped}\`;document.head.appendChild(s);})();\n`;
+      const escaped = css
+        .replace(/\\/g, '\\\\')
+        .replace(/`/g, '\\`')
+        .replace(/\$\{/g, '\\${');
 
       const original = fs.readFileSync(jsFile, 'utf-8');
+
+      const snippet =
+        `var __AXSDK_INLINED_CSS__=\`${escaped}\`;\n`;
+
+      if (original.includes('var __AXSDK_INLINED_CSS__')) {
+        fs.unlinkSync(cssFile);
+        return;
+      }
+
       fs.writeFileSync(jsFile, snippet + original);
-      // Remove the now-redundant CSS file
       fs.unlinkSync(cssFile);
     },
   };
@@ -31,17 +43,18 @@ function inlineCssPlugin(): Plugin {
 export default defineConfig({
   plugins: [react(), inlineCssPlugin()],
   define: {
-    'process.env': {}
+    'process.env': {},
+    '__AXSDK_INLINED_CSS__': '""',
   },
   build: {
     lib: {
-      entry: 'src/frame.tsx',
-      name: 'AXSDKBrowserFrame',
+      entry: 'src/embed.ts',
+      name: 'AXSDK',
       formats: ['iife'],
-      fileName: () => 'axsdk-browser-frame.js',
+      fileName: () => 'axsdk-browser.js',
     },
     cssCodeSplit: false,
-    emptyOutDir: false,
+    emptyOutDir: true,
     rollupOptions: {
       external: [],
     },
