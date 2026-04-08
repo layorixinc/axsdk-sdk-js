@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AXChat } from './AXChat';
@@ -11,7 +11,6 @@ export interface AXChatPopupProps {
   visible: boolean;
   children?: React.ReactNode;
   onSendMessage?: (message: string, position: { x: number; y: number }) => void;
-  /** Called when the input gains focus or the user starts typing — used to hide the chatClear bubble. */
   onInputFocusOrChange?: () => void;
 }
 
@@ -22,10 +21,8 @@ function ClearBubble({ visible, onClick }: { visible: boolean; onClick: () => vo
       onClick={onClick}
       style={{
         position: "absolute",
-        // Position below the top of the input wrapper; the buttons row starts at ~0 and is ~3rem tall
-        bottom: "calc(0.25rem)",
-        // Align with the left side of the card where the Clear button sits (1rem card padding + center of ~3rem button)
-        left: "calc(1rem + 1.5rem)",
+        bottom: "calc(0.25em)",
+        left: "calc(1em + 1.5em)",
         transform: "translateX(-50%)",
         zIndex: 10004,
         pointerEvents: visible ? "auto" : "none",
@@ -40,7 +37,7 @@ function ClearBubble({ visible, onClick }: { visible: boolean; onClick: () => vo
         style={{
           position: "absolute",
           top: -10,
-          left: "1rem",
+          left: "1em",
           transform: "translateX(-50%)",
           width: 0,
           height: 0,
@@ -54,7 +51,7 @@ function ClearBubble({ visible, onClick }: { visible: boolean; onClick: () => vo
         style={{
           position: "absolute",
           top: -8,
-          left: "1rem",
+          left: "1em",
           transform: "translateX(-50%)",
           width: 0,
           height: 0,
@@ -81,7 +78,7 @@ function ClearBubble({ visible, onClick }: { visible: boolean; onClick: () => vo
         <span
           style={{
             color: "rgba(255, 255, 255, 0.92)",
-            fontSize: "0.875rem",
+            fontSize: "0.875em",
             fontWeight: 500,
             letterSpacing: "0.01em",
             background:
@@ -190,7 +187,6 @@ export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrCh
         position: "fixed",
         inset: 0,
         zIndex: 9999,
-        // Use "clip" instead of "hidden": clips visually without blocking scroll event routing
         overflow: "clip",
         backgroundColor: "rgba(0, 0, 0, 0.5)",
         visibility: isHidden ? "hidden" : "visible",
@@ -222,7 +218,7 @@ export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrCh
               display: "flex",
               flexDirection: "column",
               justifyContent: "flex-end",
-              paddingTop: "1.5rem",
+              paddingTop: "1.5em",
             }}
           >
             <AXChat ref={chatRef} messages={messages} />
@@ -244,7 +240,7 @@ export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrCh
                 position: "relative",
                 width: "min(680px, 90vw)",
                 animation: "axchat-input-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards",
-                paddingBottom: "1.5rem"
+                paddingBottom: "1.5em"
               }}
             >
               <ClearBubble

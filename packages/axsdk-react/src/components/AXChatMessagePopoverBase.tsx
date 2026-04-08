@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { AXChatErrorBar } from './AXChatErrorBar';
@@ -13,29 +13,12 @@ const COLLAPSED_HEIGHT_PX = LINE_HEIGHT_PX * COLLAPSED_LINES + 20;
 export interface AXChatMessagePopoverBaseProps {
   message?: { id: string, text: string };
   userMessage?: { id: string, text: string };
-  /** Called when the user clicks the close button. If undefined, close button is not rendered. */
   onClose?: () => void;
-  /** Called when the user clicks the popover body (to open the chat). */
   onOpen?: () => void;
-  /** True while the AI session is streaming/responding */
   isBusy: boolean;
-  /** True when the chat popup is open; repositions popover above the message input */
   isOpen?: boolean;
-  /**
-   * When `isOpen` is true, the measured distance (px) from the bottom of the viewport
-   * to the top of the message input wrapper. Used to align the popover's bottom edge
-   * exactly with the input's top edge.
-   */
   inputBottomOffset?: number;
-  /**
-   * When true, desktop layout is active (≥768px). On desktop with `isOpen`, the popover
-   * is right-aligned with a fixed width instead of spanning the full viewport width.
-   */
   isDesktop?: boolean;
-  /**
-   * Increment this value to trigger a scroll-to-bottom of the popover's scrollable content area.
-   * Typically incremented after the open animation completes and layout is finalized.
-   */
   scrollToBottomTrigger?: number;
 }
 
@@ -54,9 +37,8 @@ export function AXChatMessagePopoverBase({
   const [expanded, setExpanded] = useState<boolean>(false);
   const scrollableRef = useRef<HTMLDivElement>(null);
 
-  // Auto-expand when isBusy transitions to false (idle)
   useEffect(() => {
-    if (!isBusy) setExpanded(true); // intentional sync setState to mirror isBusy prop
+    if (!isBusy) setExpanded(true);
   }, [isBusy]);
 
   useEffect(() => {
@@ -67,15 +49,13 @@ export function AXChatMessagePopoverBase({
     }
   }, [scrollToBottomTrigger]);
 
-  // When the chat is open, align the popover's bottom edge with the top of the message input.
-  // Use the measured inputBottomOffset (px) when available; fall back to a CSS estimate.
   const bottomOffset = isOpen
-    ? (inputBottomOffset != null ? `${inputBottomOffset > 0 ? inputBottomOffset : -1024}px` : "calc(1.25rem + 75px + 8px)")
-    : "1.25rem";
+    ? (inputBottomOffset != null ? `${inputBottomOffset > 0 ? inputBottomOffset : -1024}px` : "calc(1.25em + 75px + 8px)")
+    : "1.25em";
 
   const wrapperStyle: React.CSSProperties = expanded
     ? {
-        maxHeight: `calc(100vh - ${bottomOffset} - 4rem)`,
+        maxHeight: `calc(100vh - ${bottomOffset} - 4em)`,
         overflowY: "auto",
         overflowX: "hidden",
         scrollbarWidth: "none",
@@ -89,7 +69,7 @@ export function AXChatMessagePopoverBase({
 
   const contentStyle: React.CSSProperties = {
     padding: "10px 14px 10px 14px",
-    fontSize: "0.95rem",
+    fontSize: "0.95em",
     lineHeight: `${LINE_HEIGHT_PX}px`,
     color: "var(--ax-text-primary)",
     wordBreak: "break-word",
@@ -222,7 +202,7 @@ export function AXChatMessagePopoverBase({
           position: "fixed",
           cursor: "pointer",
           bottom: bottomOffset,
-          right: "1.25rem",
+          right: "1.25em",
           width: "min(420px, 40vw)",
           boxSizing: "border-box",
           zIndex: 10001,
@@ -238,7 +218,7 @@ export function AXChatMessagePopoverBase({
           left: 0,
           right: 0,
           width: "100%",
-          padding: "0 1.25rem",
+          padding: "0 1.25em",
           boxSizing: "border-box",
           zIndex: 10001,
           display: "flex",
@@ -250,9 +230,9 @@ export function AXChatMessagePopoverBase({
           position: "fixed",
           cursor: "pointer",
           bottom: bottomOffset,
-          right: "calc(1.25rem + 12vh)",
+          right: "calc(1.25em + 12vh)",
           zIndex: 10001,
-          width: "min(420px, calc(100vw - 12vh - 1rem - 16px))",
+          width: "min(420px, calc(100vw - 12vh - 1em - 16px))",
           display: "flex",
           flexDirection: "column",
           justifyContent: "flex-end",
@@ -275,7 +255,7 @@ export function AXChatMessagePopoverBase({
             animation: !isBusy ? "axnotif-pulse 2s ease-in-out infinite" : "none",
             overflow: "hidden",
             minHeight: "12vh",
-            maxHeight: `calc(100vh - ${bottomOffset} - 1rem)`,
+            maxHeight: `calc(100vh - ${bottomOffset} - 1em)`,
             zIndex: 1,
             display: "flex",
             flexDirection: "column",
@@ -291,7 +271,7 @@ export function AXChatMessagePopoverBase({
           }}>
             {userMessage && (
               <div style={{
-                fontSize: "0.85rem",
+                fontSize: "0.85em",
                 fontWeight: 500,
                 color: "var(--ax-text-muted)",
                 whiteSpace: "nowrap" as const,
@@ -316,7 +296,7 @@ export function AXChatMessagePopoverBase({
                 border: "1px solid var(--ax-border-primary, rgba(168, 85, 247, 0.4))",
                 cursor: "pointer",
                 color: "var(--ax-text-primary)",
-                fontSize: "1.25rem",
+                fontSize: "1.25em",
                 lineHeight: 1,
                 padding: 0,
                 borderRadius: 4,

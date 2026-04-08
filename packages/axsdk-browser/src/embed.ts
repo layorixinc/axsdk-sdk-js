@@ -20,6 +20,28 @@ declare const __AXSDK_INLINED_CSS__: string;
 const _inlinedCss: string =
   typeof __AXSDK_INLINED_CSS__ !== 'undefined' ? __AXSDK_INLINED_CSS__ : '';
 
+const _isolationCss = `
+.ax-portal-root {
+  all: initial;
+  display: block;
+  box-sizing: border-box;
+  font-size: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.5;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: initial;
+  position: relative;
+}
+
+.ax-portal-root *,
+.ax-portal-root *::before,
+.ax-portal-root *::after {
+  box-sizing: border-box;
+}
+`;
+
 let _root: ReactDOM.Root | null = null;
 let _hostElement: HTMLElement | null = null;
 
@@ -44,13 +66,10 @@ const AXSDKBrowser = {
       },
     });
 
-    // Inject CSS into document.head so that @keyframes and global rules
-    // are accessible from the portal content rendered in the light DOM
-    // (AXUI uses ReactDOM.createPortal into document.body, not Shadow DOM).
-    if (_inlinedCss && !document.getElementById('axsdk-browser-styles')) {
+    if (!document.getElementById('axsdk-browser-styles')) {
       const style = document.createElement('style');
       style.id = 'axsdk-browser-styles';
-      style.textContent = _inlinedCss;
+      style.textContent = _isolationCss + (_inlinedCss ?? '');
       document.head.appendChild(style);
     }
 
@@ -62,6 +81,7 @@ const AXSDKBrowser = {
 
     const mountPoint = document.createElement('div');
     mountPoint.id = 'axsdk-root';
+    mountPoint.className = 'ax-portal-root';
     mountPoint.style.cssText = 'position:relative;width:0;height:0;';
     _hostElement.appendChild(mountPoint);
 

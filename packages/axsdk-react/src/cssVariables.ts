@@ -1,16 +1,6 @@
 import type { AXTheme } from './theme';
 import { mergeTheme } from './defaultTheme';
 
-/**
- * Injects all AX theme CSS custom properties onto `root`'s inline style.
- *
- * Variables are scoped to the AXUI portal root element so they don't
- * escape to the host page. Components read from `var(--ax-*)` in
- * their inline styles.
- *
- * @param root     The portal root HTMLElement (the `div` appended to `document.body`).
- * @param theme    The (possibly partial) user theme. Merged with defaults internally.
- */
 export function injectCSSVariables(root: HTMLElement, theme?: AXTheme): void {
   const merged = mergeTheme(theme);
   const mode = merged.colorMode ?? 'dark';
@@ -70,14 +60,6 @@ export function injectCSSVariables(root: HTMLElement, theme?: AXTheme): void {
   }
 }
 
-/**
- * Attempt to extract an "r, g, b" triplet string from a hex colour so we can
- * compose `rgba(r, g, b, 0.35)` for derived border tokens.
- *
- * Supports 3-digit (#abc) and 6-digit (#aabbcc) hex strings only.
- * Falls back to returning the raw value unchanged for non-hex strings
- * (the caller must then avoid wrapping it in rgba()).
- */
 function hexOrRawToRgbStr(color: string): string {
   const hex = color.trim();
   if (hex.startsWith('#')) {
@@ -95,6 +77,5 @@ function hexOrRawToRgbStr(color: string): string {
     }
     return `${r}, ${g}, ${b}`;
   }
-  // For rgba/rgb strings we just pass the whole thing — caller won't wrap in rgba()
   return hex;
 }

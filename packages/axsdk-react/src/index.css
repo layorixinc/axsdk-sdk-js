@@ -1,9 +1,23 @@
 /* ── Base reset / box model ──────────────────────────────────────── */
 
-*,
-*::before,
-*::after {
+.ax-portal-root *,
+.ax-portal-root *::before,
+.ax-portal-root *::after {
   box-sizing: border-box;
+}
+
+.ax-portal-root {
+  all: initial;                  /* nuclear reset: wipes all inherited + browser UA styles */
+  display: block;                /* restore block layout (all: initial sets display: inline) */
+  box-sizing: border-box;        /* restore box model */
+  font-size: 16px;               /* anchor em units */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.5;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: initial;
+  position: relative;            /* needed so absolutely positioned children are bounded */
 }
 
 /* ── AXButton animations ─────────────────────────────────────────── */
@@ -114,7 +128,7 @@
   }
 }
 
-@keyframes spin {
+@keyframes ax-spin {
   from {
     transform: rotate(0);
   }

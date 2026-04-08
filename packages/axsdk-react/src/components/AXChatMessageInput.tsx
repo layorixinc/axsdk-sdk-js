@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
 import { AXSDK } from '@axsdk/core';
@@ -8,21 +8,13 @@ import { useAXTheme } from '../AXThemeContext';
 export interface AXChatMessageInputProps {
   onSend: (message: string) => void;
   onFocus?: () => void;
-  /** Called whenever the textarea value changes (i.e. the user is typing). */
   onInputChange?: () => void;
   onClear?: () => void;
   disabled?: boolean;
   placeholder?: string;
-  /** Optional guide text rendered at the top of the input card (e.g. busy/idle status hint). */
   guideText?: string;
-  /** When true, focuses the textarea automatically on mount. */
   autoFocus?: boolean;
-  /** Called when the textarea is focused automatically (via autoFocus). */
   onAutoFocus?: () => void;
-  /**
-   * Increment this value to programmatically focus the message textarea.
-   * Typically incremented after the open animation completes (~300ms after isOpen becomes true).
-   */
   focusTrigger?: number;
 }
 
@@ -82,26 +74,26 @@ export function AXChatMessageInput({
         backdropFilter: "blur(24px)",
         WebkitBackdropFilter: "blur(24px)",
         border: "1px solid var(--ax-border-surface, rgba(255, 255, 255, 0.12))",
-        borderRadius: "1.25rem",
+        borderRadius: "1.25em",
         boxShadow: "0 8px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(120,80,255,0.15)",
-        padding: "0.5rem",
-        paddingBottom: "0.25rem",
+        padding: "0.5em",
+        paddingBottom: "0.25em",
         display: "flex",
         flexDirection: "column",
         gap: 10,
-        minHeight: guideText ? "11rem" : "9rem",
+        minHeight: guideText ? "11em" : "9em",
         ...theme.styles?.input?.card,
       }}
     >
       <div
         style={{
-          fontSize: "1rem",
+          fontSize: "1em",
           color: "var(--ax-text-muted)",
           padding: "8px 4px",
           textAlign: "center",
           whiteSpace: "pre-wrap",
           border: "1px solid var(--ax-border-surface, rgba(255, 255, 255, 0.15))",
-          minHeight: "2rem",
+          minHeight: "2em",
           ...theme.styles?.input?.guideText,
         }}
       >
@@ -136,7 +128,7 @@ export function AXChatMessageInput({
           border: "1px solid var(--ax-border-surface, rgba(255, 255, 255, 0.12))",
           borderRadius: 10,
           color: "var(--ax-text-primary)",
-          fontSize: "1rem",
+          fontSize: "1em",
           lineHeight: 1.5,
           padding: "10px 14px",
           outline: "none",
@@ -144,8 +136,8 @@ export function AXChatMessageInput({
           boxSizing: "border-box",
           caretColor: "var(--ax-text-caret)",
           transition: "border-color 0.15s",
-          minHeight: "3.5rem",
-          maxHeight: "8rem",
+          minHeight: "3.5em",
+          maxHeight: "8em",
           overflowY: "auto",
           ...theme.styles?.input?.textarea,
         }}
@@ -154,7 +146,7 @@ export function AXChatMessageInput({
       {effectiveError && (
         <div
           style={{
-            fontSize: "0.8125rem",
+            fontSize: "0.8125em",
             color: "var(--ax-text-error)",
             padding: "4px 6px",
             borderRadius: 6,
@@ -167,7 +159,7 @@ export function AXChatMessageInput({
         </div>
       )}
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.25rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.25em" }}>
         <button
           type="button"
           onClick={() => onClear?.()}
@@ -179,8 +171,8 @@ export function AXChatMessageInput({
             border: "none",
             borderRadius: 10,
             color: "var(--ax-text-dim)",
-            width: "4rem",
-            height: "3rem",
+            width: "4em",
+            height: "3em",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -226,11 +218,11 @@ export function AXChatMessageInput({
               : "var(--ax-bg-input-textarea)",
             border: "none",
             borderRadius: 10,
-            marginLeft: "0.5rem",
-            marginRight: "2rem",
-            height: "3rem",
+            marginLeft: "0.5em",
+            marginRight: "2em",
+            height: "3em",
             color: message.trim() ? "#fff" : "var(--ax-text-dim)",
-            fontSize: "1rem",
+            fontSize: "1em",
             fontWeight: 600,
             padding: "10px 16px",
             cursor: message.trim() && !disabled ? "pointer" : "default",

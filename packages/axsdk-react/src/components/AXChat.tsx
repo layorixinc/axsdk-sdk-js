@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { AXChatMessage } from './AXChatMessage';
@@ -32,8 +32,6 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
 
   const touchStartYRef = useRef(0);
 
-  // Expose scrollToBottom imperatively so parent components (e.g. AXChatPopup)
-  // can trigger it when the input gains focus or the user types.
   useImperativeHandle(ref, () => ({
     scrollToBottom: () => {
       const el = scrollContainerRef.current;
@@ -78,9 +76,6 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
     setOpacities(newMap);
   }, []);
 
-  // Attach scroll listener, block user-initiated scroll inputs, and re-dispatch touch events.
-  // All handlers are registered via addEventListener (not React synthetic events) because
-  // the container has pointerEvents: "none" which suppresses React's synthetic event system.
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -248,13 +243,9 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
     setSelectedMessageId(id);
   };
 
-  // Determine opacity for each message based on its DOM position within the scroll container.
-  // Selected message always gets opacity 1 regardless of scroll position.
-  // Strip drag (page scroll) → hide all messages.
-  // Chat scroll (wheel/touch) → messages remain normally visible (no forced hide).
   const getOpacity = (id: string): number => {
     return 1
-    if (isStripInteracting) return 0;   // strip drag (page scroll) → hide all messages
+    if (isStripInteracting) return 0;
     if (id === selectedMessageId) return 1;
     return opacities.get(id) ?? 1;
   };
@@ -268,14 +259,14 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
   };
 
   return (
-    <div style={{ width: "100%", height: "100%", position: "relative", paddingTop: "2rem" }}>
+    <div style={{ width: "100%", height: "100%", position: "relative", paddingTop: "2em" }}>
       <div
         ref={leftStripRef}
         style={{
           position: "absolute",
           top: 0,
           left: 0,
-          width: "3rem",
+          width: "3em",
           height: "100%",
           zIndex: 10,
           opacity: 0,
@@ -289,7 +280,7 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
           position: "absolute",
           top: 0,
           right: 0,
-          width: "3rem",
+          width: "3em",
           height: "100%",
           zIndex: 10,
           opacity: 0,
@@ -315,9 +306,8 @@ export const AXChat = forwardRef<AXChatHandle, AXChatProps>(function AXChat({ me
           style={{
             display: "flex",
             flexDirection: "column",
-            // Push messages to the bottom when they don't fill the container
             marginTop: "auto",
-            paddingBottom: "1rem",
+            paddingBottom: "1em",
           }}
         >
           {messages.map((message) => (

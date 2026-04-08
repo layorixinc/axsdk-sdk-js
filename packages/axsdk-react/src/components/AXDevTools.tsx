@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import type { ChatMessage } from '@axsdk/core';
@@ -45,7 +45,7 @@ export function AXDevTools({ debug, messages }: AXDevToolsProps) {
           background: 'rgba(18, 18, 28, 0.92)',
           border: '1px solid rgba(168, 85, 247, 0.5)',
           color: 'rgba(192, 132, 252, 0.9)',
-          fontSize: '1.2rem',
+          fontSize: '1.2em',
           cursor: 'pointer',
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
@@ -94,7 +94,7 @@ export function AXDevTools({ debug, messages }: AXDevToolsProps) {
             <span
               style={{
                 fontFamily: 'monospace',
-                fontSize: '0.9rem',
+                fontSize: '0.9em',
                 fontWeight: 700,
                 background: 'linear-gradient(90deg, #c084fc 0%, #818cf8 50%, #38bdf8 100%)',
                 WebkitBackgroundClip: 'text',
@@ -115,7 +115,7 @@ export function AXDevTools({ debug, messages }: AXDevToolsProps) {
                 borderRadius: 6,
                 color: 'rgba(192, 132, 252, 0.85)',
                 fontFamily: 'monospace',
-                fontSize: '0.85rem',
+                fontSize: '0.85em',
                 fontWeight: 600,
                 padding: '4px 12px',
                 cursor: 'pointer',
@@ -151,9 +151,9 @@ export function AXDevTools({ debug, messages }: AXDevToolsProps) {
                 style={{
                   color: 'rgba(255,255,255,0.4)',
                   fontFamily: 'monospace',
-                  fontSize: '0.85rem',
+                  fontSize: '0.85em',
                   textAlign: 'center',
-                  marginTop: '2rem',
+                  marginTop: '2em',
                 }}
               >
                 No messages yet.
@@ -197,7 +197,7 @@ export function AXDevTools({ debug, messages }: AXDevToolsProps) {
                       <span
                         style={{
                           fontFamily: 'monospace',
-                          fontSize: '0.68rem',
+                          fontSize: '0.68em',
                           color: 'rgba(255,255,255,0.35)',
                           letterSpacing: '0.04em',
                           flexShrink: 0,
@@ -208,7 +208,7 @@ export function AXDevTools({ debug, messages }: AXDevToolsProps) {
                       <span
                         style={{
                           fontFamily: 'monospace',
-                          fontSize: '0.72rem',
+                          fontSize: '0.72em',
                           color: 'rgba(255,255,255,0.35)',
                           letterSpacing: '0.04em',
                         }}
@@ -218,7 +218,7 @@ export function AXDevTools({ debug, messages }: AXDevToolsProps) {
                       <span
                         style={{
                           fontFamily: 'monospace',
-                          fontSize: '0.75rem',
+                          fontSize: '0.75em',
                           fontWeight: 700,
                           color:
                             message.info.role === 'assistant'
@@ -235,7 +235,7 @@ export function AXDevTools({ debug, messages }: AXDevToolsProps) {
                       <span
                         style={{
                           fontFamily: 'monospace',
-                          fontSize: '0.68rem',
+                          fontSize: '0.68em',
                           color: 'rgba(255,255,255,0.3)',
                           marginLeft: 'auto',
                         }}
@@ -250,7 +250,7 @@ export function AXDevTools({ debug, messages }: AXDevToolsProps) {
                           margin: 0,
                           padding: '12px 14px',
                           fontFamily: 'monospace',
-                          fontSize: '0.75rem',
+                          fontSize: '0.75em',
                           lineHeight: 1.6,
                           color: 'rgba(255, 255, 255, 0.80)',
                           whiteSpace: 'pre-wrap',

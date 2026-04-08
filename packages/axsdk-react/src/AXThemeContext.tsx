@@ -14,12 +14,6 @@ export interface AXThemeProviderProps {
   children: React.ReactNode;
 }
 
-/**
- * Provides the resolved theme to all child components via React context.
- *
- * Place this around the portal content inside `AXUI` so every child can
- * access the theme via `useAXTheme()` without prop drilling.
- */
 export function AXThemeProvider({ theme, children }: AXThemeProviderProps) {
   const resolvedColorMode: 'dark' | 'light' = theme?.colorMode ?? 'dark';
 
@@ -39,12 +33,6 @@ export function AXThemeProvider({ theme, children }: AXThemeProviderProps) {
   );
 }
 
-/**
- * Consume the active AX theme inside any component that is a descendant of
- * `<AXThemeProvider>`.
- *
- * Returns `{ theme, resolvedColorMode }`.
- */
 export function useAXTheme(): AXThemeContextValue {
   return React.useContext(AXThemeContext);
 }

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { AXSDK } from '@axsdk/core';
@@ -29,21 +29,16 @@ export interface AXQuestionDialogData {
 
 export interface QuestionAnswer {
   questionIndex: number;
-  selectedOption: number;  // -1 means no option selected (custom answer only)
+  selectedOption: number;
   label: string;
   customAnswer?: string;
 }
 
 export interface AXQuestionDialogProps {
-  /** The question dialog data including id, sessionID, questions array, and tool info */
   data: AXQuestionDialogData;
-  /** Called when the user selects an option for a question */
   onAnswer?: (questionIndex: number, selectedOption: number, label: string) => void;
-  /** Called when all questions are answered and user confirms */
   onSubmit?: (answers: QuestionAnswer[]) => void;
-  /** Called when the user declines to answer */
   onDecline?: () => void;
-  /** Controls visibility of the dialog */
   visible?: boolean;
 }
 
@@ -131,7 +126,7 @@ function OptionCard({ option, index, isSelected, onSelect }: OptionCardProps) {
         <span
           style={{
             fontWeight: 600,
-            fontSize: "0.95rem",
+            fontSize: "0.95em",
             color: isSelected
               ? "var(--ax-color-primary-light, rgba(167, 139, 250, 1.0))"
               : "var(--ax-text-primary, rgba(255, 255, 255, 0.88))",
@@ -145,7 +140,7 @@ function OptionCard({ option, index, isSelected, onSelect }: OptionCardProps) {
       {option.description && (
         <div
           style={{
-            fontSize: "0.8rem",
+            fontSize: "0.8em",
             color: "var(--ax-text-dim, rgba(255, 255, 255, 0.45))",
             paddingLeft: 28,
             lineHeight: 1.4,
@@ -180,7 +175,7 @@ function QuestionPanel({ question, questionIndex, selectedOption, onSelect, cust
     >
       <div
         style={{
-          fontSize: "0.75rem",
+          fontSize: "0.75em",
           fontWeight: 700,
           letterSpacing: "0.08em",
           textTransform: "uppercase",
@@ -195,7 +190,7 @@ function QuestionPanel({ question, questionIndex, selectedOption, onSelect, cust
 
       <div
         style={{
-          fontSize: "1.05rem",
+          fontSize: "1.05em",
           fontWeight: 500,
           color: "var(--ax-text-primary, rgba(255, 255, 255, 0.92))",
           lineHeight: 1.5,
@@ -240,8 +235,8 @@ function QuestionPanel({ question, questionIndex, selectedOption, onSelect, cust
               : "1px solid var(--ax-border-surface, rgba(255,255,255,0.1))",
             borderRadius: 8,
             color: "var(--ax-text-primary, rgba(255,255,255,0.85))",
-            fontSize: "0.85rem",
-            padding: "0.5rem 0.75rem",
+            fontSize: "0.85em",
+            padding: "0.5em 0.75em",
             resize: "vertical",
             outline: "none",
             fontFamily: "inherit",
@@ -271,10 +266,10 @@ function DeclineButton({ onDecline }: DeclineButtonProps) {
       aria-label={AXSDK.t("questionDialog.decline")}
       style={{
         position: "absolute",
-        top: "0.5rem",
-        right: "0.75rem",
-        fontSize: "0.7rem",
-        padding: "0.25rem 0.5rem",
+        top: "0.5em",
+        right: "0.75em",
+        fontSize: "0.7em",
+        padding: "0.25em 0.5em",
         borderRadius: 6,
         border: "1px solid var(--ax-border-error, rgba(248, 113, 113, 0.3))",
         background: hovered
@@ -429,7 +424,7 @@ export function AXQuestionDialog({
             style={{
               color: "white",
               fontWeight: 700,
-              fontSize: "0.6rem",
+              fontSize: "0.6em",
               letterSpacing: "0.15em",
             }}
           >
@@ -440,7 +435,7 @@ export function AXQuestionDialog({
         <div style={{ flex: 1 }}>
         <div
           style={{
-            fontSize: "0.85rem",
+            fontSize: "0.85em",
             fontWeight: 600,
             color: "var(--ax-text-primary, rgba(255, 255, 255, 0.88))",
           }}
@@ -449,7 +444,7 @@ export function AXQuestionDialog({
         </div>
         <div
           style={{
-            fontSize: "0.7rem",
+            fontSize: "0.7em",
             color: "var(--ax-color-primary-light, rgba(167, 139, 250, 0.65))",
           }}
         >
@@ -460,7 +455,7 @@ export function AXQuestionDialog({
         {isMultiPage && (
           <div
             style={{
-              fontSize: "0.7rem",
+              fontSize: "0.7em",
               color: "var(--ax-text-dim, rgba(255, 255, 255, 0.4))",
               fontWeight: 500,
               letterSpacing: "0.05em",
@@ -495,7 +490,7 @@ export function AXQuestionDialog({
               textAlign: "center",
               padding: "12px 0",
               color: "var(--ax-text-success)",
-              fontSize: "0.9rem",
+              fontSize: "0.9em",
               fontWeight: 600,
               display: "flex",
               alignItems: "center",
@@ -512,7 +507,7 @@ export function AXQuestionDialog({
               textAlign: "center",
               padding: "12px 0",
               color: "var(--ax-text-error)",
-              fontSize: "0.9rem",
+              fontSize: "0.9em",
               fontWeight: 600,
               display: "flex",
               alignItems: "center",
@@ -538,7 +533,7 @@ export function AXQuestionDialog({
                   background: "rgba(255, 255, 255, 0.06)",
                   color: "var(--ax-text-muted)",
                   fontWeight: 600,
-                  fontSize: "0.9rem",
+                  fontSize: "0.9em",
                   cursor: isFirstPage ? "not-allowed" : "pointer",
                   opacity: isFirstPage ? 0.3 : 1,
                   transition: "all 0.2s ease",
@@ -567,7 +562,7 @@ export function AXQuestionDialog({
                     ? "rgba(255, 255, 255, 0.95)"
                     : "var(--ax-text-dim)",
                   fontWeight: 600,
-                  fontSize: "0.95rem",
+                  fontSize: "0.95em",
                   cursor: hasCurrentAnswer ? "pointer" : "not-allowed",
                   transition: "all 0.2s ease",
                   boxShadow: hasCurrentAnswer
@@ -596,7 +591,7 @@ export function AXQuestionDialog({
                     ? "rgba(255, 255, 255, 0.95)"
                     : "var(--ax-text-dim)",
                   fontWeight: 600,
-                  fontSize: "0.95rem",
+                  fontSize: "0.95em",
                   cursor: hasCurrentAnswer ? "pointer" : "not-allowed",
                   opacity: hasCurrentAnswer ? 1 : 0.5,
                   transition: "all 0.2s ease",

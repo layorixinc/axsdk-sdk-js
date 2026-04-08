@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
@@ -23,7 +23,6 @@ export type { AXTheme };
 
 export interface AXUIProps {
   children?: React.ReactNode;
-  /** Optional theme configuration. All properties are optional; unset values fall back to the built-in dark defaults. */
   theme?: AXTheme;
 }
 
@@ -32,10 +31,9 @@ function SpeechBubbleClosed({ visible }: { visible: boolean }) {
     <div
       aria-hidden={!visible}
       style={{
-        position: "fixed",
-        // AXButton is bottom-6 (1.5rem) with size 12vh; place bubble above it
-        bottom: "calc(12vh + 1.5rem + 14px)",
-        right: "1.25rem",
+      position: "fixed",
+      bottom: "calc(12vh + 1.5em + 14px)",
+        right: "1.25em",
         zIndex: 10001,
         pointerEvents: "none",
         animation: visible
@@ -60,7 +58,7 @@ function SpeechBubbleClosed({ visible }: { visible: boolean }) {
         <span
           style={{
             color: "var(--ax-text-primary)",
-            fontSize: "0.875rem",
+            fontSize: "0.875em",
             fontWeight: 500,
             letterSpacing: "0.01em",
             background: "var(--ax-text-gradient)",
@@ -193,22 +191,15 @@ export function AXUI({ children, theme }: AXUIProps) {
 
   const notifVisible = (!!assistantMessageText || !!userMessageText) && !dismissedNotification
 
-  // Measure input wrapper top position to align notification popover.
-  // Re-measure whenever isOpen changes so we capture the on-screen position
-  // after the slide-in transition completes (the container uses translateY).
   useEffect(() => {
     const wrapper = messageInputWrapperRef.current;
     if (!wrapper || !isOpen) return;
 
     const measure = () => {
       const rect = wrapper.getBoundingClientRect();
-      // distance from the bottom of viewport to the top of the input wrapper
       setInputTopOffset(window.innerHeight - rect.top + 8);
     };
 
-    // Small delay to let the CSS transition finish before measuring.
-    // After measuring, also trigger scroll-to-bottom on the notification popover
-    // and focus on the message input.
     const timerId = setTimeout(() => {
       measure();
       setScrollTrigger(n => n + 1);
@@ -226,9 +217,6 @@ export function AXUI({ children, theme }: AXUIProps) {
     };
   }, [isOpen]);
 
-  // On initial mount, if isOpen is already true (e.g. after page refresh),
-  // the [isOpen] effect above won't fire a transition-triggered measurement.
-  // This effect runs once at mount and handles that case.
   useEffect(() => {
     if (!isOpen) return;
     const timerId = setTimeout(() => {
@@ -262,6 +250,7 @@ export function AXUI({ children, theme }: AXUIProps) {
     }
 
     const el = document.createElement("div");
+    el.classList.add('ax-portal-root');
     el.style.position = "fixed";
     el.style.top = "0";
     el.style.left = "0";
@@ -348,7 +337,7 @@ export function AXUI({ children, theme }: AXUIProps) {
         style={{
           flex: 1,
           width: isOpen && isDesktop ? "min(420px, 40vw)" : "min(680px, 90vw)",
-          marginRight: isOpen && isDesktop ? "1.25rem" : undefined,
+          marginRight: isOpen && isDesktop ? "1.25em" : undefined,
           display: "flex",
           flexDirection: "column",
           justifyContent: "flex-start",
@@ -376,12 +365,12 @@ export function AXUI({ children, theme }: AXUIProps) {
     {questions && (
       <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 99999, width: '100%', maxWidth: '420px' }}>
         {AXSDK.config?.debug && lastAnswer && (
-          <div style={{ marginBottom: '0.5rem', padding: '0.4rem 0.8rem', background: 'color-mix(in srgb, var(--ax-color-primary, #7c3aed) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--ax-color-primary, #7c3aed) 40%, transparent)', borderRadius: '999px', color: '#c4b5fd', fontSize: '0.75rem', display: 'inline-block' }}>
+          <div style={{ marginBottom: '0.5em', padding: '0.4em 0.8em', background: 'color-mix(in srgb, var(--ax-color-primary, #7c3aed) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--ax-color-primary, #7c3aed) 40%, transparent)', borderRadius: '999px', color: '#c4b5fd', fontSize: '0.75em', display: 'inline-block' }}>
             Selected: <strong>{lastAnswer.label}</strong>
           </div>
         )}
         {AXSDK.config?.debug && submitLog && (
-          <div style={{ marginBottom: '0.5rem', padding: '0.5rem 0.75rem', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '8px', color: '#6ee7b7', fontSize: '0.7rem', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+          <div style={{ marginBottom: '0.5em', padding: '0.5em 0.75em', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '8px', color: '#6ee7b7', fontSize: '0.7em', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
             {submitLog}
           </div>
         )}
@@ -404,14 +393,14 @@ export function AXUI({ children, theme }: AXUIProps) {
     <AXButton size="12vh" onClick={handleClick} isOpen={isOpen} status={session?.status} />
     <div style={{
       textAlign: 'center',
-      fontSize: '0.65rem',
+      fontSize: '0.65em',
       color: 'rgba(0, 0, 0, 1)',
       letterSpacing: '0.04em',
-      marginTop: '0.25rem',
+      marginTop: '0.25em',
       userSelect: 'none',
       position: 'fixed',
-      bottom: '0.25rem',
-      right: '0.25rem'
+      bottom: '0.25em',
+      right: '0.25em'
     }}>
       {AXSDK.t('poweredBy')}
     </div>

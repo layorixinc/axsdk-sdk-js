@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import type { ChatMessage, MessagePart, TextPart, ReasoningPart, StepFinishPart, ToolPart } from '@axsdk/core';
@@ -9,15 +9,10 @@ export type AXChatMessageRole = "user" | "assistant";
 
 export interface AXChatMessageProps {
   message: ChatMessage;
-  /** Called when the user clicks this message bubble. */
   onMessageClick?: () => void;
-  /** Opacity for scroll-based fade effect (0, 0.6, or 1). */
   opacity?: number;
-  /** Ref callback to register the root element with the parent for visibility tracking. */
   messageRef?: (el: HTMLDivElement | null) => void;
-  /** Whether this message is currently selected. */
   isSelected?: boolean;
-  /** Called when the message is clicked (for selection toggling). */
   onClick?: () => void;
 }
 
@@ -41,7 +36,7 @@ function ReasoningPartView({ part }: { part: ReasoningPart }) {
         paddingLeft: 10,
         marginBottom: 6,
         color: "rgba(80, 60, 160, 0.9)",
-        fontSize: "0.82rem",
+        fontSize: "0.82em",
       }}
     >
       <button
@@ -51,7 +46,7 @@ function ReasoningPartView({ part }: { part: ReasoningPart }) {
           border: "none",
           cursor: "pointer",
           color: "rgba(120, 90, 200, 0.85)",
-          fontSize: "0.75rem",
+          fontSize: "0.75em",
           fontWeight: 600,
           padding: 0,
           marginBottom: collapsed ? 0 : 4,
@@ -61,7 +56,7 @@ function ReasoningPartView({ part }: { part: ReasoningPart }) {
           userSelect: "none",
         }}
       >
-        <span style={{ fontSize: "0.65rem" }}>{collapsed ? "▶" : "▼"}</span>
+        <span style={{ fontSize: "0.65em" }}>{collapsed ? "▶" : "▼"}</span>
         {AXSDK.t("chatThought")}
       </button>
       {!collapsed && (
@@ -96,7 +91,7 @@ function ToolPartView({ part }: { part: ToolPart }) {
         borderRadius: 8,
         marginBottom: 6,
         overflow: "hidden",
-        fontSize: "0.8rem",
+        fontSize: "0.8em",
       }}
     >
       <button
@@ -115,7 +110,7 @@ function ToolPartView({ part }: { part: ToolPart }) {
           userSelect: "none",
         }}
       >
-        <span style={{ fontSize: "0.6rem", opacity: 0.6 }}>{collapsed ? "▶" : "▼"}</span>
+        <span style={{ fontSize: "0.6em", opacity: 0.6 }}>{collapsed ? "▶" : "▼"}</span>
         <span style={{ fontFamily: "monospace", fontWeight: 600, color: "rgba(100,60,200,0.85)" }}>
           {part.tool}
         </span>
@@ -124,7 +119,7 @@ function ToolPartView({ part }: { part: ToolPart }) {
             {part.state.title}
           </span>
         )}
-        <span style={{ marginLeft: "auto", color: statusColor, fontSize: "0.7rem", fontWeight: 600, flexShrink: 0 }}>
+        <span style={{ marginLeft: "auto", color: statusColor, fontSize: "0.7em", fontWeight: 600, flexShrink: 0 }}>
           {part.state.status}
           {durationMs !== null && ` · ${durationMs}ms`}
         </span>
@@ -134,7 +129,7 @@ function ToolPartView({ part }: { part: ToolPart }) {
         <div style={{ padding: "0 10px 8px 10px", borderTop: "1px solid rgba(0,0,0,0.08)" }}>
           {part.state.input && (
             <div style={{ marginTop: 6 }}>
-              <div style={{ opacity: 0.5, fontSize: "0.7rem", marginBottom: 2, fontWeight: 600 }}>INPUT</div>
+              <div style={{ opacity: 0.5, fontSize: "0.7em", marginBottom: 2, fontWeight: 600 }}>INPUT</div>
               <pre
                 style={{
                   margin: 0,
@@ -142,7 +137,7 @@ function ToolPartView({ part }: { part: ToolPart }) {
                   borderRadius: 4,
                   padding: "4px 8px",
                   overflowX: "auto",
-                  fontSize: "0.75rem",
+                  fontSize: "0.75em",
                   color: "rgba(40,40,80,0.8)",
                   whiteSpace: "pre-wrap",
                   wordBreak: "break-all",
@@ -154,7 +149,7 @@ function ToolPartView({ part }: { part: ToolPart }) {
           )}
           {part.state.output && (
             <div style={{ marginTop: 6 }}>
-              <div style={{ opacity: 0.5, fontSize: "0.7rem", marginBottom: 2, fontWeight: 600 }}>OUTPUT</div>
+              <div style={{ opacity: 0.5, fontSize: "0.7em", marginBottom: 2, fontWeight: 600 }}>OUTPUT</div>
               <pre
                 style={{
                   margin: 0,
@@ -162,7 +157,7 @@ function ToolPartView({ part }: { part: ToolPart }) {
                   borderRadius: 4,
                   padding: "4px 8px",
                   overflowX: "auto",
-                  fontSize: "0.75rem",
+                  fontSize: "0.75em",
                   color: "rgba(20,140,100,0.85)",
                   whiteSpace: "pre-wrap",
                   wordBreak: "break-all",
@@ -184,7 +179,7 @@ function StepFinishView({ part }: { part: StepFinishPart }) {
   return (
     <div
       style={{
-        fontSize: "0.7rem",
+        fontSize: "0.7em",
         color: "rgba(80,80,120,0.45)",
         marginTop: 4,
         display: "flex",
@@ -219,11 +214,11 @@ function AssistantErrorView({ name, message: msg }: { name: string; message: str
         background: "rgba(220, 38, 38, 0.08)",
         border: "1px solid rgba(220, 38, 38, 0.35)",
         color: "rgba(185, 28, 28, 0.95)",
-        fontSize: "0.8rem",
+        fontSize: "0.8em",
         lineHeight: 1.5,
       }}
     >
-      <span style={{ flexShrink: 0, fontSize: "0.9rem" }}>⚠</span>
+      <span style={{ flexShrink: 0, fontSize: "0.9em" }}>⚠</span>
       <div>
         <span style={{ fontWeight: 700, marginRight: 4 }}>Error{name ? ` · ${name}` : ""}:</span>
         <span style={{ wordBreak: "break-word" }}>{msg}</span>
@@ -274,7 +269,6 @@ function renderPart(part: MessagePart, index: number): React.ReactNode {
   if (part.type === "step-finish") {
     return <StepFinishView key={partId} part={part as StepFinishPart} />;
   }
-  // "step-start" and unknown types: render nothing
   return null;
 }
 
@@ -336,7 +330,7 @@ export function AXChatMessage({ message, onMessageClick, opacity = 1, messageRef
           borderRadius: isUser ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
           padding: "10px 14px",
           color: isUser ? "var(--ax-text-primary)" : "var(--ax-text-assistant)",
-          fontSize: "1.25rem",
+          fontSize: "1.25em",
           lineHeight: 1.6,
           boxShadow: isUser
             ? "0 2px 12px rgba(124, 58, 237, 0.2)"
@@ -365,7 +359,7 @@ export function AXChatMessage({ message, onMessageClick, opacity = 1, messageRef
       {formattedTime && (
         <div
           style={{
-            fontSize: "0.62rem",
+            fontSize: "0.62em",
             color: "var(--ax-text-timestamp)",
             marginTop: 4,
             userSelect: "none",

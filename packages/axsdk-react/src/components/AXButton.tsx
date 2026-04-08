@@ -1,31 +1,14 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAXTheme } from '../AXThemeContext';
 
 export interface AXButtonProps {
   onClick?: () => void;
-  /** Controls visibility; defaults to true. Toggling triggers show/hide animations. */
   visible?: boolean;
-  /**
-   * When true, slides the button half off the bottom-right edge of the screen
-   * so only half of it remains visible. Returns to normal position when false.
-   */
   isOpen?: boolean;
   className?: string;
-  /**
-   * Button diameter. Accepts:
-   * - a pixel number (e.g. `64`)
-   * - a rem string (e.g. `"4rem"`)
-   * - a viewport-unit string (e.g. `"8vw"`, `"10vh"`, `"5vmin"`, `"5vmax"`)
-   *
-   * Defaults to `64` (pixels). All layers scale proportionally.
-   */
   size?: number | string;
-  /**
-   * Session status. When `"busy"`, a swirling vortex animation is overlaid
-   * on the button to indicate that the AI is processing.
-   */
   status?: string;
 }
 
@@ -97,15 +80,14 @@ export function AXButton({
   const rippleHalf = pxSize / 2;
   const fontSize =
     pxSize <= 48
-      ? "0.7rem"
+      ? "0.7em"
       : pxSize <= 64
-      ? "0.875rem"
+      ? "0.875em"
       : pxSize <= 80
-      ? "1rem"
+      ? "1em"
       : pxSize * 0.3;
 
   useEffect(() => {
-    // Skip the initial mount: animState is already set correctly in useState initializer
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
@@ -114,13 +96,11 @@ export function AXButton({
     if (visible) {
       setAnimState("show");
     } else {
-      // Only transition to hide if currently visible (not already unmounted)
       setAnimState((prev) => (prev !== "unmounted" ? "hide" : "unmounted"));
     }
   }, [visible]);
 
   function handleAnimationEnd(e: React.AnimationEvent<HTMLButtonElement>) {
-    // Ignore bubbled events from child layers (ring/glow spin animations)
     if (e.target !== e.currentTarget) return;
 
     if (e.animationName === "ax-show") {
@@ -130,7 +110,6 @@ export function AXButton({
     }
   }
 
-  /** Spawn a ripple at the pointer position inside the button */
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLButtonElement>) => {
       const rect = e.currentTarget.getBoundingClientRect();
@@ -178,8 +157,8 @@ export function AXButton({
       style={{
         position: "fixed",
         zIndex: 10000,
-        bottom: "1rem",
-        right: "1rem",
+        bottom: "1em",
+        right: "1em",
         width: sizeCSS,
         height: sizeCSS,
         transform: outerTransform,
@@ -210,15 +189,12 @@ export function AXButton({
         position: "relative",
         display: "block",
         ...wrapperAnimation,
-        // Must come after wrapperAnimation spread so it overrides the animation shorthand's
-        // implicit animationPlayState: "running" reset
         animationPlayState: isOpen ? "paused" : undefined,
         outline: "none",
         ...theme.styles?.button?.button,
       }}
     >
       {useCustomImage ? (
-        /* ── Custom image mode: replace gradient layers with user's image ── */
         <>
           {isBusy && buttonAnimationImageUrl ? (
             <img
@@ -254,7 +230,6 @@ export function AXButton({
         </>
       ) : (
         <>
-          {/* ── Layer 1: Animated conic-gradient ring (outermost) ── */}
           <div
             aria-hidden="true"
             style={{
@@ -271,7 +246,6 @@ export function AXButton({
             }}
           />
 
-          {/* ── Layer 2: Glow halo (blurred, pulsing opacity) ── */}
           <div
             aria-hidden="true"
             style={{
@@ -290,7 +264,6 @@ export function AXButton({
             }}
           />
 
-          {/* ── Layer 3: Main orb body (size×size) ── */}
           <div
             aria-hidden="true"
             style={{
@@ -308,7 +281,6 @@ export function AXButton({
             }}
           />
 
-          {/* ── Layer 3b: Inner white shimmer highlight (top-left) ── */}
           <div
             aria-hidden="true"
             style={{
@@ -325,7 +297,6 @@ export function AXButton({
         </>
       )}
 
-      {/* ── Layer 4: Center "AX" label (only in default mode) or busy overlay ── */}
       <div
         style={{
           position: "absolute",
@@ -338,10 +309,8 @@ export function AXButton({
           justifyContent: "center",
         }}
       >
-        {/* ── Layer 5: Busy vortex swirl overlay (only when status === "busy" and no custom animation image) ── */}
         {isBusy && !buttonAnimationImageUrl && (
           <>
-            {/* Outer rotating conic-gradient ring — gives the swirling vortex border */}
             <div
               aria-hidden="true"
               style={{
@@ -364,8 +333,6 @@ export function AXButton({
                 pointerEvents: "none",
               }}
             />
-            {/* Inner mask disk — sits on top of the outer ring to restore the button face,
-                leaving only a thin swirling border visible around the edge */}
             <div
               aria-hidden="true"
               style={{
@@ -380,7 +347,6 @@ export function AXButton({
                 pointerEvents: "none",
               }}
             />
-            {/* Counter-rotating inner vortex shimmer for depth */}
             <div
               aria-hidden="true"
               style={{
@@ -422,7 +388,6 @@ export function AXButton({
         )}
       </div>
 
-      {/* ── Layer 6: Ripple splashes ── */}
       {ripples.map((r) => (
         <span
           key={r.id}

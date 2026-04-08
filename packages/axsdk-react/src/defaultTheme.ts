@@ -1,9 +1,5 @@
 import type { AXTheme } from './theme';
 
-/**
- * The built-in dark theme — all color tokens resolved to concrete values.
- * These are the colors currently hard-coded throughout the component library.
- */
 export const AX_DEFAULT_DARK_THEME: AXTheme = {
   colorMode: 'dark',
   colors: {
@@ -47,9 +43,6 @@ export const AX_DEFAULT_DARK_THEME: AXTheme = {
   styles: {},
 };
 
-/**
- * The built-in light theme — suitable for host pages with light/white backgrounds.
- */
 export const AX_DEFAULT_LIGHT_THEME: AXTheme = {
   colorMode: 'light',
   colors: {
@@ -93,13 +86,6 @@ export const AX_DEFAULT_LIGHT_THEME: AXTheme = {
   styles: {},
 };
 
-/**
- * Returns a fully-resolved theme by merging `userTheme` on top of the
- * appropriate default (dark or light) theme.
- *
- * @param userTheme  Optional partial theme supplied by the consumer.
- * @returns A merged `AXTheme` object ready to be used by the provider.
- */
 export function mergeTheme(userTheme?: AXTheme): AXTheme {
   const base =
     userTheme?.colorMode === 'light' ? AX_DEFAULT_LIGHT_THEME : AX_DEFAULT_DARK_THEME;
