@@ -1,6 +1,44 @@
 import { AXSDK } from './axsdk';
 import { captureScreenshot } from './axtools';
 
+export async function AX_search_data(args: unknown) {
+  const { category, query, offset = 0, limit = 20 } = args as { category: string, query: string, offset: number, limit: number };
+  let data: any[] = [];
+  if (!category) {
+    data = AXSDK.getAllData() ?? [];
+  } else {
+    data = AXSDK.getData(category) ?? [];
+  }
+
+  const tokens = query
+    ? query.split(/[\s,;]+/).map((t) => t.toLowerCase()).filter((t) => t.length > 0)
+    : [];
+  const filtered = tokens.length > 0
+    ? data.filter((item) => {
+        if (item === null || item === undefined) return false;
+        return tokens.every((token) => {
+          if (typeof item === 'object') {
+            return Object.values(item).some(
+              (val) => typeof val === 'string' && val.toLowerCase().includes(token)
+            ) || JSON.stringify(item).toLowerCase().includes(token);
+          }
+          return String(item).toLowerCase().includes(token);
+        });
+      })
+    : data;
+
+  const total = filtered.length;
+  const paginatedData = filtered.slice(offset, offset + limit);
+
+  return {
+    data: paginatedData,
+    total,
+    offset,
+    limit,
+    hasMore: (offset + limit) < total,
+  };
+}
+
 function mergeResults(systemResult: any, appResult: any) {
   if (!appResult) {
     return JSON.stringify(systemResult);

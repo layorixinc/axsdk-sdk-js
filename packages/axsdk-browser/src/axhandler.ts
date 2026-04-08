@@ -1,5 +1,5 @@
 import qs from 'qs';
-import { AXSDK } from '@axsdk/core';
+import { AXSDK, AX_search_data } from '@axsdk/core';
 
 export function isPromise(value: unknown): boolean {
   return !!value && (typeof value === 'function' || typeof value === 'object') && typeof (value as any).then === 'function'
@@ -19,44 +19,6 @@ async function AX_navigate(args: unknown) {
   const query = qs.stringify(params)
   const url = `${link}${query ? `?${query}` : ''}`
   return [`OK. Navigating to ${url}`, (async () => { window.location.href = url; })()];
-}
-
-async function AX_search_data(args: unknown) {
-  const { category, query, offset = 0, limit = 20 } = args as { category: string, query: string, offset: number, limit: number };
-  let data: any[] = [];
-  if (!category) {
-    data = AXSDK.getAllData() ?? [];
-  } else {
-    data = AXSDK.getData(category) ?? [];
-  }
-
-  const tokens = query
-    ? query.split(/[\s,;]+/).map((t) => t.toLowerCase()).filter((t) => t.length > 0)
-    : [];
-  const filtered = tokens.length > 0
-    ? data.filter((item) => {
-        if (item === null || item === undefined) return false;
-        return tokens.every((token) => {
-          if (typeof item === 'object') {
-            return Object.values(item).some(
-              (val) => typeof val === 'string' && val.toLowerCase().includes(token)
-            ) || JSON.stringify(item).toLowerCase().includes(token);
-          }
-          return String(item).toLowerCase().includes(token);
-        });
-      })
-    : data;
-
-  const total = filtered.length;
-  const paginatedData = filtered.slice(offset, offset + limit);
-
-  return {
-    data: paginatedData,
-    total,
-    offset,
-    limit,
-    hasMore: (offset + limit) < total,
-  };
 }
 
 const AX_FUNCTIONS = {

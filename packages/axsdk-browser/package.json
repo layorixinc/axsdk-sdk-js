@@ -16,10 +16,7 @@
   "author": "lordkeios@layorixinc.com",
   "type": "module",
   "exports": {
-    ".": "./dist/axsdk-browser.js",
-    "./frame": {
-      "default": "./dist/axsdk-browser-frame.js"
-    }
+    ".": "./dist/axsdk-browser.js"
   },
   "files": [
     "dist"
