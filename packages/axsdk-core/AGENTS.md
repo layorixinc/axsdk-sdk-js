@@ -1,0 +1,79 @@
+# AGENTS.md — `@axsdk/core`
+
+Framework-agnostic core package for the AXSDK JavaScript SDK. See the repo-root [`AGENTS.md`](../../AGENTS.md) for monorepo-wide rules.
+
+## Purpose
+
+`@axsdk/core` provides the runtime foundation that every other package builds on:
+
+- SDK initialization (`AXSDK.init`)
+- Session and chat state management (Zustand store)
+- SSE streaming for chat responses
+- Event bus (`eventemitter3`)
+- API client + request/response transforms
+- Schema validation (Zod v4)
+- All shared TypeScript types
+
+It has **no React, no DOM rendering, and no UI**. It must remain importable from any JS environment (browser, Node, workers).
+
+## Source layout (`src/`)
+
+| File | Role |
+|---|---|
+| `lib.ts` | Public entry point — re-exports `axsdk` + `axtools` |
+| `index.ts` | Internal dev entry (used by `bun run dev`) |
+| `axsdk.ts` | `AXSDK` facade — `init`, `sendMessage`, lifecycle |
+| `axapi.ts` | High-level API surface |
+| `axcall.ts` | Call/invocation primitives |
+| `axchat.ts` | Chat session logic |
+| `axhandler.ts` | Host-side `axHandler` command dispatch |
+| `axtools.ts` | Public utility helpers (re-exported from `lib.ts`) |
+| `apiclient.ts` | HTTP client |
+| `sse.ts` | Server-sent events streaming |
+| `chattransform.ts` | Message normalization / transforms |
+| `eventbus.ts` | `eventemitter3` wrapper |
+| `store.ts` | Zustand store |
+| `config.ts` | Runtime config |
+| `translations.ts` | i18n strings |
+| `types/` | Shared types — `axsdk.ts`, `chat.ts`, `index.ts` |
+
+## Build
+
+Custom Bun build (no Vite):
+
+```bash
+bun run dev          # bun ./src/index.ts
+bun run build        # bun ./build.ts && bun build:types
+bun run build:types  # bunx tsc --emitDeclarationOnly
+```
+
+`build.ts` produces **two** bundles from `src/lib.ts`:
+
+1. ESM → `dist/lib.js`
+2. CJS → `dist/lib.cjs`
+
+Both are **minified**, **browser-targeted**, and prefixed with the `"use client";` banner so the package is safe to import from React Server Components consumers. Type declarations land in `dist/lib.d.ts` via `tsc --emitDeclarationOnly`.
+
+If you change the public surface, update `package.json#exports` to match — both `import`, `require`, and `types` conditions must resolve.
+
+## Conventions
+
+- **No DOM imports** (`document`, `window`) outside of guarded code paths. Anything that needs the DOM should be opt-in or live in `axsdk-react` / `axsdk-browser`.
+- **No React imports.** Ever.
+- **Validation at boundaries**: Use Zod schemas in `types/` for any data crossing the network boundary.
+- **State**: Zustand store in `store.ts` is the single source of truth for session state.
+- **Events**: Use the `eventbus.ts` emitter for cross-module signaling rather than direct coupling.
+- Strict TypeScript — `noUncheckedIndexedAccess` is on, so always narrow array/index access.
+
+## Versioning
+
+- Current version: see `package.json` (`0.2.13` at time of writing).
+- `@axsdk/react` and `@axsdk/browser` pin a `^x.y` range against this package — when bumping the **minor** version of `core`, also bump the dependents' `dependencies` entries and rebuild them in order: `core` → `react` → `browser`.
+- Public API breaks should bump the minor (pre-1.0) and be called out in the commit message.
+
+## What to be careful about
+
+- `html2canvas` is a heavy optional dependency used for screenshot capture — don't import it at module top level on hot paths; lazy-load when actually needed.
+- The SSE parser in `sse.ts` is the core streaming primitive; bugs here cascade to every consumer. Prefer surgical fixes with reproductions.
+- `chattransform.ts` normalizes message shape between server and store — keep transforms pure and idempotent so they're safe to replay.
+- Don't run `bun run publish` unless explicitly asked.
