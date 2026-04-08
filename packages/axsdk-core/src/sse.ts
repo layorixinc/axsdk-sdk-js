@@ -130,7 +130,6 @@ export class SSE {
           await this.connection.reader.cancel();
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
-          // Ignore cancellation errors (e.g. AbortError when stream already closed)
         }
         this.connection.reader = null;
       }

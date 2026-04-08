@@ -16,7 +16,7 @@ interface Call {
   updatedAt: string;
 }
 
-const CALL_ID_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const CALL_ID_TTL_MS = 30 * 60 * 1000;
 const processedCallIds = new Map<string, number>();
 
 function purgeExpiredCallIds(): void {
