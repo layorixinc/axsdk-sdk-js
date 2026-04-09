@@ -22,7 +22,8 @@ It has **no React, no DOM rendering, and no UI**. It must remain importable from
 |---|---|
 | `lib.ts` | Public entry point — re-exports `axsdk` + `axtools` |
 | `index.ts` | Internal dev entry (used by `bun run dev`) |
-| `axsdk.ts` | `AXSDK` facade — `init`, `sendMessage`, lifecycle |
+| `cli.ts` | Interactive REPL test harness (`bun run cli`) — reads `.env` |
+| `axsdk.ts` | `AXSDK` facade — `init`, `sendMessage`, knowledge, lifecycle |
 | `axapi.ts` | High-level API surface |
 | `axcall.ts` | Call/invocation primitives |
 | `axchat.ts` | Chat session logic |
@@ -43,9 +44,16 @@ Custom Bun build (no Vite):
 
 ```bash
 bun run dev          # bun ./src/index.ts
+bun run cli          # bun ./src/cli.ts — interactive REPL against a live backend
 bun run build        # bun ./build.ts && bun build:types
 bun run build:types  # bunx tsc --emitDeclarationOnly
 ```
+
+The `cli` script reads credentials from `packages/axsdk-core/.env`
+(`VITE_AXSDK_API_BASE_URL`, `VITE_AXSDK_API_KEY`, `VITE_AXSDK_APP_ID`, plus
+optional `VITE_AXSDK_APP_DOMAIN` / `VITE_AXSDK_APP_AUTH_TOKEN`) and exposes
+commands: `send`, `knowledge [group] [page]`, `search <regex> [group] [page]`,
+`state`, `messages`, `errors`, `clear`.
 
 `build.ts` produces **two** bundles from `src/lib.ts`:
 

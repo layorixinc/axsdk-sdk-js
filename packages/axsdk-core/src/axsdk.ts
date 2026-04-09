@@ -5,7 +5,7 @@ import type { AXSDKConfig, AXHandler } from './types';
 export type * from './types';
 import { ApiError } from './apiclient';
 import * as api from './axapi';
-import { appStore, chatStore, envStore, dataStore, errorStore, type AppState, type ChatState, type EnvState, type DataState, type ErrorState } from './store';
+import { appStore, chatStore, envStore, dataStore, errorStore, knowledgeStore, type AppState, type ChatState, type EnvState, type DataState, type ErrorState, type KnowledgeState } from './store';
 import * as AXCHAT from './axchat';
 import * as AXCALL from './axcall';
 import { AXSDK_TRANSLATIONS } from './translations';
@@ -50,6 +50,11 @@ class AxSdk extends EventEmitter {
     chatStore.getState().setTranslations(translations || {});
     envStore.getState().setEnv(config.env && (typeof config.env == 'function' ? await config.env() : config.env) || {});
     dataStore.getState().setData(config.data && (typeof config.data == 'function' ? await config.data() : config.data) || {});
+
+    if (!config.remote_knowledge) {
+      const localKnowledge = config.knowledge && (typeof config.knowledge == 'function' ? await config.knowledge() : config.knowledge) || {};
+      knowledgeStore.getState().setKnowledge(localKnowledge as Record<string, unknown[]>);
+    }
 
     if (!isUpdate) {
       api.init(this.requestInterceptor.bind(this), this.errorInterceptor.bind(this));
@@ -109,6 +114,134 @@ class AxSdk extends EventEmitter {
 
   public getErrorStore(): StoreApi<ErrorState> {
     return errorStore;
+  }
+
+  public getKnowledgeStore(): StoreApi<KnowledgeState> {
+    return knowledgeStore;
+  }
+
+  public async fetchKnowledge(options?: { group?: string; page?: number; limit?: number }) {
+    const page = options?.page ?? 1;
+    const limit = options?.limit ?? 100;
+    const result = await api.getKnowledge({ group: options?.group, page, limit }) as {
+      groups: Record<string, unknown[]>;
+      total: number;
+      page: number;
+      limit: number;
+    };
+    return result;
+  }
+
+  public async getKnowledge(options?: { group?: string; page?: number; limit?: number }): Promise<{
+    groups: Record<string, unknown[]>;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const page = options?.page ?? 1;
+    const limit = options?.limit ?? 10;
+
+    if (this.config?.remote_knowledge) {
+      return await this.fetchKnowledge({ group: options?.group, page, limit });
+    }
+
+    const knowledge = knowledgeStore.getState().knowledge ?? {};
+
+    const pickedGroups: Record<string, unknown[]> = options?.group
+      ? { [options.group]: knowledge[options.group] ?? [] }
+      : knowledge;
+
+    const total = Object.values(pickedGroups).reduce((acc, items) => acc + items.length, 0);
+
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const sliced: Record<string, unknown[]> = {};
+    let seen = 0;
+    for (const [group, items] of Object.entries(pickedGroups)) {
+      const groupStart = seen;
+      const groupEnd = seen + items.length;
+      seen = groupEnd;
+      if (groupEnd <= start || groupStart >= end) continue;
+      const localStart = Math.max(0, start - groupStart);
+      const localEnd = Math.min(items.length, end - groupStart);
+      sliced[group] = items.slice(localStart, localEnd);
+    }
+
+    return {
+      groups: sliced,
+      total,
+      page,
+      limit,
+    };
+  }
+
+  public async searchKnowledge(options: { group?: string; regex: string | RegExp; page?: number; limit?: number }): Promise<{
+    groups: Record<string, unknown[]>;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const page = options.page ?? 1;
+    const limit = options.limit ?? 10;
+
+    if (this.config?.remote_knowledge) {
+      const regexStr = typeof options.regex === 'string' ? options.regex : options.regex.source;
+      return await api.searchKnowledge({ group: options.group, regex: regexStr, page, limit }) as {
+        groups: Record<string, unknown[]>;
+        total: number;
+        page: number;
+        limit: number;
+      };
+    }
+
+    const re = typeof options.regex === 'string' ? new RegExp(options.regex, 'i') : options.regex;
+    const knowledge = knowledgeStore.getState().knowledge ?? {};
+    const source: Record<string, unknown[]> = options.group
+      ? { [options.group]: knowledge[options.group] ?? [] }
+      : knowledge;
+
+    const matches = (value: unknown): boolean => {
+      if (value == null) return false;
+      if (typeof value === 'string') return re.test(value);
+      if (typeof value === 'number' || typeof value === 'boolean') return re.test(String(value));
+      if (typeof value === 'object') {
+        for (const v of Object.values(value as Record<string, unknown>)) {
+          if (matches(v)) return true;
+        }
+      }
+      return false;
+    };
+
+    const filtered: Record<string, unknown[]> = {};
+    let total = 0;
+    for (const [group, items] of Object.entries(source)) {
+      const hit = items.filter(matches);
+      if (hit.length) {
+        filtered[group] = hit;
+        total += hit.length;
+      }
+    }
+
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const sliced: Record<string, unknown[]> = {};
+    let seen = 0;
+    for (const [group, items] of Object.entries(filtered)) {
+      const groupStart = seen;
+      const groupEnd = seen + items.length;
+      seen = groupEnd;
+      if (groupEnd <= start || groupStart >= end) continue;
+      const localStart = Math.max(0, start - groupStart);
+      const localEnd = Math.min(items.length, end - groupStart);
+      sliced[group] = items.slice(localStart, localEnd);
+    }
+
+    return {
+      groups: sliced,
+      total,
+      page,
+      limit,
+    };
   }
 
   public getChatState(): ChatState {

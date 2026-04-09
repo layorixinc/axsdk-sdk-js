@@ -50,3 +50,15 @@ export async function postAnswers(requestID: string, status: string, answers: st
     answers,
   });
 }
+
+export async function getKnowledge(options?: { group?: string; page?: number; limit?: number }) {
+  const page = options?.page ?? 1
+  const limit = options?.limit ?? 20
+  return api.get('/knowledge', { params: { group: options?.group ?? '', page, limit } });
+}
+
+export async function searchKnowledge(options: { group?: string; regex: string; page?: number; limit?: number }) {
+  const page = options.page ?? 1
+  const limit = options.limit ?? 20
+  return api.get('/knowledge/search', { params: { group: options.group ?? '', pattern: options.regex, page, limit } });
+}

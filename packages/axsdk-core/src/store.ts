@@ -198,3 +198,38 @@ export const dataStore = createStore<DataState>()(
     }
   ),
 );
+
+export interface KnowledgeState {
+  isLoading: boolean;
+  knowledge: Record<string, unknown[]>;
+  setKnowledge: (knowledge: Record<string, unknown[]>) => void;
+  updateKnowledge: (knowledge: Record<string, unknown[]>) => void;
+  clearKnowledge: () => void;
+}
+
+export const knowledgeStore = createStore<KnowledgeState>()(
+  persist(
+    (set, get) => ({
+      isLoading: false,
+      knowledge: {},
+      setKnowledge: (knowledge: Record<string, unknown[]>) => set({ knowledge: knowledge ?? {} }),
+      updateKnowledge: (knowledge: Record<string, unknown[]>) => {
+        const prev = get().knowledge;
+        const next: Record<string, unknown[]> = { ...prev };
+        for (const [group, items] of Object.entries(knowledge ?? {})) {
+          next[group] = [...(prev[group] ?? []), ...items];
+        }
+        set({ knowledge: next });
+      },
+      clearKnowledge: () => set({ knowledge: {} }),
+    }),
+    {
+      name: 'axsdk:knowledge',
+      storage: createJSONStorage(() => (typeof window !== 'undefined' ? localStorage : (() => {
+        const noop = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+        return noop;
+      })())),
+      partialize: (state) => ({ }),
+    }
+  ),
+);
