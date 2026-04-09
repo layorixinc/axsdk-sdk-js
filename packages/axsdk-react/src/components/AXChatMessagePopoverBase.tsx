@@ -49,13 +49,22 @@ export function AXChatMessagePopoverBase({
     }
   }, [scrollToBottomTrigger]);
 
+  // Keep the latest (bottom) content pinned so the top is what clips, not the bottom.
+  useEffect(() => {
+    const el = scrollableRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [message?.text, expanded]);
+
   const bottomOffset = isOpen
     ? (inputBottomOffset != null ? `${inputBottomOffset > 0 ? inputBottomOffset : -1024}px` : "calc(1.25em + 75px + 8px)")
     : "1.25em";
 
   const wrapperStyle: React.CSSProperties = expanded
     ? {
-        maxHeight: `calc(100vh - ${bottomOffset} - 4em)`,
+        flex: "1 1 auto",
+        minHeight: 0,
         overflowY: "auto",
         overflowX: "hidden",
         scrollbarWidth: "none",
