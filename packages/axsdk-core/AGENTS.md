@@ -52,8 +52,24 @@ bun run build:types  # bunx tsc --emitDeclarationOnly
 The `cli` script reads credentials from `packages/axsdk-core/.env`
 (`VITE_AXSDK_API_BASE_URL`, `VITE_AXSDK_API_KEY`, `VITE_AXSDK_APP_ID`, plus
 optional `VITE_AXSDK_APP_DOMAIN` / `VITE_AXSDK_APP_AUTH_TOKEN`) and exposes
-commands: `send`, `knowledge [group] [page]`, `search <regex> [group] [page]`,
-`state`, `messages`, `errors`, `clear`.
+commands: `send`, `knowledge [group] [page]`, `groups`,
+`search <regex> [group] [page]`, `state`, `messages`, `errors`, `clear`.
+
+## Knowledge surface
+
+Knowledge is stored in `knowledgeStore` as `Record<string, unknown[]>` keyed by
+group name. `AXSDK.init({ remote_knowledge, knowledge })` selects the source:
+
+- `remote_knowledge: true` — every `getKnowledge` / `searchKnowledge` /
+  `getKnowledgeGroups` call hits the server (`/knowledge`, `/knowledge/search`,
+  `/knowledge/groups`). `fetchKnowledge` also writes into the store.
+- `remote_knowledge: false` (default) — `config.knowledge` (a `Record` or async
+  function, same shape as `config.data`) is loaded into the store during `init`
+  and all knowledge methods read from the store.
+
+`axhandler.ts` exposes `AX_get_knowledge_groups` and `AX_search_knowledge` for
+host-side command dispatch, matching the existing `AX_get_data_categories` /
+`AX_search_data` pattern.
 
 `build.ts` produces **two** bundles from `src/lib.ts`:
 

@@ -57,6 +57,10 @@ export async function getKnowledge(options?: { group?: string; page?: number; li
   return api.get('/knowledge', { params: { group: options?.group ?? '', page, limit } });
 }
 
+export async function getKnowledgeGroups() {
+  return api.get('/knowledge/groups') as Promise<{ groups: { group: string; count: number }[] }>;
+}
+
 export async function searchKnowledge(options: { group?: string; regex: string; page?: number; limit?: number }) {
   const page = options.page ?? 1
   const limit = options.limit ?? 20

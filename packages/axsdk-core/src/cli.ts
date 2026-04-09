@@ -38,6 +38,7 @@ Commands:
   help                            Show this help
   send <text>                     Send a chat message
   knowledge [group] [page]        Get knowledge (default page=1, limit=100)
+  groups                          List knowledge groups with counts
   search <regex> [group] [page]   Search knowledge by regex
   state                           Dump chat state summary
   messages                        List chat messages
@@ -82,8 +83,8 @@ async function main() {
 
   await AXSDK.init({
     baseUrl: BASE_URL,
-    apiKey: API_KEY,
-    appId: APP_ID,
+    apiKey: API_KEY!,
+    appId: APP_ID!,
     headers: APP_DOMAIN ? { origin: APP_DOMAIN } : undefined,
     axHandler: async (command: string, args: unknown) => {
       console.log(`[axHandler] ${command}`, args);
@@ -148,6 +149,11 @@ async function main() {
             page = Number(rest[1]) || 1;
           }
           const result = await AXSDK.getKnowledge({ group, page, limit: 100 });
+          console.log(JSON.stringify(result, null, 2));
+          break;
+        }
+        case 'groups': {
+          const result = await AXSDK.getKnowledgeGroups();
           console.log(JSON.stringify(result, null, 2));
           break;
         }

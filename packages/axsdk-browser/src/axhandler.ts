@@ -1,5 +1,5 @@
 import qs from 'qs';
-import { AXSDK, AX_search_data } from '@axsdk/core';
+import { AXSDK, AX_search_data, AX_get_data_categories, AX_get_knowledge_groups, AX_search_knowledge } from '@axsdk/core';
 
 export function isPromise(value: unknown): boolean {
   return !!value && (typeof value === 'function' || typeof value === 'object') && typeof (value as any).then === 'function'
@@ -18,13 +18,16 @@ async function AX_navigate(args: unknown) {
   const { link, params } = args as { link: string; params: any }
   const query = qs.stringify(params)
   const url = `${link}${query ? `?${query}` : ''}`
-  return [`OK. Navigating to ${url}`, (async () => { window.location.href = url; })()];
+  return [`OK. Navigating to ${url}`, new Promise(resolve => {window.location.href = url; resolve('OK') })];
 }
 
 const AX_FUNCTIONS = {
   AX_get_env,
   AX_navigate,
   AX_search_data,
+  AX_get_data_categories,
+  AX_get_knowledge_groups,
+  AX_search_knowledge,
 }
 const AX_PROXY = new Proxy(AX_FUNCTIONS, {
   get(target, command: string) {
@@ -45,13 +48,4 @@ export async function handleAX(handler: AXHandler, command: string, args: unknow
     result = await AX_PROXY[command as keyof typeof AX_FUNCTIONS](args);
   }
   return result;
-}
-
-export async function executeCallback(callbackId: string): Promise<void> {
-  const callback = pending_callbacks[callbackId];
-  if (!callback) {
-    return;
-  }
-  delete pending_callbacks[callbackId];
-  await callback();
 }

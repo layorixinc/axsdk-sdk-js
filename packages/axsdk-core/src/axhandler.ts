@@ -1,8 +1,16 @@
 import { AXSDK } from './axsdk';
 import { captureScreenshot } from './axtools';
 
+export async function AX_get_data_categories() {
+  const data = AXSDK.getDataState().data as Record<string, unknown> | undefined;
+  if (!data || typeof data !== 'object') {
+    return { categories: [] };
+  }
+  return { categories: Object.keys(data) };
+}
+
 export async function AX_search_data(args: unknown) {
-  const { category, query, offset = 0, limit = 20 } = args as { category: string, query: string, offset: number, limit: number };
+  const { category, regex, flags, offset = 0, limit = 20 } = args as { category: string, regex: string, flags?: string, offset: number, limit: number };
   let data: any[] = [];
   if (!category) {
     data = AXSDK.getAllData() ?? [];
@@ -10,20 +18,31 @@ export async function AX_search_data(args: unknown) {
     data = AXSDK.getData(category) ?? [];
   }
 
-  const tokens = query
-    ? query.split(/[\s,;]+/).map((t) => t.toLowerCase()).filter((t) => t.length > 0)
-    : [];
-  const filtered = tokens.length > 0
+  let pattern: RegExp | null = null;
+  if (regex) {
+    try {
+      pattern = new RegExp(regex, flags ?? 'i');
+    } catch (e) {
+      return {
+        data: [],
+        total: 0,
+        offset,
+        limit,
+        hasMore: false,
+        error: `Invalid regex: ${(e as Error).message}`,
+      };
+    }
+  }
+
+  const filtered = pattern
     ? data.filter((item) => {
         if (item === null || item === undefined) return false;
-        return tokens.every((token) => {
-          if (typeof item === 'object') {
-            return Object.values(item).some(
-              (val) => typeof val === 'string' && val.toLowerCase().includes(token)
-            ) || JSON.stringify(item).toLowerCase().includes(token);
-          }
-          return String(item).toLowerCase().includes(token);
-        });
+        if (typeof item === 'object') {
+          return Object.values(item).some(
+            (val) => typeof val === 'string' && pattern!.test(val)
+          ) || pattern!.test(JSON.stringify(item));
+        }
+        return pattern!.test(String(item));
       })
     : data;
 
@@ -37,6 +56,22 @@ export async function AX_search_data(args: unknown) {
     limit,
     hasMore: (offset + limit) < total,
   };
+}
+
+export async function AX_get_knowledge_groups() {
+  return AXSDK.getKnowledgeGroups();
+}
+
+export async function AX_search_knowledge(args: unknown) {
+  const { group, regex, page = 1, limit = 20 } = args as { group?: string; regex: string; page?: number; limit?: number };
+  if (!regex) {
+    return { groups: {}, total: 0, page, limit, error: 'Missing regex' };
+  }
+  try {
+    return await AXSDK.searchKnowledge({ group, regex, page, limit });
+  } catch (e) {
+    return { groups: {}, total: 0, page, limit, error: (e as Error).message };
+  }
 }
 
 function mergeResults(systemResult: any, appResult: any) {

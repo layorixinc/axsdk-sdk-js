@@ -120,6 +120,16 @@ class AxSdk extends EventEmitter {
     return knowledgeStore;
   }
 
+  public async getKnowledgeGroups(): Promise<{ groups: { group: string; count: number }[] }> {
+    if (this.config?.remote_knowledge) {
+      return await api.getKnowledgeGroups();
+    }
+    const knowledge = knowledgeStore.getState().knowledge ?? {};
+    return {
+      groups: Object.entries(knowledge).map(([group, items]) => ({ group, count: items.length })),
+    };
+  }
+
   public async fetchKnowledge(options?: { group?: string; page?: number; limit?: number }) {
     const page = options?.page ?? 1;
     const limit = options?.limit ?? 100;
