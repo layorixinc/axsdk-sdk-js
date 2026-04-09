@@ -18,7 +18,7 @@ async function AX_navigate(args: unknown) {
   const { link, params } = args as { link: string; params: any }
   const query = qs.stringify(params)
   const url = `${link}${query ? `?${query}` : ''}`
-  return [`OK. Navigating to ${url}`, new Promise(resolve => {window.location.href = url; resolve('OK') })];
+  return [`OK. Navigating to ${url}`, () => { window.location.href = url; }];
 }
 
 const AX_FUNCTIONS = {

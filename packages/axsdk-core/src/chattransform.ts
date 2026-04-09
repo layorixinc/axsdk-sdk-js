@@ -29,27 +29,24 @@ export async function updateFromMessages(payload: unknown) {
       continue;
     }
     const prevMessage = messages.find(x => x.info?.id == item.info.id);
-    const message = (prevMessage || item) as ChatMessage;
-    message.info = item.info;
-    const parts: MessagePart[] = message.parts ?? [];
-    for (const updatedPart of item.parts) {
-      const part = parts.find(x => x.id == updatedPart.id) as (MessagePart & { text?: string }) | undefined;
-      if (part) {
-        const updatedPartWithText = updatedPart as MessagePart & { text?: string };
-        if((updatedPartWithText.text ?? '').length < (part.text ?? '').length) {
-          part.text = updatedPartWithText.text;
+    const prevParts: MessagePart[] = prevMessage?.parts ?? [];
+    for (const part of item.parts) {
+      const prevPart = prevParts.find(x => x.id == part.id) as (MessagePart & { text?: string }) | undefined;
+      let partText = (part as (MessagePart & { text?: string })).text ?? ''
+      if (prevPart) {
+        const prevPartText = (prevPart as (MessagePart & { text?: string })).text ?? ''
+        if(prevPartText.length > partText.length) {
+          (part as (MessagePart & { text?: string })).text = prevPartText;
         }
-      } else {
-        parts.push(updatedPart);
       }
     }
-    message.parts = parts.sort((a, b) => a.id.localeCompare(b.id));
+    item.parts = item.parts.sort((a, b) => a.id.localeCompare(b.id));
     const timestamp = item.info.time.completed ? new Date(item.info.time.completed) : new Date(item.info.time.created);
-    const updatedMessage = { ...message, role: item.info.role, timestamp, parts, finish: item.info.finish };
+    const updatedMessage = { ...item, timestamp };
     chatState.updateMessage(updatedMessage);
 
-    if(message.info?.error) {
-      setError(message.info.id, message.info.error as unknown as MessageError)
+    if(item.info?.error) {
+      setError(item.info.id, item.info.error as unknown as MessageError)
     }
   }
 }

@@ -90,12 +90,18 @@ export const appStore = createStore<AppState>()(
   ),
 );
 
+export interface SessionClosed {
+  message?: string;
+}
+
 export interface ChatState {
   isLoading: boolean;
   isOpen: boolean;
   chatWasEverOpened: boolean;
   session: ChatSession | null;
   setSession: (session: ChatSession | null) => void;
+  sessionClosed: SessionClosed | null;
+  setSessionClosed: (sessionClosed: SessionClosed | null) => void;
   messages: ChatMessage[];
   setMessages: (messages: ChatMessage[]) => void;
   updateMessage: (message: ChatMessage) => void;
@@ -115,6 +121,8 @@ export const chatStore = createStore<ChatState>()(
       chatWasEverOpened: false,
       session: null,
       setSession: (session) => set({ session }),
+      sessionClosed: null,
+      setSessionClosed: (sessionClosed) => set({ sessionClosed }),
       messages: [],
       setMessages: (messages) => set({ messages }),
       updateMessage: (message: ChatMessage) => {
@@ -138,7 +146,7 @@ export const chatStore = createStore<ChatState>()(
         const noop = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
         return noop;
       })())),
-      partialize: (state) => ({ session: state.session, messages: state.messages, isOpen: state.isOpen }),
+      partialize: (state) => ({ session: state.session, sessionClosed: state.sessionClosed, messages: state.messages, isOpen: state.isOpen }),
     }
   ),
 );

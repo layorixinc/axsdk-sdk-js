@@ -254,6 +254,14 @@ class AxSdk extends EventEmitter {
     };
   }
 
+  public async complete(message?: string): Promise<void> {
+    const chatState = this.getChatState();
+    if (!chatState.session) {
+      return;
+    }
+    chatState.setSessionClosed({ message });
+  }
+
   public getChatState(): ChatState {
     return chatStore.getState();
   }
@@ -265,6 +273,7 @@ class AxSdk extends EventEmitter {
   public resetSession() {
     const chatState = this.getChatState();
     chatState.setSession(null);
+    chatState.setSessionClosed(null);
     chatState.setMessages([]);
     this.getErrorStore().getState().clearErrors();
   }

@@ -99,7 +99,7 @@ const AX_PROXY = new Proxy(AX_FUNCTIONS, {
   },
 });
 
-export async function processAXHandler(command: string, args: Record<string, unknown>): Promise<string | [string, Promise<void>]> {
+export async function processAXHandler(command: string, args: Record<string, unknown>): Promise<string | [string, () => Promise<void> | void]> {
   let result: string = '';
 
   const systemResult: Record<string, unknown> = {};
@@ -117,15 +117,24 @@ export async function processAXHandler(command: string, args: Record<string, unk
     AXSDK.resetSession();
     return 'OK'
   }
+  if (command === 'AX_complete') {
+    const { message } = (args ?? {}) as { message?: string };
+    await AXSDK.complete(message);
+    return 'OK'
+  }
   if (command === 'AX_screenshot') {
     const dataUrl = await captureScreenshot();
     return dataUrl;
   }
 
+  AXSDK.eventBus().emit('message.chat', { type: 'axsdk.axhandler.pre', data: { command, args } });
+
   let appResult = await AXSDK.axHandler()?.(command, args);
   if(appResult == undefined) {
     appResult = await AX_PROXY[command as keyof typeof AX_FUNCTIONS]?.(args);
   }
+
+  AXSDK.eventBus().emit('message.chat', { type: 'axsdk.axhandler.post', data: { command, args, systemResult, appResult } });
 
   if (Array.isArray(appResult)) {
     return [mergeResults(systemResult, appResult[0]), appResult[1]]
