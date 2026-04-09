@@ -89,6 +89,16 @@ function mergeResults(systemResult: any, appResult: any) {
 ${appResult}`;
 }
 
+const AX_FUNCTIONS = {
+  AX_get_knowledge_groups,
+  AX_search_knowledge,
+}
+const AX_PROXY = new Proxy(AX_FUNCTIONS, {
+  get(target, command: string) {
+    return target[command as keyof typeof target] ?? undefined;
+  },
+});
+
 export async function processAXHandler(command: string, args: Record<string, unknown>): Promise<string | [string, Promise<void>]> {
   let result: string = '';
 
@@ -112,7 +122,11 @@ export async function processAXHandler(command: string, args: Record<string, unk
     return dataUrl;
   }
 
-  const appResult = await AXSDK.axHandler()?.(command, args);
+  let appResult = await AXSDK.axHandler()?.(command, args);
+  if(appResult == undefined) {
+    appResult = await AX_PROXY[command as keyof typeof AX_FUNCTIONS]?.(args);
+  }
+
   if (Array.isArray(appResult)) {
     return [mergeResults(systemResult, appResult[0]), appResult[1]]
   } else {

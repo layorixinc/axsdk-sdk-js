@@ -402,7 +402,14 @@ export function AXUI({ children, theme }: AXUIProps) {
       bottom: '0.25em',
       right: '0.25em'
     }}>
-      {AXSDK.t('poweredBy')}
+      <a
+        href="https://axsdk.ai"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ color: 'inherit', textDecoration: 'underline' }}
+      >
+        {AXSDK.t('poweredBy')}
+      </a>
     </div>
     </div>
   </AXThemeProvider>;

@@ -41,11 +41,9 @@ const AX_PROXY = new Proxy(AX_FUNCTIONS, {
 const pending_callbacks: Record<string, () => Promise<void>> = {}
 
 export async function handleAX(handler: AXHandler, command: string, args: unknown) {
-  let result
-  try {
-    result = await handler(command, args);
-  } catch(err) {
-    result = await AX_PROXY[command as keyof typeof AX_FUNCTIONS](args);
+  let result = await handler(command, args);
+  if(result === undefined) {
+    result = await AX_PROXY[command as keyof typeof AX_FUNCTIONS]?.(args);
   }
   return result;
 }

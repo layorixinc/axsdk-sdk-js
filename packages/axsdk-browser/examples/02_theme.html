@@ -86,7 +86,7 @@ Get in touch with us through the appropriate channel for your needs.
         },
         axHandler: async (command, args) => {
           console.log(command, args);
-          throw new Error(`Unknown command: ${command}`);
+          return undefined;
         },
         // Example: Light mode with a custom bot button image
         // theme: {

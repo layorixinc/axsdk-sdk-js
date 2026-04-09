@@ -17,9 +17,10 @@ function App() {
       apiKey: env.VITE_AXSDK_API_KEY,
       appId: env.VITE_AXSDK_APP_ID,
       headers: { 'origin': env.VITE_AXSDK_APP_DOMAIN },
+      remote_knowledge: true,
       axHandler: async (command: string, args: unknown) => {
         console.log(command, args);
-        return { status: 'OK' };
+        return undefined;
       },
       translations: {
         'ko': {
