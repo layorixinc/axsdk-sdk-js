@@ -1,6 +1,6 @@
 {
   "name": "@axsdk/browser",
-  "version": "0.3.2",
+  "version": "0.3.4",
   "private": false,
   "description": "axsdk browser - embed AXSDK widget in web",
   "keywords": [],
@@ -27,8 +27,8 @@
     "publish": "bun run build && npm publish --access=public"
   },
   "dependencies": {
-    "@axsdk/core": "^0.2.13",
-    "@axsdk/react": "^0.4.2",
+    "@axsdk/core": "^0.3.0",
+    "@axsdk/react": "^0.4.3",
     "qs": "^6.15.0",
     "react": "^19",
     "react-dom": "^19"

@@ -1,6 +1,6 @@
 {
   "name": "@axsdk/react",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "private": false,
   "description": "axsdk react",
   "keywords": [],
@@ -38,7 +38,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@axsdk/core": "^0.2.13",
+    "@axsdk/core": "^0.3.0",
     "react": "^19",
     "react-dom": "^19",
     "react-markdown": "^10.1.0",
