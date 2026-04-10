@@ -23,6 +23,7 @@ export const AXSDKConfigSchema = z.object({
     z.function().output(z.promise(z.record(z.string(), z.any()))),
     z.record(z.string(), z.any())
   ]).optional(),
+  reopen_closed: z.boolean().optional(),
   remote_knowledge: z.boolean().optional(),
   knowledge: z.union([
     z.function().output(z.promise(z.record(z.string(), z.any()))),

@@ -79,10 +79,12 @@ async function handleChatSession(properties: unknown) {
 async function handleChatMessage(properties: unknown) {
   let session = chatStore.getState().session;
   if (chatStore.getState().sessionClosed) {
-    chatStore.getState().setSession(null);
-    chatStore.getState().setMessages([]);
+    if (AXSDK.config?.reopen_closed === false) {
+      chatStore.getState().setSession(null);
+      chatStore.getState().setMessages([]);
+      session = null;
+    }
     chatStore.getState().setSessionClosed(null);
-    session = null;
   }
   if (!session) {
     const data = await api.createSession() as { session: ChatSession };
