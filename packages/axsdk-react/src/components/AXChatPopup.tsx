@@ -256,11 +256,12 @@ export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrCh
                 onFocus={() => { scrollChatToBottom(); onInputFocusOrChange?.(); setClearBubbleVisible(false); }}
                 onInputChange={() => { scrollChatToBottom(); onInputFocusOrChange?.(); setClearBubbleVisible(false); }}
                 guideText={
-                  !messages.length ? AXSDK.t("chatEmpty") :
+                  !messages.length || session?.status === "idle" || !session?.status ? AXSDK.t("chatEmpty") :
                   session?.status === "busy" ? AXSDK.t("chatBusyGuide") :
-                  session?.status === "idle" || !session?.status ? AXSDK.t("chatIdleGuide") :
                   undefined
                 }
+                onboarding={!messages.length || session?.status === "idle" || !session?.status ? AXSDK.t("chatOnboarding") : undefined}
+                onOnboardingSelect={handleSend}
               />
             </div>
           </div>

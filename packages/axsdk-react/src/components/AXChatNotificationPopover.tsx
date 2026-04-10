@@ -13,10 +13,11 @@ export interface AXChatNotificationPopoverProps {
   inputBottomOffset?: number;
   isDesktop?: boolean;
   scrollToBottomTrigger?: number;
+  idleGuideText?: string;
 }
 
 export function AXChatNotificationPopover({
-  message, userMessage, onClose, onOpen, visible, isBusy, isOpen = false, inputBottomOffset, isDesktop = false, scrollToBottomTrigger,
+  message, userMessage, onClose, onOpen, visible, isBusy, isOpen = false, inputBottomOffset, isDesktop = false, scrollToBottomTrigger, idleGuideText,
 }: AXChatNotificationPopoverProps) {
   if (!visible) return null;
 
@@ -31,6 +32,7 @@ export function AXChatNotificationPopover({
       inputBottomOffset={inputBottomOffset}
       isDesktop={isDesktop}
       scrollToBottomTrigger={scrollToBottomTrigger}
+      idleGuideText={idleGuideText}
     />
   );
 }

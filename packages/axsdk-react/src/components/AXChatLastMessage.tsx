@@ -13,10 +13,11 @@ export interface AXChatLastMessageProps {
   inputBottomOffset?: number;
   isDesktop?: boolean;
   scrollToBottomTrigger?: number;
+  idleGuideText?: string;
 }
 
 export function AXChatLastMessage({
-  message, userMessage, onClose, onOpen, visible, isBusy, isOpen = false, inputBottomOffset, isDesktop = false, scrollToBottomTrigger,
+  message, userMessage, onClose, onOpen, visible, isBusy, isOpen = false, inputBottomOffset, isDesktop = false, scrollToBottomTrigger, idleGuideText,
 }: AXChatLastMessageProps) {
   if (!visible || (!message && !userMessage)) return null;
 
@@ -31,6 +32,7 @@ export function AXChatLastMessage({
       inputBottomOffset={inputBottomOffset}
       isDesktop={isDesktop}
       scrollToBottomTrigger={scrollToBottomTrigger}
+      idleGuideText={idleGuideText}
     />
   );
 }

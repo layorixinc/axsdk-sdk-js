@@ -20,6 +20,7 @@ export interface AXChatMessagePopoverBaseProps {
   inputBottomOffset?: number;
   isDesktop?: boolean;
   scrollToBottomTrigger?: number;
+  idleGuideText?: string;
 }
 
 export function AXChatMessagePopoverBase({
@@ -32,6 +33,7 @@ export function AXChatMessagePopoverBase({
   inputBottomOffset,
   isDesktop = false,
   scrollToBottomTrigger,
+  idleGuideText,
 }: AXChatMessagePopoverBaseProps) {
   const { theme } = useAXTheme();
   const [expanded, setExpanded] = useState<boolean>(false);
@@ -337,6 +339,21 @@ export function AXChatMessagePopoverBase({
           </div>
 
           <AXChatErrorBar />
+
+          {idleGuideText && (
+            <div style={{
+              padding: "6px 14px",
+              fontSize: "0.75em",
+              color: "var(--ax-text-dim)",
+              textAlign: "center",
+              borderTop: "1px solid var(--ax-border-primary, rgba(168, 85, 247, 0.15))",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}>
+              {idleGuideText}
+            </div>
+          )}
 
         </div>
 

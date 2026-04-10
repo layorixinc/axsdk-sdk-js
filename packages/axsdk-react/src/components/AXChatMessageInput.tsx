@@ -13,6 +13,8 @@ export interface AXChatMessageInputProps {
   disabled?: boolean;
   placeholder?: string;
   guideText?: string;
+  onboarding?: string;
+  onOnboardingSelect?: (text: string) => void;
   autoFocus?: boolean;
   onAutoFocus?: () => void;
   focusTrigger?: number;
@@ -26,6 +28,8 @@ export function AXChatMessageInput({
   disabled = false,
   placeholder = "Message",
   guideText,
+  onboarding,
+  onOnboardingSelect,
   autoFocus = false,
   onAutoFocus,
   focusTrigger,
@@ -98,6 +102,52 @@ export function AXChatMessageInput({
         }}
       >
         {guideText}
+        {onboarding && (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              gap: "0.4em",
+              marginTop: guideText ? "0.6em" : 0,
+            }}
+          >
+            {onboarding.split(",").map((raw, i) => {
+              const text = raw.trim();
+              if (!text) return null;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => onOnboardingSelect?.(text)}
+                  style={{
+                    background: "var(--ax-bg-input-textarea)",
+                    border: "1px solid var(--ax-border-surface, rgba(255, 255, 255, 0.2))",
+                    borderRadius: 999,
+                    color: "var(--ax-text-primary)",
+                    fontSize: "0.85em",
+                    padding: "0.35em 0.9em",
+                    cursor: "pointer",
+                    transition: "background 0.15s, transform 0.1s, border-color 0.15s",
+                    fontFamily: "inherit",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--ax-color-primary, #7c3aed) 20%, transparent)";
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--ax-color-primary-light, rgba(167, 139, 250, 0.55))";
+                    (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.03)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.background = "var(--ax-bg-input-textarea)";
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--ax-border-surface, rgba(255, 255, 255, 0.2))";
+                    (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
+                  }}
+                >
+                  {text}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
       <textarea
         ref={textareaRef}

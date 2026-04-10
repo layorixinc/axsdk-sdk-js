@@ -301,6 +301,7 @@ export function AXUI({ children, theme }: AXUIProps) {
         isDesktop={isDesktop}
         inputBottomOffset={inputTopOffset ?? undefined}
         scrollToBottomTrigger={scrollTrigger}
+        idleGuideText={!isBusy ? AXSDK.t("chatIdleGuide") : undefined}
       />
     ) : (
       <AXChatNotificationPopover
@@ -313,6 +314,7 @@ export function AXUI({ children, theme }: AXUIProps) {
         isDesktop={isDesktop}
         inputBottomOffset={inputTopOffset ?? undefined}
         scrollToBottomTrigger={scrollTrigger}
+        idleGuideText={!isBusy ? AXSDK.t("chatIdleGuide") : undefined}
       />
     )}
     <div
@@ -353,11 +355,12 @@ export function AXUI({ children, theme }: AXUIProps) {
           autoFocus
           focusTrigger={focusTrigger}
           guideText={
-            !messages.length ? AXSDK.t("chatEmpty") :
+            !messages.length || session?.status === "idle" || !session?.status ? AXSDK.t("chatEmpty") :
             session?.status === "busy" ? AXSDK.t("chatBusyGuide") :
-            session?.status === "idle" || !session?.status ? AXSDK.t("chatIdleGuide") :
             undefined
           }
+          onboarding={!messages.length || session?.status === "idle" || !session?.status ? AXSDK.t("chatOnboarding") : undefined}
+          onOnboardingSelect={handleSend}
         />
       </div>
     </div>
