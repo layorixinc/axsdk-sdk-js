@@ -6,6 +6,13 @@
   },
   "private": true,
   "type": "module",
+  "scripts": {
+    "bump": "node scripts/bump-and-publish.mjs",
+    "bump:patch": "node scripts/bump-and-publish.mjs patch",
+    "bump:minor": "node scripts/bump-and-publish.mjs minor",
+    "bump:major": "node scripts/bump-and-publish.mjs major",
+    "bump:dry": "node scripts/bump-and-publish.mjs patch --dry-run"
+  },
   "workspaces": {
     "packages": [
       "packages/*"
