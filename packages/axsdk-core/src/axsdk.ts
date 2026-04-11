@@ -46,7 +46,30 @@ class AxSdk extends EventEmitter {
       ? navigator.language.split('-')[0]
       : 'en';
     appStore.getState().setLanguage(config.language ?? browserLanguage ?? 'en');
-    const translations = Object.fromEntries([...Object.keys(AXSDK_TRANSLATIONS), ...Object.keys(config?.translations ?? {})].map(lang => [lang, { ...AXSDK_TRANSLATIONS[lang], ...config?.translations?.[lang] }]));
+
+    if (!isUpdate) {
+      api.init(this.requestInterceptor.bind(this), this.errorInterceptor.bind(this));
+    }
+
+    let appInfo: Awaited<ReturnType<typeof api.getAppInfo>> | undefined;
+    try {
+      appInfo = await api.getAppInfo();
+    } catch (e) {
+      if (config.debug) console.warn('AXSDK getAppInfo failed', e);
+    }
+    const remoteTranslations = appInfo?.app?.translations ?? {};
+    const translationLangs = new Set([
+      ...Object.keys(AXSDK_TRANSLATIONS),
+      ...Object.keys(remoteTranslations),
+      ...Object.keys(config?.translations ?? {}),
+    ]);
+    const translations = Object.fromEntries(
+      [...translationLangs].map(lang => [lang, {
+        ...AXSDK_TRANSLATIONS[lang],
+        ...remoteTranslations[lang],
+        ...config?.translations?.[lang],
+      }])
+    );
     chatStore.getState().setTranslations(translations || {});
     envStore.getState().setEnv(config.env && (typeof config.env == 'function' ? await config.env() : config.env) || {});
     dataStore.getState().setData(config.data && (typeof config.data == 'function' ? await config.data() : config.data) || {});
@@ -57,12 +80,9 @@ class AxSdk extends EventEmitter {
     }
 
     if (!isUpdate) {
-      api.init(this.requestInterceptor.bind(this), this.errorInterceptor.bind(this));
       await AXCHAT.start();
       await AXCALL.start();
     }
-
-    await api.health();
   }
 
   public async destroy() {

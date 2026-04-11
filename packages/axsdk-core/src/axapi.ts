@@ -13,8 +13,8 @@ export function init(ri: RequestInterceptor, ei?: ErrorInterceptor) {
   }
 }
 
-export async function health() {
-  return api.get('');
+export async function getAppInfo() {
+  return api.get('') as Promise<{ app?: { translations?: Record<string, Record<string, string>> } }>;
 }
 
 export async function createSession() {
