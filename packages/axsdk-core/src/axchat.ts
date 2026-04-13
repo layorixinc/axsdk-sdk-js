@@ -10,6 +10,7 @@ import AXSDK from './axsdk';
 
 let sse: SSE | undefined = undefined;
 let messagePollingInterval: ReturnType<typeof setInterval> | undefined = undefined;
+let unsubscribeChatStore: (() => void) | undefined = undefined;
 
 async function startMessagePolling() {
   if (messagePollingInterval) {
@@ -42,20 +43,23 @@ function stopMessagePolling() {
   }
 }
 
-// @ts-ignore
-async function handleChatOpen(properties: unknown) {
-  const session = chatStore.getState().session;
-  if (!session) {
-    return;
+let prevIsOpen = false;
+let prevSessionId: string | null = null;
+
+function syncMessagePolling() {
+  const { isOpen, session } = chatStore.getState();
+  const sessionId = session?.id ?? null;
+
+  if (isOpen === prevIsOpen && sessionId === prevSessionId) return;
+  prevIsOpen = isOpen;
+  prevSessionId = sessionId;
+
+  if (isOpen && session) {
+    EventBus.emit('message.chat', { type: 'axsdk.chat.session', data: { sessionID: session.id } });
+    startMessagePolling();
+  } else {
+    stopMessagePolling();
   }
-  EventBus.emit('message.chat', { type: 'axsdk.chat.session', data: { sessionID: session.id } });
-
-  await startMessagePolling();
-}
-
-// @ts-ignore
-async function handleChatClose(properties: unknown) {
-  stopMessagePolling();
 }
 
 async function handleChatSession(properties: unknown) {
@@ -142,25 +146,25 @@ async function handleQuestionAsked(data: unknown) {
 }
 
 async function handleServerConnected(data: unknown) {
-  const { app, state: { session, messages }} = data as { app: any, state: { session: ChatSession, messages: ChatMessage[] } };
-  if(session) {
-    updateFromSessionUpdate({ info: session });
+  const { state } = data as { app: unknown, state: { session?: Partial<ChatSession> & { id: string }, messages?: ChatMessage[] } };
+  if (state.session) {
+    const existing = chatStore.getState().session;
+    chatStore.getState().setSession({
+      id: state.session.id,
+      status: state.session.status ?? existing?.status ?? 'idle',
+      title: state.session.title ?? existing?.title ?? '',
+      time: state.session.time ?? existing?.time ?? { created: Date.now() },
+    });
   }
-  if(messages) {
-    updateFromMessages(messages)
+  if (state.messages) {
+    updateFromMessages(state.messages);
   }
 }
 
 async function handleMessage(properties: unknown) {
   const { type, data } = properties as { type: string, data: unknown };
 
-  if (type === 'axsdk.chat.open') {
-    return handleChatOpen(data);
-  }
-  else if (type === 'axsdk.chat.close') {
-    return handleChatClose(data);
-  }
-  else if (type === 'axsdk.chat.session') {
+  if (type === 'axsdk.chat.session') {
     return handleChatSession(data);
   }
   else if (type === 'axsdk.chat.message') {
@@ -198,14 +202,14 @@ async function handleMessage(properties: unknown) {
 export async function start() {
   EventBus.on('message.chat', handleMessage);
 
-  const session = chatStore.getState().session;
-  if (session) {
-    EventBus.emit('message.chat', { type: 'axsdk.chat.session', data: { sessionID: session.id } });
-  }
+  syncMessagePolling();
+  unsubscribeChatStore = chatStore.subscribe(syncMessagePolling);
 }
 
 export async function stop() {
   EventBus.off('message.chat', handleMessage);
 
+  unsubscribeChatStore?.();
+  unsubscribeChatStore = undefined;
   stopMessagePolling();
 }
