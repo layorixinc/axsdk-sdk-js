@@ -1,6 +1,6 @@
 {
   "name": "@axsdk/react",
-  "version": "0.4.5",
+  "version": "0.4.9",
   "private": false,
   "description": "axsdk react",
   "keywords": [],
@@ -33,13 +33,13 @@
     "dev": "vite --port 3334",
     "build": "tsc -b && vite build && bun build:types",
     "build:types": "bunx tsc --project tsconfig.build.json",
-    "publish": "node ../../scripts/set-publish-deps.mjs && bun run build && npm publish --access=public",
+    "release": "node ../../scripts/set-publish-deps.mjs && bun run build && npm publish --access=public",
     "build:workspace": "rm -rf node_modules && node ../../scripts/set-workspace-deps.mjs && bun install && bun run build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@axsdk/core": "^0.3.4",
+    "@axsdk/core": "^0.3.8",
     "react": "^19",
     "react-dom": "^19",
     "react-markdown": "^10.1.0",

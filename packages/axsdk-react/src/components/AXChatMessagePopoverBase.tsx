@@ -21,6 +21,7 @@ export interface AXChatMessagePopoverBaseProps {
   isDesktop?: boolean;
   scrollToBottomTrigger?: number;
   idleGuideText?: string;
+  busyGuideText?: string;
 }
 
 export function AXChatMessagePopoverBase({
@@ -34,6 +35,7 @@ export function AXChatMessagePopoverBase({
   isDesktop = false,
   scrollToBottomTrigger,
   idleGuideText,
+  busyGuideText,
 }: AXChatMessagePopoverBaseProps) {
   const { theme } = useAXTheme();
   const [expanded, setExpanded] = useState<boolean>(false);
@@ -203,6 +205,14 @@ export function AXChatMessagePopoverBase({
           0%, 100% { box-shadow: 0 4px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.06) inset, 0 0 10px 2px var(--ax-color-primary-light, rgba(168, 85, 247, 0.4)); }
           50%       { box-shadow: 0 4px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.06) inset, 0 0 24px 8px var(--ax-color-primary-light, rgba(168, 85, 247, 0.75)); }
         }
+        @keyframes axnotif-busy-shimmer {
+          0%   { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        @keyframes axnotif-busy-fade {
+          0%, 100% { opacity: 0.55; }
+          50%      { opacity: 1; }
+        }
         .ax-notif-content::-webkit-scrollbar { display: none; }
       `}</style>
       <div
@@ -331,10 +341,30 @@ export function AXChatMessagePopoverBase({
             style={wrapperStyle}
           >
             <div style={contentStyle}>
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]} components={mdComponents}>
-                {message?.text || ''}
-              </ReactMarkdown>
+              {!message?.text && isBusy && busyGuideText ? (
+                <div
+                  style={{
+                    display: "inline-block",
+                    fontStyle: "italic",
+                    backgroundImage:
+                      "linear-gradient(90deg, var(--ax-text-muted, rgba(220,200,255,0.6)) 0%, var(--ax-text-primary, rgba(255,255,255,0.98)) 50%, var(--ax-text-muted, rgba(220,200,255,0.6)) 100%)",
+                    backgroundSize: "200% 100%",
+                    WebkitBackgroundClip: "text",
+                    backgroundClip: "text",
+                    color: "transparent",
+                    WebkitTextFillColor: "transparent",
+                    animation:
+                      "axnotif-busy-shimmer 2.2s linear infinite, axnotif-busy-fade 1.6s ease-in-out infinite",
+                  }}
+                >
+                  {busyGuideText}
+                </div>
+              ) : (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]} components={mdComponents}>
+                  {message?.text || ''}
+                </ReactMarkdown>
+              )}
             </div>
           </div>
 

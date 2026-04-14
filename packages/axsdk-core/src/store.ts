@@ -44,6 +44,7 @@ export const errorStore = createStore<ErrorState>()((set) => ({
 
 export interface AppState {
   isLoading: boolean;
+  appInfoReady: boolean;
   apiKey: string | undefined;
   appId: string | undefined;
   appUserId: string | undefined;
@@ -55,17 +56,20 @@ export interface AppState {
   resetAppUserId: () => void;
   setLanguage: (language: string) => void;
   setAppAuthToken: (token: string | undefined) => void;
+  setAppInfoReady: (ready: boolean) => void;
 }
 
 export const appStore = createStore<AppState>()(
   persist(
     (set, get) => ({
       isLoading: false,
+      appInfoReady: false,
       apiKey: undefined,
       appId: undefined,
       appUserId: undefined,
       appAuthToken: undefined,
       language: 'en',
+      setAppInfoReady: (ready: boolean) => set({ appInfoReady: ready }),
       setApiKey: (apiKey: string | undefined) => set({ apiKey }),
       setAppId: (appId: string | undefined) => set({ appId }),
       getAppUserId: () => {

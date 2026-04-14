@@ -109,6 +109,7 @@ export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrCh
   }, []);
 
   const { session, messages } = useStore(AXSDK.getChatStore());
+  const appInfoReady = useStore(AXSDK.getAppStore(), (s) => s.appInfoReady);
 
   useEffect(() => {
     if (isInitialMount.current) {
@@ -252,15 +253,17 @@ export function AXChatPopup({ visible, children, onSendMessage, onInputFocusOrCh
                 onSend={handleSend}
                 onClear={handleClear}
                 autoFocus
+                disabled={!appInfoReady}
                 onAutoFocus={() => { setClearBubbleVisible(true); }}
                 onFocus={() => { scrollChatToBottom(); onInputFocusOrChange?.(); setClearBubbleVisible(false); }}
                 onInputChange={() => { scrollChatToBottom(); onInputFocusOrChange?.(); setClearBubbleVisible(false); }}
                 guideText={
+                  !appInfoReady ? AXSDK.t("chatInitializing") :
                   !messages.length || session?.status === "idle" || !session?.status ? AXSDK.t("chatEmpty") :
                   session?.status === "busy" ? AXSDK.t("chatBusyGuide") :
                   undefined
                 }
-                onboarding={!messages.length || session?.status === "idle" || !session?.status ? AXSDK.t("chatOnboarding") : undefined}
+                onboarding={appInfoReady && (!messages.length || session?.status === "idle" || !session?.status) ? AXSDK.t("chatOnboarding") : undefined}
                 onOnboardingSelect={handleSend}
               />
             </div>

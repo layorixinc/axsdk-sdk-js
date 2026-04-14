@@ -115,6 +115,7 @@ export function AXUI({ children, theme }: AXUIProps) {
   const messageInputWrapperRef = useRef<HTMLDivElement | null>(null);
 
   const { isOpen, setIsOpen, chatWasEverOpened, setChatWasEverOpened, messages, questions, setQuestions, session } = useStore(AXSDK.getChatStore());
+  const appInfoReady = useStore(AXSDK.getAppStore(), (s) => s.appInfoReady);
   const isBusy = session?.status === 'busy';
 
   useEffect(() => {
@@ -272,10 +273,12 @@ export function AXUI({ children, theme }: AXUIProps) {
   }, [portalTarget, theme]);
 
   const handleClick = () => {
+    if (!appInfoReady) return;
     setIsOpen(!isOpen);
   };
 
   const handleSend = (text: string) => {
+    AXSDK.getErrorStore().getState().clearErrors();
     AXSDK.sendMessage(text);
   }
   function handleClear() {
@@ -294,7 +297,7 @@ export function AXUI({ children, theme }: AXUIProps) {
       <AXChatLastMessage
         message={assistantMessage}
         userMessage={userMessage}
-        onOpen={() => setIsOpen(true)}
+        onOpen={() => { if (appInfoReady) setIsOpen(true); }}
         visible={true}
         isBusy={isBusy}
         isOpen={isOpen}
@@ -309,12 +312,13 @@ export function AXUI({ children, theme }: AXUIProps) {
         userMessage={userMessage}
         visible={notifVisible}
         onClose={() => setDismissedNotification(true)}
-        onOpen={() => setIsOpen(true)}
+        onOpen={() => { if (appInfoReady) setIsOpen(true); }}
         isBusy={isBusy}
         isDesktop={isDesktop}
         inputBottomOffset={inputTopOffset ?? undefined}
         scrollToBottomTrigger={scrollTrigger}
         idleGuideText={!isBusy ? AXSDK.t("chatIdleGuide") : undefined}
+        busyGuideText={isBusy && !assistantMessageText ? AXSDK.t("chatBusyGuide") : undefined}
       />
     )}
     <div
@@ -353,13 +357,15 @@ export function AXUI({ children, theme }: AXUIProps) {
           onSend={handleSend}
           onClear={handleClear}
           autoFocus
+          disabled={!appInfoReady}
           focusTrigger={focusTrigger}
           guideText={
+            !appInfoReady ? AXSDK.t("chatInitializing") :
             !messages.length || session?.status === "idle" || !session?.status ? AXSDK.t("chatEmpty") :
             session?.status === "busy" ? AXSDK.t("chatBusyGuide") :
             undefined
           }
-          onboarding={!messages.length || session?.status === "idle" || !session?.status ? AXSDK.t("chatOnboarding") : undefined}
+          onboarding={appInfoReady && (!messages.length || session?.status === "idle" || !session?.status) ? AXSDK.t("chatOnboarding") : undefined}
           onOnboardingSelect={handleSend}
         />
       </div>

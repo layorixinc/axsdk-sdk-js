@@ -51,12 +51,28 @@ class AxSdk extends EventEmitter {
       api.init(this.requestInterceptor.bind(this), this.errorInterceptor.bind(this));
     }
 
+    appStore.getState().setAppInfoReady(false);
+    {
+      const baseLangs = new Set([
+        ...Object.keys(AXSDK_TRANSLATIONS),
+        ...Object.keys(config?.translations ?? {}),
+      ]);
+      const baseTranslations = Object.fromEntries(
+        [...baseLangs].map(lang => [lang, {
+          ...AXSDK_TRANSLATIONS[lang],
+          ...config?.translations?.[lang],
+        }])
+      );
+      chatStore.getState().setTranslations(baseTranslations);
+    }
+
     let appInfo: Awaited<ReturnType<typeof api.getAppInfo>> | undefined;
     try {
       appInfo = await api.getAppInfo();
     } catch (e) {
       if (config.debug) console.warn('AXSDK getAppInfo failed', e);
     }
+    if (appInfo) appStore.getState().setAppInfoReady(true);
     const remoteTranslations = appInfo?.app?.translations ?? {};
     const translationLangs = new Set([
       ...Object.keys(AXSDK_TRANSLATIONS),
