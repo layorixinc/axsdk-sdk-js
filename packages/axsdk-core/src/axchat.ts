@@ -54,8 +54,13 @@ function syncMessagePolling() {
   prevIsOpen = isOpen;
   prevSessionId = sessionId;
 
-  if (isOpen && session) {
+  if (session) {
     EventBus.emit('message.chat', { type: 'axsdk.chat.session', data: { sessionID: session.id } });
+  } else {
+    sse?.stop();
+  }
+
+  if (isOpen && session) {
     startMessagePolling();
   } else {
     stopMessagePolling();
@@ -96,6 +101,7 @@ async function handleChatMessage(properties: unknown) {
   }
   const { text, images } = properties as { text: string, images: string[] };
   await api.postMessage(text, images);
+  ensureSessionBusy();
 }
 
 async function handleChatReply(properties: unknown) {
@@ -109,6 +115,13 @@ async function handleSessionStatus(properties: unknown) {
 
 async function handleSessionUpdate(properties: unknown) {
   updateFromSessionUpdate(properties);
+}
+function ensureSessionBusy() {
+  const chatState = chatStore.getState();
+  const session = chatState.session;
+  if (session && !session.status) {
+    chatState.setSession({ ...session, status: 'busy' });
+  }
 }
 async function handleMessageUpdate(properties: unknown) {
   updateFromMessageUpdate(properties);
