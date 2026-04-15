@@ -48,14 +48,14 @@ for (const dir of PUBLISH_ORDER) {
   versionMap[packages[dir].pkg.name] = packages[dir].newVersion;
 }
 
-// 3. Update cross-dependencies to new versions
+// 3. Write bumped versions with workspace:* deps (pre-build state)
 for (const dir of PUBLISH_ORDER) {
   const { pkg, pkgPath } = packages[dir];
   for (const depType of ['dependencies', 'devDependencies', 'peerDependencies']) {
     if (!pkg[depType]) continue;
     for (const name of Object.keys(pkg[depType])) {
       if (name.startsWith('@axsdk/') && versionMap[name]) {
-        pkg[depType][name] = `^${versionMap[name]}`;
+        pkg[depType][name] = 'workspace:*';
       }
     }
   }
@@ -63,18 +63,30 @@ for (const dir of PUBLISH_ORDER) {
 }
 
 if (dryRun) {
-  console.log('\n--dry-run: versions updated in package.json files but skipping build & publish');
+  console.log('\n--dry-run: versions bumped with workspace:* deps, skipping build & publish');
   process.exit(0);
 }
 
-// 4. Build and publish in dependency order
+// 4. For each package: build (with workspace:*), swap to versions, publish
 console.log('\n--- Build & Publish ---\n');
 for (const dir of PUBLISH_ORDER) {
-  const { pkg, newVersion } = packages[dir];
+  const { pkg, pkgPath, newVersion } = packages[dir];
   const cwd = join(packagesDir, dir);
-  console.log(`\n[${pkg.name}@${newVersion}] Building...`);
   try {
+    console.log(`\n[${pkg.name}@${newVersion}] Building (workspace:* deps)...`);
     execSync('bun run build', { cwd, stdio: 'inherit' });
+
+    console.log(`[${pkg.name}@${newVersion}] Swapping workspace:* -> versioned deps...`);
+    for (const depType of ['dependencies', 'devDependencies', 'peerDependencies']) {
+      if (!pkg[depType]) continue;
+      for (const name of Object.keys(pkg[depType])) {
+        if (name.startsWith('@axsdk/') && versionMap[name]) {
+          pkg[depType][name] = `^${versionMap[name]}`;
+        }
+      }
+    }
+    writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+
     console.log(`[${pkg.name}@${newVersion}] Publishing...`);
     execSync('npm publish --access=public', { cwd, stdio: 'inherit' });
     console.log(`[${pkg.name}@${newVersion}] Published!`);
@@ -84,7 +96,7 @@ for (const dir of PUBLISH_ORDER) {
   }
 }
 
-// 5. Restore workspace deps
+// 5. Restore workspace:* deps for local dev
 console.log('\n--- Restoring workspace deps ---\n');
 for (const dir of PUBLISH_ORDER) {
   const cwd = join(packagesDir, dir);
