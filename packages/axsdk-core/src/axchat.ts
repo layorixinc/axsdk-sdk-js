@@ -159,12 +159,12 @@ async function handleQuestionAsked(data: unknown) {
 }
 
 async function handleServerConnected(data: unknown) {
-  const { state } = data as { app: unknown, state: { session?: Partial<ChatSession> & { id: string }, messages?: ChatMessage[] } };
+  const { state } = data as { app: unknown, state: { session?: Partial<ChatSession> & { id: string, status?: { type: string } }, messages?: ChatMessage[] } };
   if (state?.session) {
     const existing = chatStore.getState().session;
     chatStore.getState().setSession({
       id: state.session.id,
-      status: state.session.status ?? existing?.status ?? 'idle',
+      status: state.session.status?.type ?? existing?.status ?? 'idle',
       title: state.session.title ?? existing?.title ?? '',
       time: state.session.time ?? existing?.time ?? { created: Date.now() },
     });
