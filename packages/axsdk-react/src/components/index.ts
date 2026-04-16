@@ -29,5 +29,6 @@ export type {
   AXThemeContextValue,
 } from '../theme';
 export { AXThemeProvider, useAXTheme } from '../AXThemeContext';
+export { AXShadowRootProvider, useAXShadowRoot } from '../AXShadowRootContext';
 export { AX_DEFAULT_DARK_THEME, AX_DEFAULT_LIGHT_THEME, mergeTheme } from '../defaultTheme';
 export { injectCSSVariables } from '../cssVariables';

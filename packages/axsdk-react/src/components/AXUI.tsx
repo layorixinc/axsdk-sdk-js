@@ -17,6 +17,7 @@ import type { TextPart } from '@axsdk/core';
 
 import type { AXTheme } from '../theme';
 import { AXThemeProvider } from '../AXThemeContext';
+import { useAXShadowRoot } from '../AXShadowRootContext';
 import { injectCSSVariables } from '../cssVariables';
 
 export type { AXTheme };
@@ -104,6 +105,7 @@ function SpeechBubbleClosed({ visible }: { visible: boolean }) {
 const DESKTOP_BREAKPOINT = 768;
 
 export function AXUI({ children, theme }: AXUIProps) {
+  const shadowRoot = useAXShadowRoot();
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
   const [dismissedNotification, setDismissedNotification] = useState(false);
   const [lastAnswer, setLastAnswer] = useState<{ questionIndex: number; selectedOption: number; label: string } | null>(null);
@@ -233,8 +235,9 @@ export function AXUI({ children, theme }: AXUIProps) {
   }, []);
 
   useEffect(() => {
+    const container = shadowRoot ?? document;
     const styleId = "axbubble-keyframes";
-    if (!document.getElementById(styleId)) {
+    if (!container.getElementById?.(styleId) && !(shadowRoot && shadowRoot.querySelector(`#${styleId}`))) {
       const style = document.createElement("style");
       style.id = styleId;
       style.textContent = `
@@ -247,24 +250,32 @@ export function AXUI({ children, theme }: AXUIProps) {
           to   { opacity: 0; transform: translateY(-6px) scale(0.95); }
         }
       `;
-      document.head.appendChild(style);
+      if (shadowRoot) {
+        shadowRoot.appendChild(style);
+      } else {
+        document.head.appendChild(style);
+      }
     }
 
     const el = document.createElement("div");
-    el.classList.add('ax-portal-root');
     el.style.position = "fixed";
     el.style.top = "0";
     el.style.left = "0";
     el.style.zIndex = "9999";
     el.style.width = "0px";
     el.style.height = "0px";
-    document.body.appendChild(el);
+    if (shadowRoot) {
+      shadowRoot.appendChild(el);
+    } else {
+      el.classList.add('ax-portal-root');
+      document.body.appendChild(el);
+    }
     setPortalTarget(el);
 
     return () => {
-      document.body.removeChild(el);
+      el.remove();
     };
-  }, []);
+  }, [shadowRoot]);
 
   useEffect(() => {
     if (portalTarget) {
