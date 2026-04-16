@@ -127,6 +127,7 @@ export function AXChatMessageInput({
                     color: "var(--ax-text-primary)",
                     fontSize: "0.85em",
                     padding: "0.35em 0.9em",
+                    margin: 0,
                     cursor: "pointer",
                     transition: "background 0.15s, transform 0.1s, border-color 0.15s",
                     fontFamily: "inherit",

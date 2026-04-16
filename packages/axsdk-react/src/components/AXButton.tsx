@@ -10,6 +10,7 @@ export interface AXButtonProps {
   className?: string;
   size?: number | string;
   status?: string;
+  borderRadius?: string;
 }
 
 type AnimState = "show" | "idle" | "hide" | "unmounted";
@@ -27,8 +28,11 @@ export function AXButton({
   className = "",
   size = 64,
   status,
+  borderRadius: borderRadiusProp,
 }: AXButtonProps) {
   const { theme } = useAXTheme();
+  const borderRadius = borderRadiusProp ?? theme.buttonBorderRadius ?? "50%";
+  const rippleEnabled = theme.buttonRipple ?? true;
 
   const [animState, setAnimState] = useState<AnimState>(visible ? "idle" : "unmounted");
   const isInitialMount = useRef(true);
@@ -112,17 +116,19 @@ export function AXButton({
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLButtonElement>) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const id = Date.now();
-      setRipples((prev) => [...prev, { id, x, y }]);
+      if (rippleEnabled) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const id = Date.now();
+        setRipples((prev) => [...prev, { id, x, y }]);
+        setTimeout(() => {
+          setRipples((prev) => prev.filter((r) => r.id !== id));
+        }, 600);
+      }
       setPressed(true);
-      setTimeout(() => {
-        setRipples((prev) => prev.filter((r) => r.id !== id));
-      }, 600);
     },
-    []
+    [rippleEnabled]
   );
 
   const handlePointerUp = useCallback(() => setPressed(false), []);
@@ -180,7 +186,7 @@ export function AXButton({
       style={{
         width: sizeCSS,
         height: sizeCSS,
-        borderRadius: "50%",
+        borderRadius,
         background: "transparent",
         border: "none",
         padding: 0,
@@ -207,7 +213,7 @@ export function AXButton({
                 height: "100%",
                 top: 0,
                 left: 0,
-                borderRadius: "50%",
+                borderRadius,
                 objectFit: "cover",
               }}
             />
@@ -222,7 +228,7 @@ export function AXButton({
                 height: "100%",
                 top: 0,
                 left: 0,
-                borderRadius: "50%",
+                borderRadius,
                 objectFit: "cover",
               }}
             />
@@ -238,7 +244,7 @@ export function AXButton({
               height: ringSize,
               top: ringOffset,
               left: ringOffset,
-              borderRadius: "50%",
+              borderRadius,
               background:
                 `conic-gradient(from 0deg, var(--ax-color-accent1, #a855f7), var(--ax-color-accent2, #3b82f6), var(--ax-color-accent3, #06b6d4), var(--ax-color-accent4, #ec4899), var(--ax-color-accent1, #a855f7))`,
               filter: "blur(2px)",
@@ -254,7 +260,7 @@ export function AXButton({
               height: ringSize,
               top: ringOffset,
               left: ringOffset,
-              borderRadius: "50%",
+              borderRadius,
               background:
                 `conic-gradient(from 0deg, var(--ax-color-accent1, #a855f7), var(--ax-color-accent2, #3b82f6), var(--ax-color-accent3, #06b6d4), var(--ax-color-accent4, #ec4899), var(--ax-color-accent1, #a855f7))`,
               filter: "blur(16px)",
@@ -272,7 +278,7 @@ export function AXButton({
               height: sizeCSS,
               top: 0,
               left: 0,
-              borderRadius: "50%",
+              borderRadius,
               background:
                 "radial-gradient(circle at 35% 35%, rgba(255,255,255,0.3), transparent 60%), " +
                 `radial-gradient(circle at center, var(--ax-color-primary, #7c3aed), var(--ax-color-primary-dark, #1d4ed8))`,
@@ -289,7 +295,7 @@ export function AXButton({
               height: sizeCSS,
               top: 0,
               left: 0,
-              borderRadius: "50%",
+              borderRadius,
               background:
                 "radial-gradient(circle at 30% 25%, rgba(255,255,255,0.45) 0%, transparent 55%)",
             }}
@@ -319,7 +325,7 @@ export function AXButton({
                 height: pxSize + 6,
                 top: -3,
                 left: -3,
-                borderRadius: "50%",
+                borderRadius,
                 background:
                   `conic-gradient(from 0deg, ` +
                   `rgba(var(--ax-color-primary-rgb, 168,85,247),0) 0%, ` +
@@ -341,7 +347,7 @@ export function AXButton({
                 height: pxSize - 4,
                 top: 2,
                 left: 2,
-                borderRadius: "50%",
+                borderRadius,
                 background: `radial-gradient(circle at center, var(--ax-color-primary, #7c3aed), var(--ax-color-primary-dark, #1d4ed8))`,
                 zIndex: 11,
                 pointerEvents: "none",
@@ -355,7 +361,7 @@ export function AXButton({
                 height: pxSize - 4,
                 top: 2,
                 left: 2,
-                borderRadius: "50%",
+                borderRadius,
                 background:
                   "conic-gradient(from 180deg, " +
                   "rgba(192,132,252,0.0) 0%, " +
@@ -396,7 +402,7 @@ export function AXButton({
             position: "absolute",
             width: sizeCSS,
             height: sizeCSS,
-            borderRadius: "50%",
+            borderRadius,
             top: r.y - rippleHalf,
             left: r.x - rippleHalf,
             background: "rgba(255, 255, 255, 0.45)",

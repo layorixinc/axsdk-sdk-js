@@ -111,6 +111,10 @@ export interface AXTheme {
 
   buttonAnimationImageUrl?: string;
 
+  buttonBorderRadius?: string;
+
+  buttonRipple?: boolean;
+
   colorMode?: 'dark' | 'light';
 
   colors?: AXThemeColors;
