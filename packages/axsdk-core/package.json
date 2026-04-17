@@ -1,6 +1,6 @@
 {
   "name": "@axsdk/core",
-  "version": "0.3.19",
+  "version": "0.3.21",
   "private": false,
   "description": "axsdk core",
   "keywords": [],
@@ -41,11 +41,13 @@
     "eventemitter3": "^5.0.4",
     "html2canvas": "^1.4.1",
     "nanoid": "^5.1.6",
+    "qs": "^6.15.1",
     "zod": "^4.3.6",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/qs": "^6.15.0"
   },
   "peerDependencies": {
     "typescript": "^5"
