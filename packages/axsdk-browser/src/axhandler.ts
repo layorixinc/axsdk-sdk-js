@@ -1,5 +1,5 @@
 import qs from 'qs';
-import { DeferredCallManager, type DeferFn, AX_search_data, AX_get_data_categories, AX_get_knowledge_groups, AX_search_knowledge } from '@axsdk/core';
+import { type DeferFn, AX_search_data, AX_get_data_categories, AX_get_knowledge_groups, AX_search_knowledge } from '@axsdk/core';
 
 export function isPromise(value: unknown): boolean {
   return !!value && (typeof value === 'function' || typeof value === 'object') && typeof (value as any).then === 'function'
@@ -24,11 +24,9 @@ async function AX_navigate(args: unknown, defer?: DeferFn) {
   return deferId
 }
 
-async function AX_navigate_complete(
-  args: Record<string, unknown>,
-  hints: Record<string, unknown>,
-): Promise<string | null> {
-  const expectedUrl = hints.expectedUrl as string
+async function AX_navigate_complete(args: unknown) {
+  const { hints } = args as { hints: Record<string, unknown> }
+  const expectedUrl = hints?.expectedUrl as string
   if (window.location.href === expectedUrl || window.location.href.startsWith(expectedUrl)) {
     return `Navigation completed. Current URL: ${window.location.href}`
   }
@@ -53,13 +51,6 @@ const AX_PROXY = new Proxy(AX_FUNCTIONS, {
   },
 });
 
-DeferredCallManager.setCompleteResolver((command: string) => {
-  const fn = AX_PROXY[command as keyof typeof AX_FUNCTIONS] as unknown;
-  if (typeof fn === 'function') {
-    return fn as (args: Record<string, unknown>, hints: Record<string, unknown>) => Promise<string | null>;
-  }
-  return undefined;
-});
 
 export async function handleAX(handler: AXHandler, command: string, args: unknown) {
   let result = await handler(command, args);

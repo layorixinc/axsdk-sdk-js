@@ -9,6 +9,7 @@ import { appStore, chatStore, envStore, dataStore, errorStore, knowledgeStore, t
 import * as AXCHAT from './axchat';
 import * as AXCALL from './axcall';
 import * as DeferredCallManager from './deferred';
+import { processAXHandler } from './axhandler';
 import { AXSDK_TRANSLATIONS } from './translations';
 import { Config } from './config';
 
@@ -98,6 +99,7 @@ class AxSdk extends EventEmitter {
 
     if (!isUpdate) {
       await AXCALL.start();
+      DeferredCallManager.setHandler((command, args) => processAXHandler(command, args));
       DeferredCallManager.restore();
       await AXCHAT.start();
     }

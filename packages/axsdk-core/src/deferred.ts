@@ -15,14 +15,11 @@ const pendingOptions = new Map<string, DeferOptions>();
 
 const timeoutTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-let resolveCompleteFn:
-  | ((command: string) => ((args: Record<string, unknown>, hints: Record<string, unknown>) => Promise<string | null>) | undefined)
-  | undefined;
+type Handler = (command: string, args: Record<string, unknown>) => Promise<unknown>;
+let handlerFn: Handler | undefined;
 
-export function setCompleteResolver(
-  resolver: (command: string) => ((args: Record<string, unknown>, hints: Record<string, unknown>) => Promise<string | null>) | undefined,
-) {
-  resolveCompleteFn = resolver;
+export function setHandler(handler: Handler) {
+  handlerFn = handler;
 }
 
 export function register(options?: DeferOptions): string {
@@ -116,13 +113,12 @@ async function checkAll(): Promise<void> {
   const calls = chatStore.getState().deferredCalls;
 
   for (const call of calls) {
-    const completeFn = resolveCompleteFn?.(`${call.command}_complete`);
-    if (!completeFn) continue;
+    if (!handlerFn) continue;
 
     try {
-      const result = await completeFn(call.args, call.hints ?? {});
-      if (result !== null) {
-        await completeCall(call.deferId, result);
+      const result = await handlerFn(`${call.command}_complete`, { ...call.args, hints: call.hints ?? {} });
+      if (result !== null && result !== undefined) {
+        await completeCall(call.deferId, result as string);
       }
     } catch (e) {
       console.error(`DeferredCallManager: ${call.command}_complete error`, e);
