@@ -1,5 +1,6 @@
 import { AXSDK } from './axsdk';
 import { captureScreenshot } from './axtools';
+import type { DeferFn } from './deferred';
 
 export async function AX_get_data_categories() {
   const data = AXSDK.getDataState().data as Record<string, unknown> | undefined;
@@ -99,7 +100,7 @@ const AX_PROXY = new Proxy(AX_FUNCTIONS, {
   },
 });
 
-export async function processAXHandler(command: string, args: Record<string, unknown>): Promise<string | [string, () => Promise<void> | void]> {
+export async function processAXHandler(command: string, args: Record<string, unknown>, defer?: DeferFn): Promise<string> {
   let result: string = '';
 
   const systemResult: Record<string, unknown> = {};
@@ -129,17 +130,13 @@ export async function processAXHandler(command: string, args: Record<string, unk
 
   AXSDK.eventBus().emit('message.chat', { type: 'axsdk.axhandler.pre', data: { command, args } });
 
-  let appResult = await AXSDK.axHandler()?.(command, args);
+  let appResult = await AXSDK.axHandler()?.(command, args, defer);
   if(appResult == undefined) {
     appResult = await AX_PROXY[command as keyof typeof AX_FUNCTIONS]?.(args);
   }
 
   AXSDK.eventBus().emit('message.chat', { type: 'axsdk.axhandler.post', data: { command, args, systemResult, appResult } });
 
-  if (Array.isArray(appResult)) {
-    return [mergeResults(systemResult, appResult[0]), appResult[1]]
-  } else {
-    result = mergeResults(systemResult, appResult);
-  }
+  result = mergeResults(systemResult, appResult);
   return result;
 }

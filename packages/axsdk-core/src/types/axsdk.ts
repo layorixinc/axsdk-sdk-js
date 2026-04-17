@@ -1,6 +1,8 @@
 import z from 'zod';
 
-export type AXHandler = (command: string, args: Record<string, unknown>) => Promise<unknown>;
+import type { DeferFn } from '../deferred';
+
+export type AXHandler = (command: string, args: Record<string, unknown>, defer?: DeferFn) => Promise<unknown>;
 
 export const AXSDKTranslationsSchema = z.record(z.string(), z.string());
 export type AXSDKTranslationsSchema = z.infer<typeof AXSDKTranslationsSchema>;
