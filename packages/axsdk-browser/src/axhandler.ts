@@ -19,10 +19,7 @@ async function AX_navigate(args: unknown, defer?: DeferFn) {
   const query = qs.stringify(params)
   const url = `${link}${query ? `?${query}` : ''}`
 
-  // defer 한 줄로 register + bind + persist 완료
   const deferId = defer!({ timeout: 30000, hints: { expectedUrl: url } })
-
-  // persist 완료 후 navigation → 페이지 리로드되어도 안전
   window.location.href = url
   return deferId
 }
@@ -56,8 +53,6 @@ const AX_PROXY = new Proxy(AX_FUNCTIONS, {
   },
 });
 
-// Connect browser AX_PROXY as the completeResolver so DeferredCallManager
-// can look up *_complete functions (e.g. AX_navigate_complete) by command name.
 DeferredCallManager.setCompleteResolver((command: string) => {
   const fn = AX_PROXY[command as keyof typeof AX_FUNCTIONS] as unknown;
   if (typeof fn === 'function') {

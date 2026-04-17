@@ -30,7 +30,7 @@ export const errorStore = createStore<ErrorState>()((set) => ({
   addError: (error) =>
     set((state) => {
       const newError: ApiError = {
-        id: crypto.randomUUID(),
+        id: `err${nanoid()}`,
         timestamp: Date.now(),
         ...error,
       };

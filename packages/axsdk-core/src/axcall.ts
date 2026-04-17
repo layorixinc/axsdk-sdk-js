@@ -42,7 +42,6 @@ export async function handleAXSDKCall(properties: unknown) {
     }
     processedCallIds.set(call.id, now);
 
-    // deferred 상태인 call의 재실행 방지 (리로드 후 폴링 대응)
     if (DeferredCallManager.hasByCallId(call.id)) {
       return;
     }
@@ -64,7 +63,6 @@ export async function handleAXSDKCall(properties: unknown) {
       result = `ERROR: ${e}`;
     }
 
-    // tool 함수가 bind()를 호출했으면 store에 이미 저장됨 → updateCall skip
     if (DeferredCallManager.hasByCallId(call.id)) {
       return;
     }

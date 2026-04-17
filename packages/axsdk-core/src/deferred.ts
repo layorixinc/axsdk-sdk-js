@@ -9,13 +9,10 @@ export interface DeferOptions {
 
 export type DeferFn = (options: DeferOptions) => string;
 
-// register 시 옵션 임시 보관 (bind 전까지만 사용, 메모리 only)
 const pendingOptions = new Map<string, DeferOptions>();
 
-// 타임아웃 타이머 (메모리 only)
 const timeoutTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-// complete 함수 registry — AX_PROXY를 외부에서 주입받음
 let resolveCompleteFn:
   | ((command: string) => ((args: Record<string, unknown>, hints: Record<string, unknown>) => Promise<string | null>) | undefined)
   | undefined;
@@ -172,7 +169,6 @@ export function restore(): void {
 
   startWatchingIfNeeded();
 
-  // 즉시 한 번 체크 — 리로드 사이에 이미 완료되었을 수 있음
   checkAll();
 }
 
