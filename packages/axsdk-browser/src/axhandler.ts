@@ -56,6 +56,8 @@ const AX_PROXY = new Proxy(AX_FUNCTIONS, {
   },
 });
 
+// Connect browser AX_PROXY as the completeResolver so DeferredCallManager
+// can look up *_complete functions (e.g. AX_navigate_complete) by command name.
 DeferredCallManager.setCompleteResolver((command: string) => {
   const fn = AX_PROXY[command as keyof typeof AX_FUNCTIONS] as unknown;
   if (typeof fn === 'function') {
