@@ -86,7 +86,7 @@ function mergeResults(systemResult: any, appResult: any) {
   else if (typeof appResult === 'function') {
     return mergeResults(systemResult, appResult())
   }
-  
+
   return `${JSON.stringify(systemResult)}
 ${appResult}`;
 }
@@ -119,7 +119,23 @@ async function AX_navigate_complete(payload: unknown) {
   return null;
 }
 
-const AX_FUNCTIONS = {
+const AX_SYSTEM: Record<string, (args: any) => Promise<string>> = {
+  AX_clear: async () => {
+    AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.cancel' });
+    AXSDK.resetSession();
+    return 'OK';
+  },
+  AX_complete: async (args) => {
+    const { message } = (args ?? {}) as { message?: string };
+    await AXSDK.complete(message);
+    return 'OK';
+  },
+  AX_screenshot: async () => {
+    return await captureScreenshot();
+  },
+};
+
+const AX_FUNCTIONS: Record<string, Function> = {
   AX_get_env,
   AX_navigate,
   AX_navigate_complete,
@@ -130,47 +146,36 @@ const AX_FUNCTIONS = {
 }
 const AX_PROXY = new Proxy(AX_FUNCTIONS, {
   get(target, command: string) {
-    return target[command as keyof typeof target] ?? undefined;
+    return target[command] ?? undefined;
   },
 });
 
-export async function processAXHandler(command: string, args: Record<string, unknown>, defer?: DeferFn): Promise<string> {
-  let result: string = '';
-
+async function buildSystemResult(command: string): Promise<Record<string, unknown>> {
   const systemResult: Record<string, unknown> = {};
   if (command === 'AX_get_env') {
     systemResult['now'] = new Date().toISOString();
-
     const envState = AXSDK.getEnvStore().getState();
-    const env = AXSDK.config?.env && (typeof AXSDK.config?.env == 'function' ? await AXSDK.config?.env() : AXSDK.config?.env) || {}
+    const env = AXSDK.config?.env && (typeof AXSDK.config?.env == 'function' ? await AXSDK.config?.env() : AXSDK.config?.env) || {};
     envState.setEnv(env);
-
     Object.assign(systemResult, env);
   }
-  if (command === 'AX_clear') {
-    AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.cancel' });
-    AXSDK.resetSession();
-    return 'OK'
-  }
-  if (command === 'AX_complete') {
-    const { message } = (args ?? {}) as { message?: string };
-    await AXSDK.complete(message);
-    return 'OK'
-  }
-  if (command === 'AX_screenshot') {
-    const dataUrl = await captureScreenshot();
-    return dataUrl;
-  }
+  return systemResult;
+}
+
+export async function processAXHandler(command: string, args: Record<string, unknown>, defer?: DeferFn): Promise<string> {
+  const systemFn = AX_SYSTEM[command];
+  if (systemFn) return await systemFn(args);
+
+  const systemResult = await buildSystemResult(command);
 
   AXSDK.eventBus().emit('message.chat', { type: 'axsdk.axhandler.pre', data: { command, args } });
 
   let appResult = await AXSDK.axHandler()?.(command, args, defer);
-  if(appResult == undefined) {
-    appResult = await AX_PROXY[command as keyof typeof AX_FUNCTIONS]?.(args, defer);
+  if (appResult == undefined) {
+    appResult = await AX_PROXY[command]?.(args, defer);
   }
 
   AXSDK.eventBus().emit('message.chat', { type: 'axsdk.axhandler.post', data: { command, args, systemResult, appResult } });
 
-  result = mergeResults(systemResult, appResult);
-  return result;
+  return mergeResults(systemResult, appResult);
 }
