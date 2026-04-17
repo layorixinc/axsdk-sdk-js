@@ -41,3 +41,4 @@ await main();
 export * from './axtools';
 export { errorStore } from './store';
 export type { ApiError, ErrorState } from './store';
+export type { DeferredCall } from './store';

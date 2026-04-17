@@ -98,6 +98,16 @@ export interface SessionClosed {
   message?: string;
 }
 
+export interface DeferredCall {
+  deferId: string;
+  callId: string;
+  command: string;
+  args: Record<string, unknown>;
+  hints?: Record<string, unknown>;
+  timeout: number;
+  registeredAt: number;
+}
+
 export interface ChatState {
   isLoading: boolean;
   isOpen: boolean;
@@ -115,6 +125,10 @@ export interface ChatState {
   setTranslations: (translations: Record<string, AXSDKTranslationsSchema>) => void;
   questions: QuestionData | null;
   setQuestions: (question: QuestionData | null) => void;
+  deferredCalls: DeferredCall[];
+  setDeferredCalls: (calls: DeferredCall[]) => void;
+  addDeferredCall: (call: DeferredCall) => void;
+  removeDeferredCall: (deferId: string) => void;
 }
 
 export const chatStore = createStore<ChatState>()(
@@ -143,6 +157,14 @@ export const chatStore = createStore<ChatState>()(
       setTranslations: (translations: Record<string, AXSDKTranslationsSchema>) => set({ translations }),
       questions: null,
       setQuestions: (questions: QuestionData | null) => set({ questions }),
+      deferredCalls: [],
+      setDeferredCalls: (calls: DeferredCall[]) => set({ deferredCalls: calls }),
+      addDeferredCall: (call: DeferredCall) => set((state) => ({
+        deferredCalls: [...state.deferredCalls, call],
+      })),
+      removeDeferredCall: (deferId: string) => set((state) => ({
+        deferredCalls: state.deferredCalls.filter((c) => c.deferId !== deferId),
+      })),
     }),
     {
       name: 'axsdk:chat',
@@ -150,7 +172,7 @@ export const chatStore = createStore<ChatState>()(
         const noop = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
         return noop;
       })())),
-      partialize: (state) => ({ session: state.session, sessionClosed: state.sessionClosed, messages: state.messages, isOpen: state.isOpen }),
+      partialize: (state) => ({ session: state.session, sessionClosed: state.sessionClosed, messages: state.messages, isOpen: state.isOpen, deferredCalls: state.deferredCalls }),
     }
   ),
 );
