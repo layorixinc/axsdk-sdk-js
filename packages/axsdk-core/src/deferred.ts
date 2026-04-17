@@ -2,7 +2,7 @@ import { nanoid } from 'nanoid';
 import { chatStore, type DeferredCall } from './store';
 import * as api from './axapi';
 
-const DEFAULT_TIMEOUT = 30000;
+const DEFAULT_TIMEOUT = 10000;
 
 export interface DeferOptions {
   timeout?: number;
@@ -52,6 +52,7 @@ export function bind(
     hints: options.hints,
     timeout: options.timeout ?? DEFAULT_TIMEOUT,
     registeredAt: Date.now(),
+    retryCount: 0,
   };
 
   chatStore.getState().addDeferredCall(deferredCall);
@@ -116,7 +117,13 @@ async function checkAll(): Promise<void> {
     if (!handlerFn) continue;
 
     try {
-      const result = await handlerFn(`${call.command}_complete`, { args: call.args, hints: call.hints ?? {} });
+      const retry = call.retryCount;
+      chatStore.getState().setDeferredCalls(
+        chatStore.getState().deferredCalls.map((c) =>
+          c.deferId === call.deferId ? { ...c, retryCount: c.retryCount + 1 } : c
+        )
+      );
+      const result = await handlerFn(`${call.command}_complete`, { args: call.args, hints: call.hints ?? {}, retry });
       if (result !== null && result !== undefined) {
         await completeCall(call.deferId, result as string);
       }

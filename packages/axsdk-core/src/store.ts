@@ -106,6 +106,7 @@ export interface DeferredCall {
   hints?: Record<string, unknown>;
   timeout: number;
   registeredAt: number;
+  retryCount: number;
 }
 
 export interface ChatState {
