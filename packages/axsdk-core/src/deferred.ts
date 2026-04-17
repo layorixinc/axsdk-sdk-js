@@ -116,7 +116,7 @@ async function checkAll(): Promise<void> {
     if (!handlerFn) continue;
 
     try {
-      const result = await handlerFn(`${call.command}_complete`, { ...call.args, $hints: call.hints ?? {} });
+      const result = await handlerFn(`${call.command}_complete`, { args: call.args, hints: call.hints ?? {} });
       if (result !== null && result !== undefined) {
         await completeCall(call.deferId, result as string);
       }
