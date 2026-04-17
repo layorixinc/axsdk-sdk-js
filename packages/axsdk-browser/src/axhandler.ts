@@ -25,7 +25,7 @@ async function AX_navigate(args: unknown, defer?: DeferFn) {
 }
 
 async function AX_navigate_complete(args: unknown) {
-  const { hints } = args as { hints: Record<string, unknown> }
+  const { $hints: hints } = args as { $hints: Record<string, unknown> }
   const expectedUrl = hints?.expectedUrl as string
   if (window.location.href === expectedUrl || window.location.href.startsWith(expectedUrl)) {
     return `Navigation completed. Current URL: ${window.location.href}`
