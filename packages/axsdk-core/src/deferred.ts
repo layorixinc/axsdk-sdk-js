@@ -2,12 +2,14 @@ import { nanoid } from 'nanoid';
 import { chatStore, type DeferredCall } from './store';
 import * as api from './axapi';
 
+const DEFAULT_TIMEOUT = 30000;
+
 export interface DeferOptions {
-  timeout: number;
+  timeout?: number;
   hints?: Record<string, unknown>;
 }
 
-export type DeferFn = (options: DeferOptions) => string;
+export type DeferFn = (options?: DeferOptions) => string;
 
 const pendingOptions = new Map<string, DeferOptions>();
 
@@ -23,9 +25,9 @@ export function setCompleteResolver(
   resolveCompleteFn = resolver;
 }
 
-export function register(options: DeferOptions): string {
+export function register(options?: DeferOptions): string {
   const deferId = `__defer_${nanoid()}`;
-  pendingOptions.set(deferId, options);
+  pendingOptions.set(deferId, options ?? {});
   return deferId;
 }
 
@@ -51,7 +53,7 @@ export function bind(
     command: callInfo.command,
     args: callInfo.args,
     hints: options.hints,
-    timeout: options.timeout,
+    timeout: options.timeout ?? DEFAULT_TIMEOUT,
     registeredAt: Date.now(),
   };
 
