@@ -67,25 +67,26 @@ export async function handleAXSDKCall(properties: unknown) {
 
 let pollingInterval: ReturnType<typeof setInterval> | undefined = undefined;
 
+async function loadPendingCalls() {
+  try {
+    const session = chatStore.getState().session;
+    if (!session) {
+      return;
+    }
+    const { calls } = await api.getPendingCalls() as { calls: unknown[] };
+    for (const call of calls) {
+      EventBus.emit('axsdk.call.execute', { sessionID: session.id, call });
+    }
+  } catch (error) {
+    console.error('AXSDK: Error polling calls:', error);
+  }
+}
+
 async function startPolling() {
   if (pollingInterval) {
     clearInterval(pollingInterval);
   }
 
-  async function loadPendingCalls() {
-    try {
-      const session = chatStore.getState().session;
-      if (!session) {
-        return;
-      }
-      const { calls } = await api.getPendingCalls() as { calls: unknown[] };
-      for (const call of calls) {
-        EventBus.emit('axsdk.call.execute', { sessionID: session.id, call });
-      }
-    } catch (error) {
-      console.error('AXSDK: Error polling calls:', error);
-    }
-  }
   await loadPendingCalls();
 
   pollingInterval = setInterval(async () => {

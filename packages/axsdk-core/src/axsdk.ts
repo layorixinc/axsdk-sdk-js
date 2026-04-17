@@ -96,8 +96,8 @@ class AxSdk extends EventEmitter {
     }
 
     if (!isUpdate) {
-      await AXCHAT.start();
       await AXCALL.start();
+      await AXCHAT.start();
     }
   }
 

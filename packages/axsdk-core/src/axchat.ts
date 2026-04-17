@@ -159,7 +159,14 @@ async function handleQuestionAsked(data: unknown) {
 }
 
 async function handleServerConnected(data: unknown) {
-  const { state } = data as { app: unknown, state: { session?: Partial<ChatSession> & { id: string, status?: { type: string } }, messages?: ChatMessage[] } };
+  const { state } = data as {
+    app: unknown,
+    state: {
+      session?: Partial<ChatSession> & { id: string, status?: { type: string } },
+      messages?: ChatMessage[],
+      calls?: unknown[],
+    }
+  };
   if (state?.session) {
     const existing = chatStore.getState().session;
     chatStore.getState().setSession({
@@ -171,6 +178,14 @@ async function handleServerConnected(data: unknown) {
   }
   if (state?.messages) {
     updateFromMessages(state.messages);
+  }
+  if (state?.calls?.length) {
+    const sessionID = state.session?.id ?? chatStore.getState().session?.id;
+    if (sessionID) {
+      for (const call of state.calls) {
+        EventBus.emit('axsdk.call.execute', { sessionID, call });
+      }
+    }
   }
 }
 
