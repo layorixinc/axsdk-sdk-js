@@ -301,6 +301,7 @@ class AxSdk extends EventEmitter {
       return;
     }
     chatState.setSessionClosed({ message });
+    chatState.setQuestions(null);
   }
 
   public getChatState(): ChatState {
@@ -316,6 +317,7 @@ class AxSdk extends EventEmitter {
     chatState.setSession(null);
     chatState.setSessionClosed(null);
     chatState.setMessages([]);
+    chatState.setQuestions(null);
     this.getErrorStore().getState().clearErrors();
   }
 
