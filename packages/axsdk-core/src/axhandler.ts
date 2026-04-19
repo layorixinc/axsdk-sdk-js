@@ -117,12 +117,11 @@ async function AX_navigate_complete(payload: unknown) {
   const expectedUrl = hints?.expectedUrl as string;
   const previousUrl = hints?.previousUrl as string;
 
-  if (window.location.href === previousUrl) {
-    return null;
-  }
-
   if (window.location.href === expectedUrl || window.location.href.startsWith(expectedUrl)) {
     return `Navigation completed. Current URL: ${window.location.href}`;
+  }
+  if (window.location.href === previousUrl) {
+    return null;
   }
   return `Navigation failed. Expected: ${expectedUrl}, Current: ${window.location.href}`;
 }
