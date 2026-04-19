@@ -75,6 +75,7 @@ class AxSdk extends EventEmitter {
       if (config.debug) console.warn('AXSDK getAppInfo failed', e);
     }
     if (appInfo) appStore.getState().setAppInfoReady(true);
+    if (appInfo?.version != null) appStore.getState().setVersion(appInfo.version);
     const remoteTranslations = appInfo?.app?.translations ?? {};
     const translationLangs = new Set([
       ...Object.keys(AXSDK_TRANSLATIONS),

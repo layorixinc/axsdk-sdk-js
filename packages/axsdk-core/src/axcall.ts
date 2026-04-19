@@ -47,7 +47,7 @@ export async function handleAXSDKCall(properties: unknown) {
     }
 
     let status: string = 'completed';
-    let result: string;
+    let result: string | [string, () => Promise<void> | void];
     try {
       const args = typeof call.args === 'string' ? JSON.parse(call.args) : call.args;
       const defer: DeferFn = (options) => {
@@ -67,7 +67,14 @@ export async function handleAXSDKCall(properties: unknown) {
       return;
     }
 
-    await api.updateCall(call.id, status, result);
+    if (typeof result === 'string') {
+      await api.updateCall(call.id, status, result);
+    } else {
+      await api.updateCall(call.id, status, result[0]);
+      if (typeof result[1] === 'function') {
+        await result[1]();
+      }
+    }
   } catch (e) {
     console.error('handleAXSDKCall: error:', e);
   }

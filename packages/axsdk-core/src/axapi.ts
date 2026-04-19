@@ -14,7 +14,7 @@ export function init(ri: RequestInterceptor, ei?: ErrorInterceptor) {
 }
 
 export async function getAppInfo() {
-  return api.get('') as Promise<{ app?: { translations?: Record<string, Record<string, string>> } }>;
+  return api.get('') as Promise<{ app?: { translations?: Record<string, Record<string, string>> }; version?: number }>;
 }
 
 export async function createSession() {

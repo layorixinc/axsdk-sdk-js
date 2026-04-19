@@ -50,6 +50,7 @@ export interface AppState {
   appUserId: string | undefined;
   appAuthToken: string | undefined;
   language: string;
+  version: number;
   setApiKey: (apiKey: string | undefined) => void;
   setAppId: (appId: string | undefined) => void;
   getAppUserId: () => string;
@@ -57,6 +58,7 @@ export interface AppState {
   setLanguage: (language: string) => void;
   setAppAuthToken: (token: string | undefined) => void;
   setAppInfoReady: (ready: boolean) => void;
+  setVersion: (version: number) => void;
 }
 
 export const appStore = createStore<AppState>()(
@@ -69,7 +71,9 @@ export const appStore = createStore<AppState>()(
       appUserId: undefined,
       appAuthToken: undefined,
       language: 'en',
+      version: 1,
       setAppInfoReady: (ready: boolean) => set({ appInfoReady: ready }),
+      setVersion: (version: number) => set({ version }),
       setApiKey: (apiKey: string | undefined) => set({ apiKey }),
       setAppId: (appId: string | undefined) => set({ appId }),
       getAppUserId: () => {

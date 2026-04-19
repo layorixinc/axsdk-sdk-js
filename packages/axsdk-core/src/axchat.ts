@@ -1,12 +1,13 @@
 import type { ChatMessage, ChatSession, MessagePart, QuestionData } from './types';
 import * as api from './axapi';
 import { getSSEService, type SSE } from './sse';
-import { appStore, chatStore } from './store';
+import { appStore, chatStore, envStore } from './store';
 import { EventBus } from './eventbus';
 import { updateFromMessages,
   updateFromSessionStatus, updateFromSessionUpdate,
   updateFromMessageUpdate, updateFromMessagePartUpdate, updateFromMessagePartDelta } from './chattransform';
 import AXSDK from './axsdk';
+import { processAXHandler } from './axhandler';
 
 let sse: SSE | undefined = undefined;
 let messagePollingInterval: ReturnType<typeof setInterval> | undefined = undefined;
@@ -100,7 +101,14 @@ async function handleChatMessage(properties: unknown) {
     EventBus.emit('message.chat', { type: 'axsdk.chat.session', data: { sessionID: session.id } });
   }
   const { text, images } = properties as { text: string, images: string[] };
-  await api.postMessage(text, images);
+  let messageText = text;
+  if (appStore.getState().version >= 2) {
+    try {
+      const envResult = await processAXHandler('AX_get_env', {});
+      messageText = `<env>${envResult}</env>\n${text}`;
+    } catch { /* ignore */ }
+  }
+  await api.postMessage(messageText, images);
   ensureSessionBusy();
 }
 

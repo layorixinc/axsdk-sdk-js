@@ -77,8 +77,9 @@ export async function AX_search_knowledge(args: unknown) {
 }
 
 function mergeResults(systemResult: any, appResult: any) {
+  const hasSystem = Object.keys(systemResult).length > 0;
   if (!appResult) {
-    return JSON.stringify(systemResult);
+    return hasSystem ? JSON.stringify(systemResult) : '';
   }
   else if (typeof appResult === 'object') {
     return JSON.stringify({ ...systemResult, ...appResult });
@@ -87,8 +88,8 @@ function mergeResults(systemResult: any, appResult: any) {
     return mergeResults(systemResult, appResult())
   }
 
-  return `${JSON.stringify(systemResult)}
-${appResult}`;
+  return hasSystem ? `${JSON.stringify(systemResult)}
+${appResult}` : `${appResult}`;
 }
 
 async function AX_get_env(args: unknown) {
@@ -104,7 +105,8 @@ async function AX_navigate(args: unknown, defer?: DeferFn) {
   const query = qs.stringify(params);
   const url = `${link}${query ? `?${query}` : ''}`;
 
-  const deferId = defer!({ timeout: 30000, hints: { expectedUrl: url } });
+  const currentUrl = window.location.href;
+  const deferId = defer!({ timeout: 30000, hints: { expectedUrl: url, previousUrl: currentUrl } });
   window.location.href = url;
   return deferId;
 }
@@ -113,10 +115,16 @@ async function AX_navigate_complete(payload: unknown) {
   if (typeof window === 'undefined') return null;
   const { args, hints } = payload as { args: Record<string, unknown>, hints: Record<string, unknown> };
   const expectedUrl = hints?.expectedUrl as string;
+  const previousUrl = hints?.previousUrl as string;
+
+  if (window.location.href === previousUrl) {
+    return null;
+  }
+
   if (window.location.href === expectedUrl || window.location.href.startsWith(expectedUrl)) {
     return `Navigation completed. Current URL: ${window.location.href}`;
   }
-  return null;
+  return `Navigation failed. Expected: ${expectedUrl}, Current: ${window.location.href}`;
 }
 
 const AX_SYSTEM: Record<string, (args: any) => Promise<string>> = {
@@ -162,7 +170,7 @@ async function buildSystemResult(command: string): Promise<Record<string, unknow
   return systemResult;
 }
 
-export async function processAXHandler(command: string, args: Record<string, unknown>, defer?: DeferFn): Promise<string> {
+export async function processAXHandler(command: string, args: Record<string, unknown>, defer?: DeferFn): Promise<string | [string, () => Promise<void> | void]> {
   const systemFn = AX_SYSTEM[command];
   if (systemFn) return await systemFn(args);
 
@@ -177,5 +185,9 @@ export async function processAXHandler(command: string, args: Record<string, unk
 
   AXSDK.eventBus().emit('message.chat', { type: 'axsdk.axhandler.post', data: { command, args, systemResult, appResult } });
 
-  return mergeResults(systemResult, appResult);
+  if (Array.isArray(appResult)) {
+    return [mergeResults(systemResult, appResult[0]), appResult[1]]
+  } else {
+    return mergeResults(systemResult, appResult);
+  }
 }
