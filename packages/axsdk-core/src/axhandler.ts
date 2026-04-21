@@ -61,16 +61,32 @@ export async function AX_search_data(args: unknown) {
 }
 
 export async function AX_get_knowledge_groups() {
-  return AXSDK.getKnowledgeGroups();
+  return await AXSDK.getKnowledgeGroups();
 }
 
+export const AX_search_knowledge_schema = `{
+  "name": "AX_search_knowledge",
+  "description": "Search knowledge base using regex pattern. Optionally fetch and search from an external JSON URL.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "regex": { "type": "string", "description": "Regular expression pattern to search" },
+      "group": { "type": "string", "description": "Knowledge group to search within" },
+      "url": { "type": "string", "description": "Optional Knowledge URL. If specified, fetches JSON data from this URL and searches within it instead of the local knowledge base. Expected response format: { total: number, data: [...] }" },
+      "page": { "type": "number", "description": "Page number for pagination (default: 1)" },
+      "limit": { "type": "number", "description": "Number of results per page (default: 20)" }
+    },
+    "required": ["regex"]
+  }
+}`;
+
 export async function AX_search_knowledge(args: unknown) {
-  const { group, regex, page = 1, limit = 20 } = args as { group?: string; regex: string; page?: number; limit?: number };
+  const { group, regex, page = 1, limit = 20, url } = args as { group?: string; regex: string; page?: number; limit?: number; url?: string };
   if (!regex) {
     return { groups: {}, total: 0, page, limit, error: 'Missing regex' };
   }
   try {
-    return await AXSDK.searchKnowledge({ group, regex, page, limit });
+    return await AXSDK.searchKnowledge({ group, regex, page, limit, url });
   } catch (e) {
     return { groups: {}, total: 0, page, limit, error: (e as Error).message };
   }
@@ -117,13 +133,15 @@ async function AX_navigate_complete(payload: unknown) {
   const expectedUrl = hints?.expectedUrl as string;
   const previousUrl = hints?.previousUrl as string;
 
-  if (window.location.href === expectedUrl || window.location.href.startsWith(expectedUrl)) {
+  const resolvedExpected = new URL(expectedUrl, window.location.origin).href;
+
+  if (window.location.href === resolvedExpected || window.location.href.startsWith(resolvedExpected)) {
     return `Navigation completed. Current URL: ${window.location.href}`;
   }
   if (window.location.href === previousUrl) {
     return null;
   }
-  return `Navigation failed. Expected: ${expectedUrl}, Current: ${window.location.href}`;
+  return `Navigation failed. Expected: ${resolvedExpected}, Current: ${window.location.href}`;
 }
 
 const AX_SYSTEM: Record<string, (args: any) => Promise<string>> = {

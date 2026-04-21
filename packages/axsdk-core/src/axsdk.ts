@@ -90,6 +90,12 @@ class AxSdk extends EventEmitter {
       }])
     );
     chatStore.getState().setTranslations(translations || {});
+
+    const currentLanguage = appStore.getState().language;
+    if (!translations[currentLanguage]) {
+      appStore.getState().setLanguage('en');
+    }
+
     envStore.getState().setEnv(config.env && (typeof config.env == 'function' ? await config.env() : config.env) || {});
     dataStore.getState().setData(config.data && (typeof config.data == 'function' ? await config.data() : config.data) || {});
 
@@ -227,7 +233,7 @@ class AxSdk extends EventEmitter {
     };
   }
 
-  public async searchKnowledge(options: { group?: string; regex: string | RegExp; page?: number; limit?: number }): Promise<{
+  public async searchKnowledge(options: { group?: string; regex: string | RegExp; page?: number; limit?: number; url?: string }): Promise<{
     groups: Record<string, unknown[]>;
     total: number;
     page: number;
@@ -235,22 +241,7 @@ class AxSdk extends EventEmitter {
   }> {
     const page = options.page ?? 1;
     const limit = options.limit ?? 10;
-
-    if (this.config?.remote_knowledge) {
-      const regexStr = typeof options.regex === 'string' ? options.regex : options.regex.source;
-      return await api.searchKnowledge({ group: options.group, regex: regexStr, page, limit }) as {
-        groups: Record<string, unknown[]>;
-        total: number;
-        page: number;
-        limit: number;
-      };
-    }
-
     const re = typeof options.regex === 'string' ? new RegExp(options.regex, 'i') : options.regex;
-    const knowledge = knowledgeStore.getState().knowledge ?? {};
-    const source: Record<string, unknown[]> = options.group
-      ? { [options.group]: knowledge[options.group] ?? [] }
-      : knowledge;
 
     const matches = (value: unknown): boolean => {
       if (value == null) return false;
@@ -264,13 +255,74 @@ class AxSdk extends EventEmitter {
       return false;
     };
 
-    const filtered: Record<string, unknown[]> = {};
+    const isUrlItem = (item: unknown): item is { name: string; content: string } => {
+      const entry = item as Record<string, unknown>;
+      return entry?.name === 'url' && typeof entry?.content === 'string';
+    };
+
+    if (options.url) {
+      const res = await fetch(options.url);
+      if (!res.ok) {
+        throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
+      }
+      const json = await res.json() as { total: number; data: unknown[] };
+      const items: unknown[] = json.data ?? [];
+      const filtered = items.filter(matches);
+      const total = filtered.length;
+      const start = (page - 1) * limit;
+      const groupKey = options.group ?? '';
+
+      return {
+        groups: { [groupKey]: filtered.slice(start, start + limit) },
+        total,
+        page,
+        limit,
+      };
+    }
+
+    let source: Record<string, unknown[]>;
+    if (this.config?.remote_knowledge) {
+      const raw = await this.fetchKnowledge({ group: options.group, page: 1, limit: 10000 });
+      source = raw.groups;
+    } else {
+      const knowledge = knowledgeStore.getState().knowledge ?? {};
+      source = options.group
+        ? { [options.group]: knowledge[options.group] ?? [] }
+        : knowledge;
+    }
+
+    const allFiltered: Record<string, unknown[]> = {};
     let total = 0;
+
+    const urlFetchEnabled = !!this.config?.knowledge_url_fetch;
+
     for (const [group, items] of Object.entries(source)) {
-      const hit = items.filter(matches);
+      const regularItems = urlFetchEnabled ? items.filter(item => !isUrlItem(item)) : items;
+      const hit = regularItems.filter(matches);
       if (hit.length) {
-        filtered[group] = hit;
+        allFiltered[group] = hit;
         total += hit.length;
+      }
+
+      if (urlFetchEnabled) {
+        const urlItems = items.filter(isUrlItem);
+        for (const urlItem of urlItems) {
+          try {
+            const urlResult = await this.searchKnowledge({
+              group,
+              regex: options.regex,
+              url: urlItem.content,
+              page: 1,
+              limit: 10000,
+            });
+            const urlData = urlResult.groups[group] ?? [];
+            if (urlData.length) {
+              allFiltered[group] = [...(allFiltered[group] ?? []), ...urlData];
+              total += urlData.length;
+            }
+          } catch {
+          }
+        }
       }
     }
 
@@ -278,7 +330,7 @@ class AxSdk extends EventEmitter {
     const end = start + limit;
     const sliced: Record<string, unknown[]> = {};
     let seen = 0;
-    for (const [group, items] of Object.entries(filtered)) {
+    for (const [group, items] of Object.entries(allFiltered)) {
       const groupStart = seen;
       const groupEnd = seen + items.length;
       seen = groupEnd;

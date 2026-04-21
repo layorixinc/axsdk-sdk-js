@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { AXSDK } from '@axsdk/core';
+import { AXSDK, type DeferFn } from '@axsdk/core';
 import { AXUI, AXShadowRootProvider } from '@axsdk/react';
 import { handleAX } from './axhandler';
 import '@axsdk/react/index.css';
@@ -59,11 +59,11 @@ const AXSDKBrowser = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     AXSDK.init({
       ...(axsdkConfig as any),
-      axHandler: async function(command: string, args: unknown) {
+      axHandler: async function(command: string, args: unknown, defer: DeferFn) {
         if(!axHandler) {
           throw new Error('axHandler is required')
         }
-        const result = await handleAX(axHandler, command, args);
+        const result = await handleAX(axHandler, command, args, defer);
         return result;
       },
     });
