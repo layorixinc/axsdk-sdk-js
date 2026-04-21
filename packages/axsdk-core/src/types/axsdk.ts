@@ -25,6 +25,7 @@ export const AXSDKConfigSchema = z.object({
     z.function().output(z.promise(z.record(z.string(), z.any()))),
     z.record(z.string(), z.any())
   ]).optional(),
+  chatLinkEnabled: z.boolean().optional(),
   remote_knowledge: z.boolean().optional(),
   knowledge_url_fetch: z.boolean().optional(),
   knowledge: z.union([

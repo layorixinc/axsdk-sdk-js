@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { AXSDK } from '@axsdk/core';
 import { AXChatErrorBar } from './AXChatErrorBar';
 import { useAXTheme } from '../AXThemeContext';
 import remarkGfm from 'remark-gfm';
@@ -9,6 +10,15 @@ const ReactMarkdown = React.lazy(() => import('react-markdown'))
 const LINE_HEIGHT_PX = 20;
 const COLLAPSED_LINES = 4;
 const COLLAPSED_HEIGHT_PX = LINE_HEIGHT_PX * COLLAPSED_LINES + 20;
+
+function parseThinking(text: string): { cleaned: string; isThinking: boolean } {
+  let cleaned = text.replace(/<thinking>[\s\S]*?<\/thinking>/g, '');
+  const isThinking = /<thinking>(?![\s\S]*<\/thinking>)/.test(cleaned);
+  if (isThinking) {
+    cleaned = cleaned.replace(/<thinking>[\s\S]*$/, '');
+  }
+  return { cleaned: cleaned.trim(), isThinking };
+}
 
 export interface AXChatMessagePopoverBaseProps {
   message?: { id: string, text: string };
@@ -170,9 +180,30 @@ export function AXChatMessagePopoverBase({
         onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.textDecoration = "none"; }}
       >{children}</a>
     ),
-    strong: ({ children }) => (
-      <strong style={{ fontWeight: 700, color: "var(--ax-text-primary, rgba(255, 255, 255, 0.97))" }}>{children}</strong>
-    ),
+    strong: ({ children }) => {
+      const linkEnabled = AXSDK.config?.chatLinkEnabled !== false;
+      if (!linkEnabled) {
+        return <strong style={{ fontWeight: 700, color: "var(--ax-text-primary, rgba(255, 255, 255, 0.97))" }}>{children}</strong>;
+      }
+      const text = typeof children === 'string' ? children : Array.isArray(children) ? children.join('') : String(children ?? '');
+      return (
+        <strong
+          role="button"
+          tabIndex={0}
+          onClick={(e) => { e.stopPropagation(); AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.link', data: { text } }); }}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.link', data: { text } }); } }}
+          style={{
+            fontWeight: 700,
+            color: "var(--ax-color-primary-light, rgba(168, 85, 247, 0.95))",
+            cursor: "pointer",
+            borderBottom: "1px dashed var(--ax-color-primary-light, rgba(168, 85, 247, 0.5))",
+            paddingBottom: 1,
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderBottomStyle = "solid"; (e.currentTarget as HTMLElement).style.opacity = "0.85"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderBottomStyle = "dashed"; (e.currentTarget as HTMLElement).style.opacity = "1"; }}
+        >{children}</strong>
+      );
+    },
     em: ({ children }) => (
       <em style={{ fontStyle: "italic", color: "var(--ax-text-muted, rgba(220, 200, 255, 0.9))" }}>{children}</em>
     ),
@@ -212,6 +243,10 @@ export function AXChatMessagePopoverBase({
         @keyframes axnotif-busy-fade {
           0%, 100% { opacity: 0.55; }
           50%      { opacity: 1; }
+        }
+        @keyframes ax-thinking-dot {
+          0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+          40% { opacity: 1; transform: scale(1); }
         }
         .ax-notif-content::-webkit-scrollbar { display: none; }
       `}</style>
@@ -341,30 +376,66 @@ export function AXChatMessagePopoverBase({
             style={wrapperStyle}
           >
             <div style={contentStyle}>
-              {!message?.text && isBusy && busyGuideText ? (
-                <div
-                  style={{
-                    display: "inline-block",
-                    fontStyle: "italic",
-                    backgroundImage:
-                      "linear-gradient(90deg, var(--ax-text-muted, rgba(220,200,255,0.6)) 0%, var(--ax-text-primary, rgba(255,255,255,0.98)) 50%, var(--ax-text-muted, rgba(220,200,255,0.6)) 100%)",
-                    backgroundSize: "200% 100%",
-                    WebkitBackgroundClip: "text",
-                    backgroundClip: "text",
-                    color: "transparent",
-                    WebkitTextFillColor: "transparent",
-                    animation:
-                      "axnotif-busy-shimmer 2.2s linear infinite, axnotif-busy-fade 1.6s ease-in-out infinite",
-                  }}
-                >
-                  {busyGuideText}
-                </div>
-              ) : (
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]} components={mdComponents}>
-                  {message?.text || ''}
-                </ReactMarkdown>
-              )}
+              {(() => {
+                const raw = message?.text || '';
+                const { cleaned, isThinking } = parseThinking(raw);
+                const showBusyGuide = !raw && isBusy && busyGuideText;
+
+                return (
+                  <>
+                    {isThinking && (
+                      <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        marginBottom: cleaned ? "0.6em" : 0,
+                        fontStyle: "italic",
+                        fontSize: "0.9em",
+                        color: "var(--ax-text-muted, rgba(220,200,255,0.7))",
+                      }}>
+                        <span>Thinking</span>
+                        {[0, 1, 2].map((i) => (
+                          <span
+                            key={i}
+                            style={{
+                              display: "inline-block",
+                              width: 4,
+                              height: 4,
+                              borderRadius: "50%",
+                              background: "var(--ax-text-muted, rgba(220,200,255,0.7))",
+                              animation: `ax-thinking-dot 1.4s ease-in-out ${i * 0.2}s infinite`,
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    {showBusyGuide ? (
+                      <div
+                        style={{
+                          display: "inline-block",
+                          fontStyle: "italic",
+                          backgroundImage:
+                            "linear-gradient(90deg, var(--ax-text-muted, rgba(220,200,255,0.6)) 0%, var(--ax-text-primary, rgba(255,255,255,0.98)) 50%, var(--ax-text-muted, rgba(220,200,255,0.6)) 100%)",
+                          backgroundSize: "200% 100%",
+                          WebkitBackgroundClip: "text",
+                          backgroundClip: "text",
+                          color: "transparent",
+                          WebkitTextFillColor: "transparent",
+                          animation:
+                            "axnotif-busy-shimmer 2.2s linear infinite, axnotif-busy-fade 1.6s ease-in-out infinite",
+                        }}
+                      >
+                        {busyGuideText}
+                      </div>
+                    ) : cleaned ? (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]} components={mdComponents}>
+                        {cleaned}
+                      </ReactMarkdown>
+                    ) : null}
+                  </>
+                );
+              })()}
             </div>
           </div>
 

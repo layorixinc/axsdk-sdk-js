@@ -124,6 +124,7 @@ async function handleSessionStatus(properties: unknown) {
 async function handleSessionUpdate(properties: unknown) {
   updateFromSessionUpdate(properties);
 }
+
 function ensureSessionBusy() {
   const chatState = chatStore.getState();
   const session = chatState.session;
@@ -131,9 +132,11 @@ function ensureSessionBusy() {
     chatState.setSession({ ...session, status: 'busy' });
   }
 }
+
 async function handleMessageUpdate(properties: unknown) {
   updateFromMessageUpdate(properties);
 }
+
 async function handleMessagePartUpdate(properties: unknown) {
   const data = properties as { part: MessagePart };
   if (data.part.type === 'tool' && data.part.tool?.startsWith("AX") ) {
@@ -151,15 +154,22 @@ async function handleMessagePartUpdate(properties: unknown) {
   }
   updateFromMessagePartUpdate(properties);
 }
+
 async function handleMessagePartDelta(properties: unknown) {
   updateFromMessagePartDelta(properties);
 }
+
 async function handleChatCancel() {
   const session = chatStore.getState().session;
   if (!session) {
     return;
   }
   await api.cancelSession(session.id);
+}
+
+async function handleChatLink(data: unknown) {
+  const { text } = data as { text: string }
+  AXSDK.sendMessage(text)
 }
 
 async function handleQuestionAsked(data: unknown) {
@@ -211,6 +221,9 @@ async function handleMessage(properties: unknown) {
   }
   else if (type === 'axsdk.chat.cancel') {
     return handleChatCancel();
+  }
+  else if (type === 'axsdk.chat.link') {
+    return handleChatLink(data);
   }
   else if (type === 'session.status') {
     return handleSessionStatus(data);
