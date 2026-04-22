@@ -253,15 +253,14 @@ export function AXChatMessagePopoverBase({
       <div
         role="status"
         aria-live="polite"
-        onClick={onOpen}
         style={isOpen && isDesktop ? {
           position: "fixed",
-          cursor: "pointer",
           bottom: bottomOffset,
           right: "1.25em",
           width: "min(420px, 40vw)",
           boxSizing: "border-box",
           zIndex: 10001,
+          pointerEvents: "none",
           display: "flex",
           flexDirection: "column",
           justifyContent: "flex-end",
@@ -269,7 +268,6 @@ export function AXChatMessagePopoverBase({
           animation: "axnotif-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards",
         } : isOpen ? {
           position: "fixed",
-          cursor: "pointer",
           bottom: bottomOffset,
           left: 0,
           right: 0,
@@ -277,6 +275,7 @@ export function AXChatMessagePopoverBase({
           padding: "0 1.25em",
           boxSizing: "border-box",
           zIndex: 10001,
+          pointerEvents: "none",
           display: "flex",
           flexDirection: "column",
           justifyContent: "flex-end",
@@ -284,10 +283,10 @@ export function AXChatMessagePopoverBase({
           animation: "axnotif-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards",
         } : {
           position: "fixed",
-          cursor: "pointer",
           bottom: bottomOffset,
           right: "calc(1.25em + 12vh)",
           zIndex: 10001,
+          pointerEvents: "none",
           width: "min(420px, calc(100vw - 12vh - 1em - 16px))",
           display: "flex",
           flexDirection: "column",
@@ -297,9 +296,12 @@ export function AXChatMessagePopoverBase({
         }}
       >
         <div
+          onClick={onOpen}
           style={{
             width: "100%",
             position: "relative",
+            cursor: "pointer",
+            pointerEvents: "auto",
             background: "var(--ax-bg-popover)",
             backdropFilter: "blur(12px)",
             WebkitBackdropFilter: "blur(12px)",

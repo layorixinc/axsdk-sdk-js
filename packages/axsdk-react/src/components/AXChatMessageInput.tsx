@@ -218,18 +218,23 @@ export function AXChatMessageInput({
           title={AXSDK.t("chatClearTooltip")}
           style={{
             flexShrink: 0,
+            boxSizing: "border-box",
             background: "var(--ax-bg-input-textarea)",
             border: "none",
             borderRadius: 10,
             color: "var(--ax-text-dim)",
-            width: "4em",
+            minWidth: "4em",
             height: "3em",
+            fontSize: "1em",
+            fontWeight: 400,
+            lineHeight: 1,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            gap: "0.25em",
             cursor: disabled ? "default" : "pointer",
             transition: "background 0.18s, color 0.18s, transform 0.1s",
-            padding: 0,
+            padding: "0 0.75em",
             ...theme.styles?.input?.clearButton,
           }}
           onMouseEnter={(e) => {
@@ -245,8 +250,8 @@ export function AXChatMessageInput({
           }}
         >
           <svg
-            width="32"
-            height="32"
+            width="24"
+            height="24"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -256,6 +261,7 @@ export function AXChatMessageInput({
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.021-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
           </svg>
+          <span>{AXSDK.t("chatClearLabel")}</span>
         </button>
         <button
           type="button"
@@ -264,6 +270,7 @@ export function AXChatMessageInput({
           style={{
             flex: 1,
             flexShrink: 0,
+            boxSizing: "border-box",
             background: message.trim()
               ? `linear-gradient(135deg, var(--ax-color-primary, #7c3aed) 0%, var(--ax-color-primary-dark, #4f46e5) 100%)`
               : "var(--ax-bg-input-textarea)",
@@ -275,14 +282,15 @@ export function AXChatMessageInput({
             color: message.trim() ? "#fff" : "var(--ax-text-dim)",
             fontSize: "1em",
             fontWeight: 600,
-            padding: "10px 16px",
+            lineHeight: 1,
+            padding: "0 0.75em",
             cursor: message.trim() && !disabled ? "pointer" : "default",
             transition: "background 0.18s, color 0.18s, transform 0.1s",
             letterSpacing: "0.04em",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: 5,
+            gap: "0.25em",
             whiteSpace: "nowrap",
             ...theme.styles?.input?.sendButton,
           }}
@@ -295,8 +303,8 @@ export function AXChatMessageInput({
           }}
         >
           <svg
-            width="18"
-            height="18"
+            width="24"
+            height="24"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
