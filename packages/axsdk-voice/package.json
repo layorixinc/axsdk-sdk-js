@@ -1,0 +1,55 @@
+{
+  "name": "@axsdk/voice",
+  "version": "0.2.1",
+  "private": false,
+  "description": "Voice I/O plugin for the AXSDK — captures speech (VAD-gated), streams to a transcription proxy, dispatches finalized utterances into the chat, and speaks assistant replies via TTS.",
+  "keywords": ["axsdk", "voice", "stt", "tts", "realtime", "plugin"],
+  "homepage": "https://github.com/layorixinc/axsdk-sdk-js",
+  "bugs": {
+    "url": "https://github.com/layorixinc/axsdk-sdk-js/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/layorixinc/axsdk-sdk-js.git"
+  },
+  "license": "MIT",
+  "author": "lordkeios@layorixinc.com",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/lib.d.ts",
+      "import": "./dist/lib.js",
+      "require": "./dist/lib.cjs",
+      "source": "./src/lib.ts"
+    },
+    "./pcm-worklet.js": "./public/pcm-worklet.js"
+  },
+  "module": "./dist/lib.js",
+  "main": "./dist/lib.js",
+  "types": "./dist/lib.d.ts",
+  "files": [
+    "dist",
+    "public",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "bun ./build.ts && bun build:types",
+    "build:types": "bunx tsc --emitDeclarationOnly",
+    "publish": "bun run build && npm publish --access=public"
+  },
+  "dependencies": {
+    "eventemitter3": "^5.0.4"
+  },
+  "peerDependencies": {
+    "@axsdk/core": "^0.3",
+    "@ricky0123/vad-web": "^0.0",
+    "typescript": "^5"
+  },
+  "peerDependenciesMeta": {
+    "@ricky0123/vad-web": { "optional": true }
+  },
+  "devDependencies": {
+    "@axsdk/core": "workspace:*",
+    "@types/bun": "latest"
+  }
+}

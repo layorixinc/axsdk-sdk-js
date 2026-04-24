@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@axsdk/voice demo</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+      h1 { margin-bottom: 0.25rem; }
+      .hint { color: #666; margin-top: 0; }
+      .row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; margin: 0.75rem 0; }
+      button { font-size: 1rem; padding: 0.5rem 1rem; cursor: pointer; }
+      label { user-select: none; }
+      #state { display: inline-block; padding: 0.1rem 0.6rem; border-radius: 6px; background: #eef; font-variant: small-caps; }
+      #state.capturing { background: #dfc; color: #063; }
+      #state.listening { background: #eef; color: #225; }
+      #state.speaking  { background: #fde; color: #604; }
+      #state.error     { background: #fcc; color: #900; }
+      #log { margin-top: 1rem; padding: 1rem; background: #f6f6f8; border-radius: 6px; height: 260px; overflow-y: auto; font: 12px/1.4 ui-monospace, monospace; white-space: pre-wrap; }
+      #transcript { padding: 1rem; background: #fafafa; border: 1px solid #eee; border-radius: 6px; min-height: 5rem; }
+      #transcript .pending { color: #888; }
+      #transcript .final { font-weight: 600; display: block; margin-bottom: 0.3rem; }
+      .muted { color: #888; font-size: 0.9rem; }
+    </style>
+  </head>
+  <body>
+    <h1>@axsdk/voice demo</h1>
+    <p class="hint">
+      Demonstrates auto-activated voice capture while the chat is "open".
+      Use the toggles to mimic chat-open / close without a real
+      <code>&lt;AXUI /&gt;</code> mounted. STT/TTS toggles are runtime.
+    </p>
+
+    <div class="row">
+      <label><input type="checkbox" id="chatOpen" /> Chat is open</label>
+      <label><input type="checkbox" id="sttOn" checked /> STT</label>
+      <label><input type="checkbox" id="ttsOn" checked /> TTS</label>
+      <label><input type="checkbox" id="echoMode" /> Echo mode</label>
+      <label>VAD:
+        <select id="vadEngine">
+          <option value="rms" selected>RMS</option>
+          <option value="silero">Silero</option>
+        </select>
+      </label>
+      <span>State: <span id="state">idle</span></span>
+    </div>
+
+    <div class="row muted">
+      Proxy: <input type="text" id="proxyBase" value="http://localhost:5173" size="30" />
+      api-key: <input type="text" id="apiKey" size="14" />
+      app-id: <input type="text" id="appId" size="14" />
+      <button id="applyProxy">Apply</button>
+    </div>
+
+    <h3>Transcript</h3>
+    <div id="transcript"></div>
+
+    <h3>Fake assistant reply (drives TTS)</h3>
+    <div class="row">
+      <input type="text" id="assistantText" size="50" value="Hello! This is a synthesized assistant reply." />
+      <button id="simulateReply">Simulate busy → idle with this text</button>
+    </div>
+    <p class="muted">
+      The plugin watches <code>chatStore.session.status</code> for
+      <code>busy → idle</code> transitions to decide when to speak the latest
+      assistant message. This button fakes both sides.
+    </p>
+
+    <h3>Event log</h3>
+    <div id="log"></div>
+
+    <script type="module">
+      // Import the built artifacts directly (bun-powered monorepo — dist files exist).
+      // Cache-bust on reload so rebuilds of @axsdk/voice show up without a hard refresh.
+      const __bust = Date.now();
+      const { AXSDK } = await import(`../../axsdk-core/dist/lib.js?v=${__bust}`);
+      const { VoicePlugin, OpenAIRealtimeTransport } = await import(`../dist/lib.js?v=${__bust}`);
+
+      const $state = document.getElementById('state');
+      const $log = document.getElementById('log');
+      const $transcript = document.getElementById('transcript');
+      const $chatOpen = document.getElementById('chatOpen');
+      const $sttOn = document.getElementById('sttOn');
+      const $ttsOn = document.getElementById('ttsOn');
+      const $echoMode = document.getElementById('echoMode');
+      const $proxyBase = document.getElementById('proxyBase');
+      const $applyProxy = document.getElementById('applyProxy');
+      const $assistantText = document.getElementById('assistantText');
+      const $simulateReply = document.getElementById('simulateReply');
+
+      function log(msg) {
+        const ts = new Date().toLocaleTimeString();
+        $log.textContent += `[${ts}] ${msg}\n`;
+        $log.scrollTop = $log.scrollHeight;
+      }
+
+      // ---- minimal AXSDK setup ----
+      // The real backend isn't required for this harness — we don't call
+      // sendMessage, we just want the event bus + chat store wired up.
+      // The plugin only reads from chatStore (via getChatStore) and emits on
+      // the event bus. We never call api.health, so we skip init() entirely
+      // and build a lightweight axsdk-like adapter pointing at the real
+      // stores that are already exported via @axsdk/core.
+      //
+      // NOTE: We use AXSDK.eventBus() and AXSDK.getChatStore() directly. No
+      // init() call is made, so no network traffic to the AXSDK backend.
+
+      const $apiKey = document.getElementById('apiKey');
+      const $appId = document.getElementById('appId');
+      try {
+        $apiKey.value = localStorage.getItem('axsdk-voice:demo:apiKey') ?? '';
+        $appId.value = localStorage.getItem('axsdk-voice:demo:appId') ?? '';
+      } catch {}
+      $apiKey.addEventListener('change', () => {
+        try { localStorage.setItem('axsdk-voice:demo:apiKey', $apiKey.value); } catch {}
+      });
+      $appId.addEventListener('change', () => {
+        try { localStorage.setItem('axsdk-voice:demo:appId', $appId.value); } catch {}
+      });
+
+      function buildTransport() {
+        const base = $proxyBase.value.replace(/\/$/, '');
+        const wsUrl = base.replace(/^http/, 'ws') + '/ws';
+        const ttsUrl = base + '/tts';
+        return new OpenAIRealtimeTransport({
+          wsUrl,
+          ttsUrl,
+          apiKey: $apiKey.value,
+          appId: $appId.value,
+        });
+      }
+
+      const $vadEngine = document.getElementById('vadEngine');
+      let voice = null;
+      function attachPlugin() {
+        if (voice) {
+          voice.detach();
+          voice = null;
+        }
+        voice = new VoicePlugin({
+          transport: buildTransport(),
+          stt: $sttOn.checked,
+          tts: $ttsOn.checked,
+          mode: $echoMode.checked ? 'echo' : 'assistant',
+          workletUrl: '../public/pcm-worklet.js',
+          vad: { engine: $vadEngine.value },
+          debug: true,
+        });
+        voice.attach(AXSDK);
+        log(`plugin attached (vad=${$vadEngine.value})`);
+      }
+      $vadEngine.addEventListener('change', attachPlugin);
+
+      $applyProxy.addEventListener('click', () => {
+        attachPlugin();
+      });
+
+      // ---- plugin event wiring for the UI ----
+      const bus = AXSDK.eventBus();
+      bus.on('voice.state', ({ status }) => {
+        $state.textContent = status;
+        $state.className = status;
+        log(`state: ${status}`);
+      });
+      bus.on('voice.vad.speech.started', () => log('vad: speech started'));
+      bus.on('voice.vad.speech.ended', ({ durationMs }) =>
+        log(`vad: speech ended (${durationMs}ms)`),
+      );
+
+      let $pendingEl = null;
+      let pendingText = '';
+      bus.on('voice.transcript.delta', ({ text }) => {
+        pendingText += text;
+        if (!$pendingEl) {
+          $pendingEl = document.createElement('span');
+          $pendingEl.className = 'pending';
+          $transcript.appendChild($pendingEl);
+        }
+        $pendingEl.textContent = pendingText;
+      });
+      bus.on('voice.transcript.finalized', ({ text }) => {
+        if ($pendingEl) {
+          $pendingEl.remove();
+          $pendingEl = null;
+        }
+        pendingText = '';
+        const el = document.createElement('span');
+        el.className = 'final';
+        el.textContent = text;
+        $transcript.appendChild(el);
+        log(`transcript: ${text}`);
+      });
+      bus.on('voice.tts.queued', ({ messageId, text }) =>
+        log(`tts queued: ${messageId} "${text.slice(0, 40)}"`),
+      );
+      bus.on('voice.tts.playback.started', ({ messageId }) =>
+        log(`tts start: ${messageId}`),
+      );
+      bus.on('voice.tts.playback.ended', ({ messageId }) =>
+        log(`tts end: ${messageId}`),
+      );
+      bus.on('voice.error', ({ scope, message }) =>
+        log(`error (${scope}): ${message}`),
+      );
+
+      // ---- fake chat open/close via the real chat store ----
+      // Zustand `persist` in @axsdk/core writes isOpen/session/messages to
+      // localStorage. Wipe the persist key AND reset the store so previous
+      // demo runs don't auto-start capture on reload.
+      try { localStorage.removeItem('axsdk:chat'); } catch {}
+      const chatStore = AXSDK.getChatStore();
+      chatStore.setState({ isOpen: false, session: null, messages: [] });
+      log(`store reset — isOpen now ${chatStore.getState().isOpen}`);
+      // Initialize the checkbox from the (now-reset) store state.
+      $chatOpen.checked = chatStore.getState().isOpen;
+
+      $chatOpen.addEventListener('change', () => {
+        chatStore.setState({ isOpen: $chatOpen.checked });
+        log(`chat.isOpen = ${$chatOpen.checked}`);
+      });
+      // keep UI in sync if store changes elsewhere
+      chatStore.subscribe((state) => {
+        if ($chatOpen.checked !== state.isOpen) $chatOpen.checked = state.isOpen;
+      });
+
+      // ---- fake busy → idle transition with an assistant message ----
+      // This exercises ONLY the TTS path — it does NOT touch isOpen, so the
+      // mic/capture pipeline stays as-is. `busy → idle` on session.status
+      // is what the plugin watches to decide when to speak.
+      let msgCounter = 0;
+      $simulateReply.addEventListener('click', () => {
+        msgCounter++;
+        const text = $assistantText.value;
+        const id = `demo-${Date.now()}-${msgCounter}`;
+        const sessionID = 'demo-session';
+
+        // 1) session = busy with an assistant message in flight
+        chatStore.setState({
+          session: { id: sessionID, status: 'busy', title: 'demo', time: { created: Date.now() } },
+          messages: [
+            ...chatStore.getState().messages.filter((m) => m.info.id !== id),
+            {
+              info: { role: 'assistant', id, sessionID, time: { created: Date.now() }, agent: 'demo' },
+              parts: [{ type: 'text', id: 'p1', sessionID, messageID: id, text, time: { start: Date.now(), end: Date.now() } }],
+            },
+          ],
+        });
+        log(`sim: busy + assistant message ${id}`);
+
+        // 2) after a short delay, flip to idle → plugin should speak it.
+        setTimeout(() => {
+          chatStore.setState({
+            session: { ...chatStore.getState().session, status: 'idle' },
+          });
+          log('sim: status → idle');
+        }, 300);
+      });
+
+      // ---- live config toggles ----
+      $sttOn.addEventListener('change', () => {
+        voice?.update({ stt: $sttOn.checked });
+        log(`stt = ${$sttOn.checked}`);
+      });
+      $ttsOn.addEventListener('change', () => {
+        voice?.update({ tts: $ttsOn.checked });
+        log(`tts = ${$ttsOn.checked}`);
+      });
+      $echoMode.addEventListener('change', () => {
+        voice?.update({ mode: $echoMode.checked ? 'echo' : 'assistant' });
+        log(`mode = ${$echoMode.checked ? 'echo' : 'assistant'}`);
+      });
+
+      // boot
+      attachPlugin();
+    </script>
+  </body>
+</html>
