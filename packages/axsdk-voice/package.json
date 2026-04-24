@@ -1,9 +1,9 @@
 {
-  "name": "@axsdk/core",
-  "version": "0.4.0",
+  "name": "@axsdk/voice",
+  "version": "0.2.2",
   "private": false,
-  "description": "axsdk core",
-  "keywords": [],
+  "description": "Voice I/O plugin for the AXSDK — captures speech (VAD-gated), streams to a transcription proxy, dispatches finalized utterances into the chat, and speaks assistant replies via TTS.",
+  "keywords": ["axsdk", "voice", "stt", "tts", "realtime", "plugin"],
   "homepage": "https://github.com/layorixinc/axsdk-sdk-js",
   "bugs": {
     "url": "https://github.com/layorixinc/axsdk-sdk-js/issues"
@@ -21,35 +21,35 @@
       "import": "./dist/lib.js",
       "require": "./dist/lib.cjs",
       "source": "./src/lib.ts"
-    }
+    },
+    "./pcm-worklet.js": "./public/pcm-worklet.js"
   },
   "module": "./dist/lib.js",
   "main": "./dist/lib.js",
   "types": "./dist/lib.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "public",
+    "CHANGELOG.md"
   ],
   "scripts": {
-    "dev": "bun ./src/index.ts",
-    "cli": "bun ./src/cli.ts",
     "build": "bun ./build.ts && bun build:types",
     "build:types": "bunx tsc --emitDeclarationOnly",
-    "release": "node ../../scripts/set-publish-deps.mjs && bun run build && npm publish --access=public",
-    "build:workspace": "rm -rf node_modules && node ../../scripts/set-workspace-deps.mjs && bun install && bun run build"
+    "publish": "bun run build && npm publish --access=public"
   },
   "dependencies": {
-    "eventemitter3": "^5.0.4",
-    "html2canvas": "^1.4.1",
-    "nanoid": "^5.1.6",
-    "qs": "^6.15.1",
-    "zod": "^4.3.6",
-    "zustand": "^5.0.11"
-  },
-  "devDependencies": {
-    "@types/bun": "latest",
-    "@types/qs": "^6.15.0"
+    "eventemitter3": "^5.0.4"
   },
   "peerDependencies": {
+    "@axsdk/core": "^0.4",
+    "@ricky0123/vad-web": "^0.0",
     "typescript": "^5"
+  },
+  "peerDependenciesMeta": {
+    "@ricky0123/vad-web": { "optional": true }
+  },
+  "devDependencies": {
+    "@axsdk/core": "workspace:*",
+    "@types/bun": "latest"
   }
 }

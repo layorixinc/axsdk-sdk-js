@@ -40,11 +40,22 @@ function inlineCssPlugin(): Plugin {
   };
 }
 
+// Read the worklet source from @axsdk/voice at build time and inline it as a
+// JSON string. At runtime embed.ts wraps it in a Blob + URL.createObjectURL
+// so the AudioWorklet loads without an external asset.
+const workletPath = path.resolve(
+  'node_modules/@axsdk/voice/public/pcm-worklet.js',
+);
+const workletSource = fs.existsSync(workletPath)
+  ? fs.readFileSync(workletPath, 'utf-8')
+  : '';
+
 export default defineConfig({
   plugins: [react(), inlineCssPlugin()],
   define: {
     'process.env': {},
     '__AXSDK_INLINED_CSS__': '""',
+    '__AXSDK_PCM_WORKLET__': JSON.stringify(workletSource),
   },
   build: {
     lib: {

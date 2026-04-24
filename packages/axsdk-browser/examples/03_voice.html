@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>axsdk-browser — voice</title>
+  </head>
+  <body>
+    <h1>AXSDK Browser + Voice</h1>
+    <p>
+      Open the chat widget in the corner. While the chat window is open, voice
+      input activates automatically (VAD-gated). Assistant replies are spoken
+      via TTS when the session goes idle.
+    </p>
+    <p>
+      Replace <code>YOUR-*</code> placeholders. The proxy must be reachable and
+      configured with the same <code>AXSDK_VOICE_API_KEY</code> /
+      <code>AXSDK_VOICE_APP_ID</code> as below. See the
+      <a href="https://github.com/layorixinc/axsdk-voice"><code>axsdk-voice</code> repo</a>
+      for the reference proxy server.
+    </p>
+    <script src="../dist/axsdk-browser.js"></script>
+    <script>
+      AXSDK.init({
+        apiKey: 'YOUR-AXSDK-API-KEY',
+        appId:  'YOUR-AXSDK-APP-ID',
+        debug: true,
+        axHandler: async (command, args) => {
+          console.log('axHandler', command, args);
+          return null;
+        },
+        voice: {
+          // apiKey/appId are inherited from the outer config above — the
+          // voice proxy validates the same shared secret AXSDK uses.
+          wsUrl:  'ws://localhost:5173/ws',
+          ttsUrl: 'http://localhost:5173/tts',
+          debug: true,
+        },
+      });
+
+      // Surface voice events in the console. Optional — purely for demo.
+      const bus = AXSDK.eventBus();
+      bus.on('voice.state', ({ status }) => console.log('[voice.state]', status));
+      bus.on('voice.error', ({ scope, message }) =>
+        console.warn('[voice.error]', scope, message),
+      );
+      bus.on('voice.tts.gesture_required', () => {
+        console.warn('tap anywhere to enable TTS');
+        document.addEventListener(
+          'click',
+          () => AXSDK.voice()?.unlockAudio(),
+          { once: true },
+        );
+      });
+      bus.on('voice.session.restored', ({ sessionId }) => {
+        console.info(`[voice] session resumed from previous run — sessionId=${sessionId ?? 'n/a'}`);
+        // Host app could show a small toast here: "Voice resumed from your
+        // previous session" so the user knows the mic is active.
+      });
+    </script>
+  </body>
+</html>

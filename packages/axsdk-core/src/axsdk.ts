@@ -12,9 +12,28 @@ import * as DeferredCallManager from './deferred';
 import { processAXHandler } from './axhandler';
 import { AXSDK_TRANSLATIONS } from './translations';
 import { Config } from './config';
+import { PluginRegistry, type AxPlugin, type PluginContext } from './plugin';
+export type { AxPlugin, PluginContext, PluginLogger, PluginCoreStores, AxSdkLike } from './plugin';
 
 class AxSdk extends EventEmitter {
   public config: AXSDKConfig | undefined;
+
+  readonly #plugins = new PluginRegistry(
+    () => ({
+      sdk: this,
+      events: EventBus,
+      stores: {
+        app: appStore,
+        chat: chatStore,
+        env: envStore,
+        data: dataStore,
+        error: errorStore,
+        knowledge: knowledgeStore,
+      },
+      logger: console,
+    }),
+    () => !!this.config?.debug,
+  );
 
   constructor() {
     super();
@@ -114,8 +133,25 @@ class AxSdk extends EventEmitter {
 
   public async destroy() {
     DeferredCallManager.stop();
+    await this.#plugins.uninstallAll();
     await AXCALL.stop();
     await AXCHAT.stop();
+  }
+
+  public use<C, A>(plugin: AxPlugin<C, A>, config: C): Promise<A> {
+    return this.#plugins.install(plugin, config);
+  }
+
+  public unload(name: string): Promise<void> {
+    return this.#plugins.uninstall(name);
+  }
+
+  public plugin<A = unknown>(name: string): A | undefined {
+    return this.#plugins.get<A>(name);
+  }
+
+  public plugins(): Array<{ name: string; version?: string }> {
+    return this.#plugins.list();
   }
 
   public axHandler(): AXHandler | undefined {

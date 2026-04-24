@@ -10,10 +10,11 @@
     },
     "packages/axsdk-browser": {
       "name": "@axsdk/browser",
-      "version": "0.3.26",
+      "version": "0.4.0",
       "dependencies": {
-        "@axsdk/core": "workspace:*",
-        "@axsdk/react": "workspace:*",
+        "@axsdk/core": "^0.3.3",
+        "@axsdk/react": "^0.4.4",
+        "@axsdk/voice": "^0.2.0",
         "qs": "^6.15.0",
         "react": "^19",
         "react-dom": "^19",
@@ -28,7 +29,7 @@
     },
     "packages/axsdk-core": {
       "name": "@axsdk/core",
-      "version": "0.3.21",
+      "version": "0.4.0",
       "dependencies": {
         "eventemitter3": "^5.0.4",
         "html2canvas": "^1.4.1",
@@ -47,9 +48,9 @@
     },
     "packages/axsdk-react": {
       "name": "@axsdk/react",
-      "version": "0.4.22",
+      "version": "0.5.0",
       "dependencies": {
-        "@axsdk/core": "workspace:*",
+        "@axsdk/core": "^0.4",
         "react": "^19",
         "react-dom": "^19",
         "react-markdown": "^10.1.0",
@@ -72,9 +73,29 @@
         "vite": "^8.0.0",
       },
       "peerDependencies": {
+        "@axsdk/voice": "^0.2",
         "react": "^19",
         "react-dom": "^19",
       },
+    },
+    "packages/axsdk-voice": {
+      "name": "@axsdk/voice",
+      "version": "0.2.2",
+      "dependencies": {
+        "eventemitter3": "^5.0.4",
+      },
+      "devDependencies": {
+        "@axsdk/core": "workspace:*",
+        "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "@axsdk/core": "^0.4",
+        "@ricky0123/vad-web": "^0.0",
+        "typescript": "^5",
+      },
+      "optionalPeers": [
+        "@ricky0123/vad-web",
+      ],
     },
   },
   "catalog": {
@@ -87,6 +108,8 @@
     "@axsdk/core": ["@axsdk/core@workspace:packages/axsdk-core"],
 
     "@axsdk/react": ["@axsdk/react@workspace:packages/axsdk-react"],
+
+    "@axsdk/voice": ["@axsdk/voice@workspace:packages/axsdk-voice"],
 
     "@babel/code-frame": ["@babel/code-frame@7.29.0", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.28.5", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw=="],
 
@@ -318,7 +341,7 @@
 
     "@types/babel__traverse": ["@types/babel__traverse@7.28.0", "", { "dependencies": { "@babel/types": "^7.28.2" } }, "sha512-8PvcXf70gTDZBgt9ptxJ8elBeBjcLOAcOtoO/mPJjtji1+CdGbHgm77om1GrsPxsiE+uXIpNSK64UYaIwQXd4Q=="],
 
-    "@types/bun": ["@types/bun@1.3.12", "", { "dependencies": { "bun-types": "1.3.12" } }, "sha512-DBv81elK+/VSwXHDlnH3Qduw+KxkTIWi7TXkAeh24zpi5l0B2kUg9Ga3tb4nJaPcOFswflgi/yAvMVBPrxMB+A=="],
+    "@types/bun": ["@types/bun@1.3.13", "", { "dependencies": { "bun-types": "1.3.13" } }, "sha512-9fqXWk5YIHGGnUau9TEi+qdlTYDAnOj+xLCmSTwXfAIqXr2x4tytJb43E9uCvt09zJURKXwAtkoH4nLQfzeTXw=="],
 
     "@types/debug": ["@types/debug@4.1.13", "", { "dependencies": { "@types/ms": "*" } }, "sha512-KSVgmQmzMwPlmtljOomayoR89W4FynCAi3E8PPs7vmDVPe84hT+vGPKkJfThkmXs0x0jAaa9U8uW8bbfyS2fWw=="],
 
@@ -390,7 +413,7 @@
 
     "browserslist": ["browserslist@4.28.1", "", { "dependencies": { "baseline-browser-mapping": "^2.9.0", "caniuse-lite": "^1.0.30001759", "electron-to-chromium": "^1.5.263", "node-releases": "^2.0.27", "update-browserslist-db": "^1.2.0" }, "bin": { "browserslist": "cli.js" } }, "sha512-ZC5Bd0LgJXgwGqUknZY/vkUQ04r8NXnJZ3yYi4vDmSiZmC/pdSN0NbNRPxZpbtO4uAfDUAFffO8IZoM3Gj8IkA=="],
 
-    "bun-types": ["bun-types@1.3.12", "", { "dependencies": { "@types/node": "*" } }, "sha512-HqOLj5PoFajAQciOMRiIZGNoKxDJSr6qigAttOX40vJuSp6DN/CxWp9s3C1Xwm4oH7ybueITwiaOcWXoYVoRkA=="],
+    "bun-types": ["bun-types@1.3.13", "", { "dependencies": { "@types/node": "*" } }, "sha512-QXKeHLlOLqQX9LgYaHJfzdBaV21T63HhFJnvuRCcjZiaUDpbs5ED1MgxbMra71CsryN/1dAoXuJJJwIv/2drVA=="],
 
     "call-bind-apply-helpers": ["call-bind-apply-helpers@1.0.2", "", { "dependencies": { "es-errors": "^1.3.0", "function-bind": "^1.1.2" } }, "sha512-Sp1ablJ0ivDkSzjcaJdxEunN5/XvksFJ2sMBFfq6x0ryhQV/2b/KwFe21cMpmHtPOSij8K99/wSfoEuTObmuMQ=="],
 
