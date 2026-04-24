@@ -18,12 +18,15 @@ import type { TextPart } from '@axsdk/core';
 import type { AXTheme } from '../theme';
 import { AXThemeProvider } from '../AXThemeContext';
 import { injectCSSVariables } from '../cssVariables';
+import { useVoicePlugin, type AXVoiceConfig } from '../voice';
 
 export type { AXTheme };
+export type { AXVoiceConfig };
 
 export interface AXUIProps {
   children?: React.ReactNode;
   theme?: AXTheme;
+  voice?: AXVoiceConfig;
 }
 
 function SpeechBubbleClosed({ visible }: { visible: boolean }) {
@@ -103,7 +106,8 @@ function SpeechBubbleClosed({ visible }: { visible: boolean }) {
 
 const DESKTOP_BREAKPOINT = 768;
 
-export function AXUI({ children, theme }: AXUIProps) {
+export function AXUI({ children, theme, voice }: AXUIProps) {
+  useVoicePlugin(voice ?? null);
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
   const [dismissedNotification, setDismissedNotification] = useState(false);
   const [lastAnswer, setLastAnswer] = useState<{ questionIndex: number; selectedOption: number; label: string } | null>(null);

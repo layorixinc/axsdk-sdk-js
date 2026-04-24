@@ -31,3 +31,4 @@ export type {
 export { AXThemeProvider, useAXTheme } from '../AXThemeContext';
 export { AX_DEFAULT_DARK_THEME, AX_DEFAULT_LIGHT_THEME, mergeTheme } from '../defaultTheme';
 export { injectCSSVariables } from '../cssVariables';
+export { useVoicePlugin, useVoiceState, type AXVoiceConfig } from '../voice';
