@@ -206,6 +206,10 @@ bun run dev      # vite dev server (serves examples/)
 
 Output: **`dist/axsdk-browser.js`** — single IIFE with global name `AXSDK`. CSS is inlined into the JS bundle by a custom Vite plugin (`inlineCssPlugin` in `vite.config.ts`); no separate `.css` file ships. The `@axsdk/voice` AudioWorklet source is also inlined as a string constant at build time and wrapped in a Blob + `URL.createObjectURL` at runtime.
 
+### Bundle size
+
+The IIFE ships with `@axsdk/voice` always bundled (~15 KB gzipped for plugin code + ~1 KB for the AudioWorklet string). Hosts that don't configure `voice` pay this cost but the capability is there if they ever opt in. If you need a lean build without voice, pin to `@axsdk/browser@<0.4.0`.
+
 ---
 
 ## Examples

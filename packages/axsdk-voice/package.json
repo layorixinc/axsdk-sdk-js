@@ -1,6 +1,6 @@
 {
   "name": "@axsdk/voice",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": false,
   "description": "Voice I/O plugin for the AXSDK — captures speech (VAD-gated), streams to a transcription proxy, dispatches finalized utterances into the chat, and speaks assistant replies via TTS.",
   "keywords": ["axsdk", "voice", "stt", "tts", "realtime", "plugin"],
@@ -41,7 +41,7 @@
     "eventemitter3": "^5.0.4"
   },
   "peerDependencies": {
-    "@axsdk/core": "^0.3",
+    "@axsdk/core": "^0.4",
     "@ricky0123/vad-web": "^0.0",
     "typescript": "^5"
   },

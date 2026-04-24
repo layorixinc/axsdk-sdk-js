@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2 — 2026-04-25
+
+- Peer bumped to `@axsdk/core ^0.4` (new plugin system — AXSDK.use / unload / plugin / plugins)
+- Emits `voice.session.restored` on attach when the chat was already open
+  (typically a persisted Zustand state restored from localStorage). Host apps
+  can surface a "voice resumed from previous session" indicator.
+
 ## 0.2.1 — 2026-04-24
 
 - Bundled into `@axsdk/browser@0.3.9` via a `voice` config key on `AXSDKBrowser.init()`. The browser embed inlines the `pcm-worklet.js` source so no extra asset needs to be served.

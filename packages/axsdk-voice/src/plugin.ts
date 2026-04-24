@@ -44,6 +44,11 @@ export interface VoiceEventMap {
   'voice.tts.playback.started': { messageId: string };
   'voice.tts.playback.ended': { messageId: string };
   'voice.tts.gesture_required': { messageId: string };
+  // Fired once at attach time when the chat store reports isOpen=true before
+  // the user interacted with the page — usually a Zustand-persisted session
+  // rehydrated from localStorage. Host apps typically show a small "voice
+  // resumed from previous session" banner or toast.
+  'voice.session.restored': { sessionId?: string };
   'voice.error': {
     scope: 'capture' | 'transport' | 'tts';
     message: string;
@@ -213,8 +218,11 @@ export class VoicePlugin {
       document.addEventListener('visibilitychange', this.#visibilityHandler);
     }
 
-    if (this.#prevIsOpen && this.#shouldAutoStart()) {
-      void this.#startCapture();
+    if (this.#prevIsOpen) {
+      this.#emit('voice.session.restored', {
+        sessionId: initial.session?.id,
+      });
+      if (this.#shouldAutoStart()) void this.#startCapture();
     }
   }
 
@@ -499,4 +507,4 @@ export function voicePlugin(config: VoicePluginConfig): {
   };
 }
 
-export const VOICE_PLUGIN_VERSION = '0.2.1';
+export const VOICE_PLUGIN_VERSION = '0.2.2';

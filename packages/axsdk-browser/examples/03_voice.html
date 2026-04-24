@@ -52,6 +52,11 @@
           { once: true },
         );
       });
+      bus.on('voice.session.restored', ({ sessionId }) => {
+        console.info(`[voice] session resumed from previous run — sessionId=${sessionId ?? 'n/a'}`);
+        // Host app could show a small toast here: "Voice resumed from your
+        // previous session" so the user knows the mic is active.
+      });
     </script>
   </body>
 </html>
