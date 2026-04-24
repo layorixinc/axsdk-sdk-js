@@ -11,8 +11,9 @@ Guidance for AI coding agents working in this repository.
 | `@axsdk/core` | `packages/axsdk-core` | Framework-agnostic core: SDK init, session management, SSE streaming, event bus, types |
 | `@axsdk/react` | `packages/axsdk-react` | React 19 component library — `<AXUI />` and chat UI primitives built on `@axsdk/core` |
 | `@axsdk/browser` | `packages/axsdk-browser` | Vanilla JS embed — single `<script>` tag drops a sandboxed widget on any page |
+| `@axsdk/voice` | `packages/axsdk-voice` | Optional voice I/O plugin — VAD-gated mic capture + TTS playback, driven by the core chat store |
 
-Dependency graph: `core` ← `react` ← `browser`. Always rebuild downstream packages after changing `core`.
+Dependency graph: `core` ← `react` ← `browser`. `voice` depends only on `core` (peer). Always rebuild downstream packages after changing `core`.
 
 ## Setup
 
