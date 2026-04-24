@@ -2,23 +2,58 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { AXSDK } from '@axsdk/core';
 import { AXUI } from '@axsdk/react';
+import {
+  OpenAIRealtimeTransport,
+  VoicePlugin,
+  type VoicePluginConfig,
+  type OpenAIRealtimeTransportConfig,
+  type VadConfig,
+} from '@axsdk/voice';
 import { handleAX } from './axhandler';
 import '@axsdk/react/index.css';
 import type { AXTheme } from './types';
 
 export type { AXTheme };
 
+export interface AXSDKBrowserVoiceConfig extends OpenAIRealtimeTransportConfig {
+  stt?: boolean;
+  tts?: boolean;
+  mode?: VoicePluginConfig['mode'];
+  vad?: Partial<VadConfig>;
+  autoActivateWhileChatOpen?: boolean;
+  primeMicOnAttach?: boolean;
+  debug?: boolean;
+}
+
 export interface AXSDKBrowserConfig {
   apiKey: string;
   appId: string;
   axHandler?: (command: string, args: unknown) => Promise<unknown>;
   theme?: AXTheme;
+  voice?: AXSDKBrowserVoiceConfig;
   [key: string]: unknown;
 }
 
 declare const __AXSDK_INLINED_CSS__: string;
 const _inlinedCss: string =
   typeof __AXSDK_INLINED_CSS__ !== 'undefined' ? __AXSDK_INLINED_CSS__ : '';
+
+declare const __AXSDK_PCM_WORKLET__: string;
+const _workletSource: string =
+  typeof __AXSDK_PCM_WORKLET__ !== 'undefined' ? __AXSDK_PCM_WORKLET__ : '';
+
+let _workletUrl: string | null = null;
+function workletBlobUrl(): string {
+  if (_workletUrl) return _workletUrl;
+  if (!_workletSource) {
+    throw new Error(
+      'PCM worklet source missing from the AXSDK browser bundle. Rebuild @axsdk/browser with @axsdk/voice installed.',
+    );
+  }
+  const blob = new Blob([_workletSource], { type: 'text/javascript' });
+  _workletUrl = URL.createObjectURL(blob);
+  return _workletUrl;
+}
 
 const _isolationCss = `
 .ax-portal-root {
@@ -44,6 +79,7 @@ const _isolationCss = `
 
 let _root: ReactDOM.Root | null = null;
 let _hostElement: HTMLElement | null = null;
+let _voice: VoicePlugin | null = null;
 
 const AXSDKBrowser = {
   init(config: AXSDKBrowserConfig): void {
@@ -52,7 +88,7 @@ const AXSDKBrowser = {
       return;
     }
 
-    const { axHandler, theme, ...axsdkConfig } = config;
+    const { axHandler, theme, voice, ...axsdkConfig } = config;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     AXSDK.init({
@@ -89,17 +125,60 @@ const AXSDKBrowser = {
     _root.render(
       React.createElement(AXUI, theme ? { theme } : null),
     );
+
+    if (voice) {
+      try {
+        const transport = new OpenAIRealtimeTransport({
+          wsUrl: voice.wsUrl,
+          ttsUrl: voice.ttsUrl,
+          apiKey: voice.apiKey,
+          appId: voice.appId,
+          ttsVoice: voice.ttsVoice,
+          reconnectOnce: voice.reconnectOnce,
+        });
+        _voice = new VoicePlugin({
+          transport,
+          workletUrl: workletBlobUrl(),
+          stt: voice.stt,
+          tts: voice.tts,
+          mode: voice.mode,
+          vad: voice.vad,
+          autoActivateWhileChatOpen: voice.autoActivateWhileChatOpen,
+          primeMicOnAttach: voice.primeMicOnAttach,
+          debug: voice.debug,
+        });
+        _voice.attach(AXSDK);
+      } catch (err) {
+        console.error('[AXSDKBrowser] failed to start voice plugin', err);
+      }
+    }
   },
 
   destroy(): void {
+    if (_voice) {
+      _voice.detach();
+      _voice = null;
+    }
     _root?.unmount();
     _root = null;
     _hostElement?.remove();
     _hostElement = null;
     document.getElementById('axsdk-browser-styles')?.remove();
+    if (_workletUrl) {
+      try { URL.revokeObjectURL(_workletUrl); } catch {}
+      _workletUrl = null;
+    }
     if (typeof (AXSDK as unknown as Record<string, unknown>).destroy === 'function') {
       (AXSDK as unknown as { destroy(): void }).destroy();
     }
+  },
+
+  voice(): VoicePlugin | null {
+    return _voice;
+  },
+
+  eventBus() {
+    return AXSDK.eventBus();
   },
 };
 

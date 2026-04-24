@@ -29,6 +29,7 @@
   "dependencies": {
     "@axsdk/core": "^0.3.3",
     "@axsdk/react": "^0.4.4",
+    "@axsdk/voice": "^0.2.1",
     "qs": "^6.15.0",
     "react": "^19",
     "react-dom": "^19"

@@ -37,6 +37,7 @@ The parent-page loader (`axsdk-browser.js`) has no React dependency and is very 
 - **`axHandler` RPC bridge** — AI tool-call handler runs on the host page, not inside the iframe; no cross-origin trust issues
 - **Automatic frame bundle resolution** — frame bundle URL is derived from the loader script's `src`, no manual configuration needed
 - **`destroy()` API** — cleanly removes the widget and releases all listeners
+- **Optional voice I/O** — add a `voice` config to stream mic audio to your transcription proxy and speak assistant replies via TTS (see `examples/03_voice.html`)
 
 ---
 
