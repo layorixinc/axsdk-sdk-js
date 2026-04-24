@@ -475,3 +475,28 @@ function extractAssistantText(message: ChatMessage): string {
   }
   return chunks.join(' ').trim();
 }
+
+// Adapter for the @axsdk/core plugin system (AXSDK.use / unload / plugin).
+// Returns the underlying VoicePlugin instance as the plugin API so host code
+// can still call unlockAudio(), update(), etc. via AXSDK.plugin('@axsdk/voice').
+export function voicePlugin(config: VoicePluginConfig): {
+  readonly name: string;
+  readonly version: string;
+  install(ctx: { sdk: unknown }): VoicePlugin;
+  uninstall(api: VoicePlugin): void;
+} {
+  return {
+    name: '@axsdk/voice',
+    version: VOICE_PLUGIN_VERSION,
+    install(ctx) {
+      const plugin = new VoicePlugin(config);
+      plugin.attach(ctx.sdk as AxsdkLike);
+      return plugin;
+    },
+    uninstall(api: VoicePlugin) {
+      api.detach();
+    },
+  };
+}
+
+export const VOICE_PLUGIN_VERSION = '0.2.1';

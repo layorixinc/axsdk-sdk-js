@@ -1,4 +1,4 @@
-export { VoicePlugin } from './plugin';
+export { VoicePlugin, voicePlugin, VOICE_PLUGIN_VERSION } from './plugin';
 export type {
   VoicePluginConfig,
   VoiceMode,
