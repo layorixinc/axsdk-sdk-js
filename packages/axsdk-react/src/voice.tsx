@@ -85,6 +85,11 @@ export function useVoicePlugin(config: AXVoiceConfig | null | undefined): VoiceP
       instance?.detach();
       setPlugin(null);
     };
+    // Deps: structural primitives only. Nested objects like `vad` / `ttsVoice`
+    // / `workletUrl` are not tracked here — changing them after mount won't
+    // restart the plugin. Detach + remount the component if you need those
+    // to re-apply, or call plugin.update() for stt/tts toggles (which are
+    // still tracked here as the common case).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     config?.wsUrl,
