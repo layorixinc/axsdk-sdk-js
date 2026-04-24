@@ -50,11 +50,12 @@ export function useVoicePlugin(config: AXVoiceConfig | null | undefined): VoiceP
       try {
         const mod = await loadVoice();
         if (cancelled) return;
+        const core = AXSDK.config;
         const transport = new mod.OpenAIRealtimeTransport({
           wsUrl: config.wsUrl,
           ttsUrl: config.ttsUrl,
-          apiKey: config.apiKey,
-          appId: config.appId,
+          apiKey: config.apiKey ?? core?.apiKey,
+          appId: config.appId ?? core?.appId,
           ttsVoice: config.ttsVoice,
           reconnectOnce: config.reconnectOnce,
         });

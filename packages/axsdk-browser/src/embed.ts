@@ -131,8 +131,8 @@ const AXSDKBrowser = {
         const transport = new OpenAIRealtimeTransport({
           wsUrl: voice.wsUrl,
           ttsUrl: voice.ttsUrl,
-          apiKey: voice.apiKey,
-          appId: voice.appId,
+          apiKey: voice.apiKey ?? config.apiKey,
+          appId: voice.appId ?? config.appId,
           ttsVoice: voice.ttsVoice,
           reconnectOnce: voice.reconnectOnce,
         });

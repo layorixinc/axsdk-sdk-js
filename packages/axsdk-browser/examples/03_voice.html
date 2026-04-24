@@ -30,10 +30,10 @@
           return null;
         },
         voice: {
+          // apiKey/appId are inherited from the outer config above — the
+          // voice proxy validates the same shared secret AXSDK uses.
           wsUrl:  'ws://localhost:5173/ws',
           ttsUrl: 'http://localhost:5173/tts',
-          apiKey: 'YOUR-VOICE-PROXY-API-KEY',
-          appId:  'YOUR-VOICE-PROXY-APP-ID',
           debug: true,
         },
       });
