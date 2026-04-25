@@ -296,6 +296,7 @@ export function AXUI({ children, theme, voice }: AXUIProps) {
     }
   }, [portalTarget, theme]);
 
+  const hasPrimedVoiceRef = useRef(false);
   const handleClick = () => {
     if (!appInfoReady) return;
     // When TTS is blocked by autoplay, this click is reserved for unlocking
@@ -309,6 +310,16 @@ export function AXUI({ children, theme, voice }: AXUIProps) {
         if (effectiveVoice.debug) console.warn('[AXUI voice] unlockAudio() failed', err);
       });
       return;
+    }
+    // First-ever click: spend the gesture priming mic + TTS audio so later
+    // permission prompts and autoplay unlocks don't surprise the user.
+    if (effectiveVoice && !hasPrimedVoiceRef.current) {
+      hasPrimedVoiceRef.current = true;
+      const plugin = getVoicePlugin();
+      if (effectiveVoice.debug) console.log('[AXUI voice] first orb click → primePermissions()');
+      void plugin?.primePermissions().catch((err) => {
+        if (effectiveVoice.debug) console.warn('[AXUI voice] primePermissions() failed', err);
+      });
     }
     setIsOpen(!isOpen);
   };

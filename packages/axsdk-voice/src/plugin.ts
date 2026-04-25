@@ -217,6 +217,22 @@ export class VoicePlugin {
     }
   }
 
+  /**
+   * Prime mic + TTS audio inside a user gesture. Intended to be called from
+   * the first AXButton click so the host doesn't have to wait for an actual
+   * TTS attempt to discover autoplay is blocked, and so the mic prompt
+   * appears in response to a tap rather than at page load. Safe to call
+   * repeatedly — both underlying calls are idempotent on success.
+   */
+  async primePermissions(): Promise<void> {
+    if (this.#config.stt) {
+      try { await primeMicrophonePermission(); } catch {}
+    }
+    if (this.#config.tts) {
+      try { await this.#ttsPlayer?.unlock(); } catch {}
+    }
+  }
+
   attach(axsdk: AxsdkLike): void {
     if (this.#axsdk) {
       this.#debug('attach called twice — detaching previous instance first');
