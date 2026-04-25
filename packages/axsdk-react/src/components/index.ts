@@ -10,6 +10,7 @@ export * from './AXChatMessagePopoverBase';
 export { AXChatErrorBar } from './AXChatErrorBar';
 export * from './AXDevTools';
 export * from './AXQuestionDialog';
+export * from './AXVoiceIndicator';
 
 export type {
   AXTheme,

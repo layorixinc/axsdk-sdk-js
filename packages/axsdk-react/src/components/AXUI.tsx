@@ -11,6 +11,7 @@ import { AXChatLastMessage } from './AXChatLastMessage';
 import { AXChatMessageInput } from './AXChatMessageInput';
 import { AXDevTools } from './AXDevTools';
 import { AXQuestionDialog } from './AXQuestionDialog';
+import { AXVoiceIndicator } from './AXVoiceIndicator';
 
 import { AXSDK } from '@axsdk/core';
 import type { TextPart } from '@axsdk/core';
@@ -19,7 +20,13 @@ import type { AXTheme } from '../theme';
 import { AXThemeProvider } from '../AXThemeContext';
 import { useAXShadowRoot } from '../AXShadowRootContext';
 import { injectCSSVariables } from '../cssVariables';
-import { useVoicePlugin, type AXVoiceConfig } from '../voice';
+import {
+  useVoicePlugin,
+  resolveVoiceConfig,
+  useVoiceUnlockNeeded,
+  getVoicePlugin,
+  type AXVoiceConfig,
+} from '../voice';
 
 export type { AXTheme };
 export type { AXVoiceConfig };
@@ -110,6 +117,8 @@ const DESKTOP_BREAKPOINT = 768;
 export function AXUI({ children, theme, voice }: AXUIProps) {
   const shadowRoot = useAXShadowRoot();
   useVoicePlugin(voice ?? null);
+  const effectiveVoice = resolveVoiceConfig(voice);
+  const voiceNeedsUnlock = useVoiceUnlockNeeded();
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
   const [dismissedNotification, setDismissedNotification] = useState(false);
   const [lastAnswer, setLastAnswer] = useState<{ questionIndex: number; selectedOption: number; label: string } | null>(null);
@@ -289,6 +298,18 @@ export function AXUI({ children, theme, voice }: AXUIProps) {
 
   const handleClick = () => {
     if (!appInfoReady) return;
+    // When TTS is blocked by autoplay, this click is reserved for unlocking
+    // — don't simultaneously toggle the chat, otherwise the user's tap
+    // closes the chat as a side effect of unlocking. Subsequent taps work
+    // as the normal chat toggle.
+    if (effectiveVoice && voiceNeedsUnlock) {
+      const plugin = getVoicePlugin();
+      if (effectiveVoice.debug) console.log('[AXUI voice] orb click → unlockAudio()');
+      void plugin?.unlockAudio().catch((err) => {
+        if (effectiveVoice.debug) console.warn('[AXUI voice] unlockAudio() failed', err);
+      });
+      return;
+    }
     setIsOpen(!isOpen);
   };
 
@@ -414,7 +435,13 @@ export function AXUI({ children, theme, voice }: AXUIProps) {
         />
       </div>
     )}
-    <AXButton size="12vh" onClick={handleClick} isOpen={isOpen} status={session?.status} />
+    <AXButton
+      size="12vh"
+      onClick={handleClick}
+      isOpen={isOpen}
+      status={session?.status}
+      overlay={effectiveVoice ? <AXVoiceIndicator orbSize="12vh" debug={effectiveVoice.debug} /> : undefined}
+    />
     <div style={{
       textAlign: 'center',
       fontSize: '0.65em',

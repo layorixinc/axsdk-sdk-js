@@ -160,6 +160,10 @@ export class VoicePlugin {
   #lastAssistantId: string | null = null;
   #lastAssistantText = '';
   #fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+  // When chat closes while TTS is mid-playback, we keep the transport open so
+  // audio finishes; this flag schedules the deferred transport close to run on
+  // playback.ended.
+  #deferredCloseAfterSpeak = false;
 
   // VAD rising edge owns the `capturing` transition — `ready` must not force
   // it, otherwise the UI would think we're uploading voice when the mic is
@@ -258,6 +262,10 @@ export class VoicePlugin {
       this.#emit('voice.tts.playback.ended', p);
       const hasCapture = this.#capture !== null || this.#sileroCapture !== null;
       this.#setState(hasCapture ? 'listening' : 'idle');
+      if (this.#deferredCloseAfterSpeak) {
+        this.#deferredCloseAfterSpeak = false;
+        void this.#stopCapture();
+      }
     });
     this.#ttsPlayer.on('error', ({ messageId, message }) =>
       this.#emit('voice.error', {
@@ -425,9 +433,22 @@ export class VoicePlugin {
     if (isOpen !== this.#prevIsOpen) {
       this.#prevIsOpen = isOpen;
       if (isOpen) {
+        // Re-opening chat cancels any deferred close from a previous close.
+        this.#deferredCloseAfterSpeak = false;
         if (this.#shouldAutoStart()) void this.#startCapture();
       } else {
-        void this.#stopCapture();
+        // Defer transport close while TTS is playing or has queued audio,
+        // even if voice.state hasn't yet flipped to 'speaking' (state may
+        // race the chat-close on the same tick). Force the visible state
+        // to 'speaking' so the indicator reflects ongoing playback.
+        const ttsActive = !!this.#ttsPlayer?.isActive;
+        if (ttsActive) {
+          void this.#stopMicOnly();
+          this.#deferredCloseAfterSpeak = true;
+          if (this.#state !== 'speaking') this.#setState('speaking');
+        } else {
+          void this.#stopCapture();
+        }
         this.#clearFallbackTimer();
       }
     }
@@ -460,7 +481,11 @@ export class VoicePlugin {
     if (!this.#config.stt) return;
     const transport = this.#transport;
     if (!transport) return;
-    this.#setState('connecting');
+    // Don't clobber an active 'speaking' state — TTS playback is the
+    // user-visible truth. The mic is starting silently in the background;
+    // playback.ended will transition us to 'listening' when capture exists.
+    const speaking = this.#state === 'speaking';
+    if (!speaking) this.#setState('connecting');
     try {
       if (!transport.ready) {
         await transport.open();
@@ -470,7 +495,7 @@ export class VoicePlugin {
       } else {
         await this.#startRms();
       }
-      this.#setState('listening');
+      if (this.#state !== 'speaking') this.#setState('listening');
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.#emit('voice.error', { scope: 'capture', message });
@@ -506,7 +531,7 @@ export class VoicePlugin {
     });
   }
 
-  async #stopCapture(): Promise<void> {
+  async #stopMicOnly(): Promise<void> {
     if (this.#capture) {
       await this.#capture.stop();
       this.#capture = null;
@@ -517,8 +542,12 @@ export class VoicePlugin {
     }
     this.#vad?.reset();
     this.#vad = null;
+  }
+
+  async #stopCapture(): Promise<void> {
+    await this.#stopMicOnly();
     try { await this.#transport?.close(); } catch {}
-    if (this.#state !== 'error') this.#setState('idle');
+    if (this.#state !== 'error' && this.#state !== 'speaking') this.#setState('idle');
   }
 
   #handleFrame(frame: ArrayBuffer): void {

@@ -32,5 +32,6 @@ export const AXSDKConfigSchema = z.object({
     z.function().output(z.promise(z.record(z.string(), z.any()))),
     z.record(z.string(), z.any())
   ]).optional(),
+  voice: z.record(z.string(), z.any()).optional(),
 });
 export type AXSDKConfig = z.infer<typeof AXSDKConfigSchema>;

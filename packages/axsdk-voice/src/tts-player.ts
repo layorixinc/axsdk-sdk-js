@@ -53,6 +53,11 @@ export class TtsPlayer {
     return this.#deferred.length > 0 && !this.#unlocked;
   }
 
+  /** True while audio is playing or audio chunks are queued/deferred. */
+  get isActive(): boolean {
+    return this.#playing || this.#queue.length > 0 || this.#deferred.length > 0;
+  }
+
   speak(job: TtsJob): void {
     if (this.#disposed) return;
     if (this.#spoken.has(job.id)) return;
@@ -83,28 +88,79 @@ export class TtsPlayer {
   async unlock(): Promise<void> {
     if (this.#disposed) return;
     if (!this.#audio) this.#audio = document.createElement('audio');
-    const prev = this.#audio.src;
+    const audio = this.#audio;
+
+    // If we have deferred audio, play the first one DIRECTLY within the
+    // gesture. The previous silent-WAV → drain pattern lost gesture context
+    // across the src swap on some engines, causing the real audio.play() to
+    // be re-blocked and re-deferred. Playing the actual blob first avoids
+    // that trip.
+    if (this.#deferred.length > 0) {
+      const first = this.#deferred.shift();
+      if (first) {
+        try {
+          this.#releaseObjectUrl();
+          this.#activeObjectUrl = URL.createObjectURL(first.blob);
+          audio.src = this.#activeObjectUrl;
+          this.#applyPlaybackRate(audio);
+          await audio.play();
+          audio.playbackRate = this.#playbackRate;
+          this.#unlocked = true;
+          this.#emitter.emit('playback.started', { messageId: first.job.id });
+          await new Promise<void>((resolve) => {
+            const cleanup = () => {
+              audio.removeEventListener('ended', onEnded);
+              audio.removeEventListener('error', onError);
+            };
+            const onEnded = () => {
+              cleanup();
+              this.#emitter.emit('playback.ended', { messageId: first.job.id });
+              resolve();
+            };
+            const onError = () => {
+              cleanup();
+              this.#emitter.emit('error', { messageId: first.job.id, message: 'audio playback failed' });
+              resolve();
+            };
+            audio.addEventListener('ended', onEnded, { once: true });
+            audio.addEventListener('error', onError, { once: true });
+          });
+          this.#releaseObjectUrl();
+        } catch (err) {
+          // Re-defer so a future gesture can retry.
+          this.#deferred.unshift(first);
+          this.#unlocked = false;
+          const message = err instanceof Error ? err.message : String(err);
+          throw new Error(`unlock failed: ${message}`);
+        }
+      }
+      // Drain any remaining deferred — we're already unlocked, these run inline.
+      while (this.#deferred.length > 0) {
+        const item = this.#deferred.shift();
+        if (!item) break;
+        try {
+          await this.#playBlob(item.job.id, item.blob);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          this.#emitter.emit('error', { messageId: item.job.id, message });
+        }
+      }
+      return;
+    }
+
+    // No deferred — fall back to silent WAV just to mark unlocked.
+    const prev = audio.src;
     try {
-      this.#audio.src = silentWavDataUrl();
-      await this.#audio.play();
-      this.#audio.pause();
-      this.#audio.currentTime = 0;
+      audio.src = silentWavDataUrl();
+      await audio.play();
+      audio.pause();
+      audio.currentTime = 0;
       this.#unlocked = true;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       throw new Error(`unlock failed: ${message}`);
     } finally {
-      if (prev && prev !== this.#audio.src) this.#audio.removeAttribute('src');
-    }
-    while (this.#deferred.length > 0) {
-      const item = this.#deferred.shift();
-      if (!item) break;
-      try {
-        await this.#playBlob(item.job.id, item.blob);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        this.#emitter.emit('error', { messageId: item.job.id, message });
-      }
+      if (prev && prev !== audio.src) audio.removeAttribute('src');
     }
   }
 
@@ -202,6 +258,11 @@ export class TtsPlayer {
     let startedPlaying = false;
     let streamError: Error | null = null;
     const pendingChunks: Uint8Array[] = [];
+    // Full record of every chunk the reader produced. Needed for the
+    // autoplay-blocked recovery: chunks already drained into SourceBuffer
+    // disappear from `pendingChunks` and would otherwise be lost when we
+    // build a blob to defer for unlock().
+    const allChunks: Uint8Array[] = [];
     let streamDone = false;
 
     const tryFlush = () => {
@@ -231,6 +292,7 @@ export class TtsPlayer {
           return;
         }
         if (value) {
+          allChunks.push(value);
           pendingChunks.push(value);
           tryFlush();
           if (!startedPlaying) {
@@ -245,9 +307,9 @@ export class TtsPlayer {
                 while (true) {
                   const next = await reader.read();
                   if (next.done) break;
-                  if (next.value) pendingChunks.push(next.value);
+                  if (next.value) allChunks.push(next.value);
                 }
-                const blob = combineChunksToBlob(pendingChunks, mime);
+                const blob = combineChunksToBlob(allChunks, mime);
                 this.#deferred.push({ job: { id: messageId, text: '' }, blob });
                 this.#emitter.emit('gesture_required', { messageId });
                 this.#releaseObjectUrl();

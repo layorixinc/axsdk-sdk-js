@@ -50,12 +50,7 @@
         console.warn('[voice.error]', scope, message),
       );
       bus.on('voice.tts.gesture_required', () => {
-        console.warn('tap anywhere to enable TTS');
-        document.addEventListener(
-          'click',
-          () => AXSDK.voice()?.unlockAudio(),
-          { once: true },
-        );
+        console.warn('voice.tts.gesture_required');
       });
       bus.on('voice.session.restored', ({ sessionId }) => {
         console.info(`[voice] session restored — sessionId=${sessionId ?? 'n/a'}`);

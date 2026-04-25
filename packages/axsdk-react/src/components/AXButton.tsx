@@ -11,6 +11,12 @@ export interface AXButtonProps {
   size?: number | string;
   status?: string;
   borderRadius?: string;
+  /**
+   * Optional overlay rendered absolutely on top of the orb, inside the same
+   * transform context so it follows the button's open/pressed translate.
+   * Used by AXVoiceIndicator to attach itself to the orb center.
+   */
+  overlay?: React.ReactNode;
 }
 
 type AnimState = "show" | "idle" | "hide" | "unmounted";
@@ -29,6 +35,7 @@ export function AXButton({
   size = 64,
   status,
   borderRadius: borderRadiusProp,
+  overlay,
 }: AXButtonProps) {
   const { theme } = useAXTheme();
   const borderRadius = borderRadiusProp ?? theme.buttonBorderRadius ?? "50%";
@@ -412,6 +419,21 @@ export function AXButton({
         />
       ))}
     </button>
+    {overlay && (
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          pointerEvents: "none",
+          zIndex: 30,
+        }}
+      >
+        {overlay}
+      </div>
+    )}
     </div>
   );
 }

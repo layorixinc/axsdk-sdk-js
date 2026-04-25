@@ -2,11 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { AXSDK, type DeferFn } from '@axsdk/core';
 import { AXUI, AXShadowRootProvider } from '@axsdk/react';
-import {
-  VoicePlugin,
-  type VoicePluginConfig,
-  type VadConfig,
-} from '@axsdk/voice';
+import type { VoicePlugin, VoicePluginConfig, VadConfig } from '@axsdk/voice';
 import { handleAX } from './axhandler';
 import '@axsdk/react/index.css';
 import type { AXTheme } from './types';
@@ -27,6 +23,8 @@ export interface AXSDKBrowserVoiceConfig {
   baseUrl?: string;
   wsUrl?: string;
   ttsUrl?: string;
+  /** Override the bundled PCM worklet blob URL. Rarely needed. */
+  workletUrl?: string;
 }
 
 export interface AXSDKBrowserConfig {
@@ -85,7 +83,6 @@ const _baseCss = `
 
 let _root: ReactDOM.Root | null = null;
 let _hostElement: HTMLElement | null = null;
-let _voice: VoicePlugin | null = null;
 
 const AXSDKBrowser = {
   init(config: AXSDKBrowserConfig): void {
@@ -96,9 +93,18 @@ const AXSDKBrowser = {
 
     const { axHandler, theme, voice, ...axsdkConfig } = config;
 
+    // Inject the bundled worklet blob URL so voice can run in IIFE contexts
+    // where the worklet file isn't separately served. Source-of-truth for
+    // voice config now lives on AXSDK.init({ voice }) — AXUI wires the
+    // plugin via useVoicePlugin → resolveVoiceConfig(AXSDK.config.voice).
+    const voiceForCore = voice
+      ? { ...voice, workletUrl: voice.workletUrl ?? workletBlobUrl() }
+      : undefined;
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     AXSDK.init({
       ...(axsdkConfig as any),
+      voice: voiceForCore,
       axHandler: async function(command: string, args: unknown, defer: DeferFn) {
         if(!axHandler) {
           throw new Error('axHandler is required')
@@ -131,37 +137,9 @@ const AXSDKBrowser = {
         React.createElement(AXUI, theme ? { theme } : null),
       ),
     );
-
-    if (voice) {
-      try {
-        _voice = new VoicePlugin({
-          workletUrl: workletBlobUrl(),
-          stt: voice.stt,
-          tts: voice.tts,
-          mode: voice.mode,
-          vad: voice.vad,
-          autoActivateWhileChatOpen: voice.autoActivateWhileChatOpen,
-          primeMicOnAttach: voice.primeMicOnAttach,
-          resumeOnRestore: voice.resumeOnRestore,
-          debug: voice.debug,
-          ttsVoice: voice.ttsVoice,
-          reconnectOnce: voice.reconnectOnce,
-          baseUrl: voice.baseUrl,
-          wsUrl: voice.wsUrl,
-          ttsUrl: voice.ttsUrl,
-        });
-        _voice.attach(AXSDK);
-      } catch (err) {
-        console.error('[AXSDKBrowser] failed to start voice plugin', err);
-      }
-    }
   },
 
   destroy(): void {
-    if (_voice) {
-      _voice.detach();
-      _voice = null;
-    }
     _root?.unmount();
     _root = null;
     _hostElement?.remove();
@@ -177,7 +155,11 @@ const AXSDKBrowser = {
   },
 
   voice(): VoicePlugin | null {
-    return _voice;
+    type WithPlugin = { plugin?: (name: string) => unknown };
+    const fn = (AXSDK as unknown as WithPlugin).plugin;
+    if (typeof fn !== 'function') return null;
+    const plugin = fn.call(AXSDK, '@axsdk/voice');
+    return (plugin as VoicePlugin | undefined) ?? null;
   },
 
   eventBus() {

@@ -24,11 +24,30 @@ export interface AXVoiceConfig {
   baseUrl?: string;
   wsUrl?: string;
   ttsUrl?: string;
+  workletUrl?: string;
+}
+
+/**
+ * Resolve voice config from AXSDK.init({ voice }) when no explicit override is
+ * passed. Returning `null` means voice is disabled.
+ */
+export function resolveVoiceConfig(
+  override: AXVoiceConfig | null | undefined,
+): AXVoiceConfig | null {
+  if (override) return override;
+  const cfgVoice = (AXSDK.config as { voice?: AXVoiceConfig } | undefined)?.voice;
+  return cfgVoice ?? null;
 }
 
 interface VoiceModule {
   VoicePlugin: new (config?: VoicePluginConfig) => VoicePluginType;
 }
+
+// Module-level handle to the active VoicePlugin. useVoicePlugin sets this
+// when the instance is ready; getVoicePlugin reads it. We can't rely on
+// AXSDK.plugin('@axsdk/voice') because the React path attaches the plugin
+// directly (without the SDK plugin-registry install flow).
+let _activePlugin: VoicePluginType | null = null;
 
 let _cached: Promise<VoiceModule> | null = null;
 function loadVoice(): Promise<VoiceModule> {
@@ -41,9 +60,10 @@ function loadVoice(): Promise<VoiceModule> {
 
 export function useVoicePlugin(config: AXVoiceConfig | null | undefined): VoicePluginType | null {
   const [plugin, setPlugin] = useState<VoicePluginType | null>(null);
+  const resolved = resolveVoiceConfig(config);
 
   useEffect(() => {
-    if (!config) return;
+    if (!resolved) return;
     let cancelled = false;
     let instance: VoicePluginType | null = null;
 
@@ -52,25 +72,27 @@ export function useVoicePlugin(config: AXVoiceConfig | null | undefined): VoiceP
         const mod = await loadVoice();
         if (cancelled) return;
         instance = new mod.VoicePlugin({
-          stt: config.stt,
-          tts: config.tts,
-          mode: config.mode,
-          vad: config.vad,
-          autoActivateWhileChatOpen: config.autoActivateWhileChatOpen,
-          primeMicOnAttach: config.primeMicOnAttach,
-          resumeOnRestore: config.resumeOnRestore,
-          debug: config.debug,
-          ttsVoice: config.ttsVoice,
-          reconnectOnce: config.reconnectOnce,
-          baseUrl: config.baseUrl,
-          wsUrl: config.wsUrl,
-          ttsUrl: config.ttsUrl,
+          stt: resolved.stt,
+          tts: resolved.tts,
+          mode: resolved.mode,
+          vad: resolved.vad,
+          autoActivateWhileChatOpen: resolved.autoActivateWhileChatOpen,
+          primeMicOnAttach: resolved.primeMicOnAttach,
+          resumeOnRestore: resolved.resumeOnRestore,
+          debug: resolved.debug,
+          ttsVoice: resolved.ttsVoice,
+          reconnectOnce: resolved.reconnectOnce,
+          baseUrl: resolved.baseUrl,
+          wsUrl: resolved.wsUrl,
+          ttsUrl: resolved.ttsUrl,
+          workletUrl: resolved.workletUrl,
         });
         instance.attach(AXSDK as never);
         if (cancelled) {
           instance.detach();
           return;
         }
+        _activePlugin = instance;
         setPlugin(instance);
       } catch (err) {
         console.error('[AXUI voice] failed to load @axsdk/voice. Install it as a peer dep.', err);
@@ -80,6 +102,7 @@ export function useVoicePlugin(config: AXVoiceConfig | null | undefined): VoiceP
     return () => {
       cancelled = true;
       instance?.detach();
+      if (_activePlugin === instance) _activePlugin = null;
       setPlugin(null);
     };
     // Deps: structural primitives only. Nested objects like `vad` / `ttsVoice`
@@ -89,13 +112,14 @@ export function useVoicePlugin(config: AXVoiceConfig | null | undefined): VoiceP
     // still tracked here as the common case).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    config?.baseUrl,
-    config?.wsUrl,
-    config?.ttsUrl,
-    config?.stt,
-    config?.tts,
-    config?.mode,
-    config?.autoActivateWhileChatOpen,
+    resolved?.baseUrl,
+    resolved?.wsUrl,
+    resolved?.ttsUrl,
+    resolved?.stt,
+    resolved?.tts,
+    resolved?.mode,
+    resolved?.autoActivateWhileChatOpen,
+    resolved?.workletUrl,
   ]);
 
   return plugin;
@@ -112,4 +136,37 @@ export function useVoiceState(initial: VoiceState = 'idle'): VoiceState {
     };
   }, []);
   return state;
+}
+
+/**
+ * Returns true while the browser's autoplay policy is blocking TTS playback
+ * and the next user gesture must call `unlockAudio()`. Driven by
+ * `voice.tts.gesture_required` (sets) / `voice.tts.playback.started` (clears).
+ */
+export function useVoiceUnlockNeeded(): boolean {
+  const [needsUnlock, setNeedsUnlock] = useState(false);
+  useEffect(() => {
+    const bus = AXSDK.eventBus();
+    const onGesture = () => setNeedsUnlock(true);
+    const onPlaybackStarted = () => setNeedsUnlock(false);
+    bus.on('voice.tts.gesture_required', onGesture);
+    bus.on('voice.tts.playback.started', onPlaybackStarted);
+    return () => {
+      bus.off('voice.tts.gesture_required', onGesture);
+      bus.off('voice.tts.playback.started', onPlaybackStarted);
+    };
+  }, []);
+  return needsUnlock;
+}
+
+/** Look up the active VoicePlugin. Prefers the module-level handle set by
+ * `useVoicePlugin`; falls back to the SDK plugin registry for hosts that
+ * install voice via `AXSDK.use(voicePlugin())`. */
+export function getVoicePlugin(): VoicePluginType | null {
+  if (_activePlugin) return _activePlugin;
+  type WithPlugin = { plugin?: (name: string) => unknown };
+  const fn = (AXSDK as unknown as WithPlugin).plugin;
+  if (typeof fn !== 'function') return null;
+  const p = fn.call(AXSDK, '@axsdk/voice');
+  return (p as VoicePluginType | null) ?? null;
 }
