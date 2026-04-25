@@ -297,6 +297,14 @@ export function AXUI({ children, theme, voice }: AXUIProps) {
   }, [portalTarget, theme]);
 
   const hasPrimedVoiceRef = useRef(false);
+  // A restored session already had permissions granted — skip prime to avoid disturbing in-flight TTS.
+  useEffect(() => {
+    if (!effectiveVoice) return;
+    const bus = AXSDK.eventBus();
+    const onRestored = () => { hasPrimedVoiceRef.current = true; };
+    bus.on('voice.session.restored', onRestored);
+    return () => { bus.off('voice.session.restored', onRestored); };
+  }, [effectiveVoice]);
   const handleClick = () => {
     if (!appInfoReady) return;
     // Unlock-only branch: don't also toggle chat — the same tap would close it as a side effect.

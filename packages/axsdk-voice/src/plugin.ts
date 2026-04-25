@@ -215,7 +215,7 @@ export class VoicePlugin {
   }
 
   async primePermissions(): Promise<void> {
-    if (this.#config.stt) {
+    if (this.#config.stt && !this.#capture && !this.#sileroCapture) {
       try { await primeMicrophonePermission(); } catch {}
     }
     if (this.#config.tts) {

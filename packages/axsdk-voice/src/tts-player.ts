@@ -86,6 +86,8 @@ export class TtsPlayer {
 
   async unlock(): Promise<void> {
     if (this.#disposed) return;
+    // Already unlocked with no backlog — skip the silent-WAV path so we don't clobber an in-flight MediaSource.
+    if (this.#unlocked && this.#deferred.length === 0) return;
     if (!this.#audio) this.#audio = document.createElement('audio');
     const audio = this.#audio;
 
