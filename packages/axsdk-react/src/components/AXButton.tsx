@@ -11,11 +11,6 @@ export interface AXButtonProps {
   size?: number | string;
   status?: string;
   borderRadius?: string;
-  /**
-   * Optional overlay rendered absolutely on top of the orb, inside the same
-   * transform context so it follows the button's open/pressed translate.
-   * Used by AXVoiceIndicator to attach itself to the orb center.
-   */
   overlay?: React.ReactNode;
 }
 

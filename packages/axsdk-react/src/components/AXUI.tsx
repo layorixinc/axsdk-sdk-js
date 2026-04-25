@@ -299,10 +299,7 @@ export function AXUI({ children, theme, voice }: AXUIProps) {
   const hasPrimedVoiceRef = useRef(false);
   const handleClick = () => {
     if (!appInfoReady) return;
-    // When TTS is blocked by autoplay, this click is reserved for unlocking
-    // — don't simultaneously toggle the chat, otherwise the user's tap
-    // closes the chat as a side effect of unlocking. Subsequent taps work
-    // as the normal chat toggle.
+    // Unlock-only branch: don't also toggle chat — the same tap would close it as a side effect.
     if (effectiveVoice && voiceNeedsUnlock) {
       const plugin = getVoicePlugin();
       if (effectiveVoice.debug) console.log('[AXUI voice] orb click → unlockAudio()');
@@ -311,8 +308,6 @@ export function AXUI({ children, theme, voice }: AXUIProps) {
       });
       return;
     }
-    // First-ever click: spend the gesture priming mic + TTS audio so later
-    // permission prompts and autoplay unlocks don't surprise the user.
     if (effectiveVoice && !hasPrimedVoiceRef.current) {
       hasPrimedVoiceRef.current = true;
       const plugin = getVoicePlugin();

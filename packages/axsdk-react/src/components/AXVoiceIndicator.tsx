@@ -7,9 +7,7 @@ import { useVoiceState, useVoiceUnlockNeeded } from '../voice';
 import { useAXShadowRoot } from '../AXShadowRootContext';
 
 export interface AXVoiceIndicatorProps {
-  /** Match AXButton size so the badge anchors to the orb. */
   orbSize?: number | string;
-  /** Enable verbose console logs for state transitions. */
   debug?: boolean;
 }
 
@@ -184,7 +182,6 @@ function getVisual(state: VoiceState, perm: PermState, needsUnlock: boolean): Vi
       ),
     };
   }
-  // error
   return {
     icon: <MicIcon slashed />,
     bg: 'linear-gradient(135deg, #b91c1c, #7f1d1d)',
@@ -251,10 +248,7 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
     ensureStyles(shadowRoot);
   }, [shadowRoot]);
 
-  // Indicator runs with pointer-events: none so clicks fall through to the
-  // AXButton orb. That also blocks mouseenter on the indicator itself, so we
-  // attach hover listeners to the parent (AXButton's overlay wrapper) which
-  // does receive pointer events.
+  // pointer-events:none on the indicator blocks its own mouseenter — listen on the parent instead.
   useEffect(() => {
     const el = rootRef.current;
     const parent = el?.parentElement;

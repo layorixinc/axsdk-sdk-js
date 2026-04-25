@@ -53,7 +53,6 @@ export class TtsPlayer {
     return this.#deferred.length > 0 && !this.#unlocked;
   }
 
-  /** True while audio is playing or audio chunks are queued/deferred. */
   get isActive(): boolean {
     return this.#playing || this.#queue.length > 0 || this.#deferred.length > 0;
   }
@@ -90,11 +89,7 @@ export class TtsPlayer {
     if (!this.#audio) this.#audio = document.createElement('audio');
     const audio = this.#audio;
 
-    // If we have deferred audio, play the first one DIRECTLY within the
-    // gesture. The previous silent-WAV → drain pattern lost gesture context
-    // across the src swap on some engines, causing the real audio.play() to
-    // be re-blocked and re-deferred. Playing the actual blob first avoids
-    // that trip.
+    // Silent-WAV → src-swap pattern lost gesture context on some engines; play the deferred blob directly instead.
     if (this.#deferred.length > 0) {
       const first = this.#deferred.shift();
       if (first) {
@@ -127,14 +122,12 @@ export class TtsPlayer {
           });
           this.#releaseObjectUrl();
         } catch (err) {
-          // Re-defer so a future gesture can retry.
           this.#deferred.unshift(first);
           this.#unlocked = false;
           const message = err instanceof Error ? err.message : String(err);
           throw new Error(`unlock failed: ${message}`);
         }
       }
-      // Drain any remaining deferred — we're already unlocked, these run inline.
       while (this.#deferred.length > 0) {
         const item = this.#deferred.shift();
         if (!item) break;
@@ -148,7 +141,6 @@ export class TtsPlayer {
       return;
     }
 
-    // No deferred — fall back to silent WAV just to mark unlocked.
     const prev = audio.src;
     try {
       audio.src = silentWavDataUrl();
@@ -258,10 +250,7 @@ export class TtsPlayer {
     let startedPlaying = false;
     let streamError: Error | null = null;
     const pendingChunks: Uint8Array[] = [];
-    // Full record of every chunk the reader produced. Needed for the
-    // autoplay-blocked recovery: chunks already drained into SourceBuffer
-    // disappear from `pendingChunks` and would otherwise be lost when we
-    // build a blob to defer for unlock().
+    // pendingChunks gets drained into SourceBuffer; allChunks preserves the full stream for the unlock-deferred blob.
     const allChunks: Uint8Array[] = [];
     let streamDone = false;
 

@@ -160,9 +160,6 @@ export class VoicePlugin {
   #lastAssistantId: string | null = null;
   #lastAssistantText = '';
   #fallbackTimer: ReturnType<typeof setTimeout> | null = null;
-  // When chat closes while TTS is mid-playback, we keep the transport open so
-  // audio finishes; this flag schedules the deferred transport close to run on
-  // playback.ended.
   #deferredCloseAfterSpeak = false;
 
   // VAD rising edge owns the `capturing` transition — `ready` must not force
@@ -217,13 +214,6 @@ export class VoicePlugin {
     }
   }
 
-  /**
-   * Prime mic + TTS audio inside a user gesture. Intended to be called from
-   * the first AXButton click so the host doesn't have to wait for an actual
-   * TTS attempt to discover autoplay is blocked, and so the mic prompt
-   * appears in response to a tap rather than at page load. Safe to call
-   * repeatedly — both underlying calls are idempotent on success.
-   */
   async primePermissions(): Promise<void> {
     if (this.#config.stt) {
       try { await primeMicrophonePermission(); } catch {}
@@ -449,14 +439,10 @@ export class VoicePlugin {
     if (isOpen !== this.#prevIsOpen) {
       this.#prevIsOpen = isOpen;
       if (isOpen) {
-        // Re-opening chat cancels any deferred close from a previous close.
         this.#deferredCloseAfterSpeak = false;
         if (this.#shouldAutoStart()) void this.#startCapture();
       } else {
-        // Defer transport close while TTS is playing or has queued audio,
-        // even if voice.state hasn't yet flipped to 'speaking' (state may
-        // race the chat-close on the same tick). Force the visible state
-        // to 'speaking' so the indicator reflects ongoing playback.
+        // voice.state may race chat-close on the same tick — check the player directly.
         const ttsActive = !!this.#ttsPlayer?.isActive;
         if (ttsActive) {
           void this.#stopMicOnly();
@@ -497,9 +483,7 @@ export class VoicePlugin {
     if (!this.#config.stt) return;
     const transport = this.#transport;
     if (!transport) return;
-    // Don't clobber an active 'speaking' state — TTS playback is the
-    // user-visible truth. The mic is starting silently in the background;
-    // playback.ended will transition us to 'listening' when capture exists.
+    // 'speaking' wins over 'connecting'/'listening' — mic starts silently while TTS finishes.
     const speaking = this.#state === 'speaking';
     if (!speaking) this.#setState('connecting');
     try {

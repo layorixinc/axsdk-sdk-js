@@ -96,10 +96,7 @@ class AxSdk extends EventEmitter {
     if (appInfo) appStore.getState().setAppInfoReady(true);
     if (appInfo?.version != null) appStore.getState().setVersion(appInfo.version);
 
-    // Merge server-provided voiceConfig (e.g. { stt, tts, ttsPlaybackRate })
-    // into the active config and broadcast so the voice plugin can apply it
-    // via update() if already attached, or so a late-mounting React hook can
-    // read the merged values from AXSDK.config.voice on first init.
+    // Local config wins over server values so explicit AXSDK.init voice options aren't clobbered.
     const remoteVoice = (appInfo?.app as { voiceConfig?: Record<string, unknown> } | undefined)?.voiceConfig;
     if (remoteVoice && this.config) {
       const localVoice = (this.config as { voice?: Record<string, unknown> }).voice ?? {};

@@ -28,10 +28,6 @@ export interface AXVoiceConfig {
   workletUrl?: string;
 }
 
-/**
- * Resolve voice config from AXSDK.init({ voice }) when no explicit override is
- * passed. Returning `null` means voice is disabled.
- */
 export function resolveVoiceConfig(
   override: AXVoiceConfig | null | undefined,
 ): AXVoiceConfig | null {
@@ -44,10 +40,7 @@ interface VoiceModule {
   VoicePlugin: new (config?: VoicePluginConfig) => VoicePluginType;
 }
 
-// Module-level handle to the active VoicePlugin. useVoicePlugin sets this
-// when the instance is ready; getVoicePlugin reads it. We can't rely on
-// AXSDK.plugin('@axsdk/voice') because the React path attaches the plugin
-// directly (without the SDK plugin-registry install flow).
+// React path attaches plugin directly, bypassing the SDK plugin registry.
 let _activePlugin: VoicePluginType | null = null;
 
 let _cached: Promise<VoiceModule> | null = null;
@@ -97,18 +90,12 @@ export function useVoicePlugin(config: AXVoiceConfig | null | undefined): VoiceP
         _activePlugin = instance;
         setPlugin(instance);
 
-        // Server-provided voiceConfig may arrive after the plugin is
-        // constructed (during AXSDK.init's getAppInfo). Apply via update()
-        // when it shows up. If it had already arrived before this effect,
-        // resolveVoiceConfig above would have read the merged values from
-        // AXSDK.config.voice already.
         const onRemote = (p: { voice: Partial<VoicePluginConfig> }) => {
           if (!instance) return;
           if (resolved.debug) console.log('[useVoicePlugin] applying remote voiceConfig', p.voice);
           instance.update(p.voice);
         };
         AXSDK.eventBus().on('voice.config.remote', onRemote);
-        // Fold the cleanup into the cancelled flag path below.
         ;(instance as unknown as { __remoteOff?: () => void }).__remoteOff = () =>
           AXSDK.eventBus().off('voice.config.remote', onRemote);
       } catch (err) {
@@ -124,11 +111,7 @@ export function useVoicePlugin(config: AXVoiceConfig | null | undefined): VoiceP
       if (_activePlugin === instance) _activePlugin = null;
       setPlugin(null);
     };
-    // Deps: structural primitives only. Nested objects like `vad` / `ttsVoice`
-    // / `workletUrl` are not tracked here — changing them after mount won't
-    // restart the plugin. Detach + remount the component if you need those
-    // to re-apply, or call plugin.update() for stt/tts toggles (which are
-    // still tracked here as the common case).
+    // Nested objects (vad/ttsVoice/workletUrl) intentionally not tracked — host must remount or call plugin.update() to re-apply.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     resolved?.baseUrl,
@@ -158,11 +141,6 @@ export function useVoiceState(initial: VoiceState = 'idle'): VoiceState {
   return state;
 }
 
-/**
- * Returns true while the browser's autoplay policy is blocking TTS playback
- * and the next user gesture must call `unlockAudio()`. Driven by
- * `voice.tts.gesture_required` (sets) / `voice.tts.playback.started` (clears).
- */
 export function useVoiceUnlockNeeded(): boolean {
   const [needsUnlock, setNeedsUnlock] = useState(false);
   useEffect(() => {
@@ -179,9 +157,6 @@ export function useVoiceUnlockNeeded(): boolean {
   return needsUnlock;
 }
 
-/** Look up the active VoicePlugin. Prefers the module-level handle set by
- * `useVoicePlugin`; falls back to the SDK plugin registry for hosts that
- * install voice via `AXSDK.use(voicePlugin())`. */
 export function getVoicePlugin(): VoicePluginType | null {
   if (_activePlugin) return _activePlugin;
   type WithPlugin = { plugin?: (name: string) => unknown };

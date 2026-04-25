@@ -94,10 +94,7 @@ const AXSDKBrowser = {
 
     const { axHandler, theme, voice, ...axsdkConfig } = config;
 
-    // Inject the bundled worklet blob URL so voice can run in IIFE contexts
-    // where the worklet file isn't separately served. Source-of-truth for
-    // voice config now lives on AXSDK.init({ voice }) — AXUI wires the
-    // plugin via useVoicePlugin → resolveVoiceConfig(AXSDK.config.voice).
+    // IIFE bundle: inject the bundled worklet blob URL since no separate file is served.
     const voiceForCore = voice
       ? { ...voice, workletUrl: voice.workletUrl ?? workletBlobUrl() }
       : undefined;
