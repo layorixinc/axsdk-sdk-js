@@ -6,6 +6,16 @@
 - Emits `voice.session.restored` on attach when the chat was already open
   (typically a persisted Zustand state restored from localStorage). Host apps
   can surface a "voice resumed from previous session" indicator.
+- New `resumeOnRestore: boolean` config (default `true`). When `false`, a
+  restored session does NOT auto-start capture — the host shows a "Resume
+  voice?" prompt and calls `plugin.resume()` from inside the click handler.
+  This fixes the iOS Safari issue where AudioContext starts in `suspended`
+  state without a user gesture.
+- New public method `plugin.resume()` — start capture now. Idempotent. No-op
+  if capture is already running, the chat is closed, or stt is disabled.
+- `capture.ts` calls `audioContext.resume()` when the context starts
+  suspended (iOS Safari) — succeeds inside a gesture, silently no-ops
+  otherwise.
 
 ## 0.2.1 — 2026-04-24
 

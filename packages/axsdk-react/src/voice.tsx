@@ -17,6 +17,7 @@ export interface AXVoiceConfig extends OpenAIRealtimeTransportConfig {
   vad?: Partial<VadConfig>;
   autoActivateWhileChatOpen?: boolean;
   primeMicOnAttach?: boolean;
+  resumeOnRestore?: boolean;
   debug?: boolean;
 }
 
@@ -67,6 +68,7 @@ export function useVoicePlugin(config: AXVoiceConfig | null | undefined): VoiceP
           vad: config.vad,
           autoActivateWhileChatOpen: config.autoActivateWhileChatOpen,
           primeMicOnAttach: config.primeMicOnAttach,
+          resumeOnRestore: config.resumeOnRestore,
           debug: config.debug,
         });
         instance.attach(AXSDK as never);

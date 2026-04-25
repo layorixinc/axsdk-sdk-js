@@ -43,6 +43,14 @@ export async function startCapture(
     throw err;
   }
 
+  // iOS Safari starts AudioContext in `suspended`. If startCapture is being
+  // called from a user gesture, this resume() lifts it; from a non-gesture
+  // path, it rejects silently and the worklet stays inactive — host should
+  // surface a "tap to enable" UI driven by voice.session.restored.
+  if (ctx.state === 'suspended') {
+    try { await ctx.resume(); } catch {}
+  }
+
   const source = ctx.createMediaStreamSource(new MediaStream([track]));
   const worklet = new AudioWorkletNode(ctx, 'pcm16-worklet');
 
