@@ -22,6 +22,7 @@ export interface AXSDKBrowserVoiceConfig extends OpenAIRealtimeTransportConfig {
   vad?: Partial<VadConfig>;
   autoActivateWhileChatOpen?: boolean;
   primeMicOnAttach?: boolean;
+  resumeOnRestore?: boolean;
   debug?: boolean;
 }
 
@@ -147,6 +148,7 @@ const AXSDKBrowser = {
           vad: voice.vad,
           autoActivateWhileChatOpen: voice.autoActivateWhileChatOpen,
           primeMicOnAttach: voice.primeMicOnAttach,
+          resumeOnRestore: voice.resumeOnRestore,
           debug: voice.debug,
         });
         _voice.attach(AXSDK);

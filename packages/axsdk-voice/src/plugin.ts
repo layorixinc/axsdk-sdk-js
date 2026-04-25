@@ -31,6 +31,18 @@ export interface VoicePluginConfig {
   vad?: Partial<VadConfig>;
   autoActivateWhileChatOpen?: boolean;
   primeMicOnAttach?: boolean;
+  /**
+   * What to do when attach() finds the chat already open (e.g., a Zustand-
+   * persisted session restored on page reload).
+   *
+   * - `true` (default, backward-compatible) — auto-start capture immediately.
+   *   On iOS / strict browsers this can fail because AudioContext starts in
+   *   `suspended` state without a user gesture.
+   * - `false` — emit `voice.session.restored` and wait. Host shows a "Resume
+   *   voice?" prompt; on click, calls `plugin.resume()` inside the gesture.
+   *   This is the recommended setting for user-friendly mobile UX.
+   */
+  resumeOnRestore?: boolean;
   debug?: boolean;
 }
 
@@ -222,8 +234,28 @@ export class VoicePlugin {
       this.#emit('voice.session.restored', {
         sessionId: initial.session?.id,
       });
-      if (this.#shouldAutoStart()) void this.#startCapture();
+      if (this.#shouldAutoStart() && this.#config.resumeOnRestore) {
+        void this.#startCapture();
+      }
     }
+  }
+
+  /**
+   * Manually start capture. Intended to be called from inside a user gesture
+   * handler (e.g., a "Resume voice" button onClick) — running inside a
+   * gesture lets browsers grant the mic + un-suspend the AudioContext on
+   * iOS Safari without prompting twice.
+   *
+   * No-op if capture is already running, the chat is closed, or stt is off.
+   * Use this together with `resumeOnRestore: false` and the
+   * `voice.session.restored` event to provide the recommended mobile UX.
+   */
+  async resume(): Promise<void> {
+    if (this.#capture || this.#sileroCapture) return;
+    if (!this.#config.stt) return;
+    const store = this.#axsdk?.getChatStore();
+    if (!store?.getState().isOpen) return;
+    await this.#startCapture();
   }
 
   detach(): void {
@@ -461,6 +493,7 @@ function normalizeConfig(
     vad: { ...DEFAULT_VAD_CONFIG, ...(input.vad ?? {}) },
     autoActivateWhileChatOpen: input.autoActivateWhileChatOpen ?? true,
     primeMicOnAttach: input.primeMicOnAttach ?? true,
+    resumeOnRestore: input.resumeOnRestore ?? true,
     debug: input.debug ?? false,
   };
 }

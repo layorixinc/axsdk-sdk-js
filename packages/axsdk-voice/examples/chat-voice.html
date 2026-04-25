@@ -202,9 +202,14 @@
       bus.on('voice.error', ({ scope, message }) =>
         log(`error (${scope}): ${message}`),
       );
-      bus.on('voice.session.restored', ({ sessionId }) =>
-        log(`session restored (id=${sessionId ?? 'n/a'}) — chat was open from a prior run`),
-      );
+      bus.on('voice.session.restored', ({ sessionId }) => {
+        log(`session restored (id=${sessionId ?? 'n/a'})`);
+        if (voice && !voice.state || voice?.state === 'idle') {
+          // Demo harness only — real hosts should show a popup and call
+          // voice.resume() inside a click handler. Here we just log a hint.
+          log(`hint: call AXSDK.voice().resume() from a click to start mic`);
+        }
+      });
 
       // ---- fake chat open/close via the real chat store ----
       // Zustand `persist` in @axsdk/core writes isOpen/session/messages to

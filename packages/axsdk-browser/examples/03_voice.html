@@ -34,6 +34,11 @@
           // voice proxy validates the same shared secret AXSDK uses.
           wsUrl:  'ws://localhost:5173/ws',
           ttsUrl: 'http://localhost:5173/tts',
+          // Don't auto-resume capture on a restored session — wait for the
+          // user to click the "Resume voice" prompt below. Inside that click
+          // handler the browser grants mic + lifts AudioContext suspension
+          // in one gesture.
+          resumeOnRestore: false,
           debug: true,
         },
       });
@@ -53,10 +58,41 @@
         );
       });
       bus.on('voice.session.restored', ({ sessionId }) => {
-        console.info(`[voice] session resumed from previous run — sessionId=${sessionId ?? 'n/a'}`);
-        // Host app could show a small toast here: "Voice resumed from your
-        // previous session" so the user knows the mic is active.
+        console.info(`[voice] session restored — sessionId=${sessionId ?? 'n/a'}`);
+        showResumePrompt();
       });
+
+      // Minimal resume prompt. In a real host this would be a styled toast
+      // or banner; the click handler runs voice.resume() inside the user
+      // gesture so the browser grants mic + lifts AudioContext suspension
+      // (especially relevant on iOS Safari).
+      function showResumePrompt() {
+        if (document.getElementById('axsdk-resume-prompt')) return;
+        const div = document.createElement('div');
+        div.id = 'axsdk-resume-prompt';
+        Object.assign(div.style, {
+          position: 'fixed', top: '12px', left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#222', color: '#fff', padding: '10px 16px',
+          borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          fontFamily: 'system-ui, sans-serif', fontSize: '14px',
+          zIndex: '2147483646', display: 'flex', gap: '12px',
+          alignItems: 'center',
+        });
+        div.innerHTML =
+          '<span>Resume voice from your previous session?</span>' +
+          '<button id="axsdk-resume-yes" style="padding:6px 12px;border:0;border-radius:6px;background:#4caf50;color:#fff;cursor:pointer;">Resume</button>' +
+          '<button id="axsdk-resume-no" style="padding:6px 12px;border:0;border-radius:6px;background:#555;color:#fff;cursor:pointer;">Dismiss</button>';
+        document.body.appendChild(div);
+        document.getElementById('axsdk-resume-yes').addEventListener('click', async () => {
+          // resume() must run synchronously enough inside the click for the
+          // browser to count it as user-initiated. AudioContext.resume() and
+          // getUserMedia both happen inside the same gesture token here.
+          await AXSDK.voice()?.resume();
+          div.remove();
+        });
+        document.getElementById('axsdk-resume-no').addEventListener('click', () => div.remove());
+      }
     </script>
   </body>
 </html>
