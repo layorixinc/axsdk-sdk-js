@@ -20,6 +20,7 @@ export interface AXVoiceConfig {
   resumeOnRestore?: boolean;
   debug?: boolean;
   ttsVoice?: string;
+  ttsPlaybackRate?: number;
   reconnectOnce?: boolean;
   baseUrl?: string;
   wsUrl?: string;
@@ -81,6 +82,7 @@ export function useVoicePlugin(config: AXVoiceConfig | null | undefined): VoiceP
           resumeOnRestore: resolved.resumeOnRestore,
           debug: resolved.debug,
           ttsVoice: resolved.ttsVoice,
+          ttsPlaybackRate: resolved.ttsPlaybackRate,
           reconnectOnce: resolved.reconnectOnce,
           baseUrl: resolved.baseUrl,
           wsUrl: resolved.wsUrl,
@@ -120,6 +122,7 @@ export function useVoicePlugin(config: AXVoiceConfig | null | undefined): VoiceP
     resolved?.mode,
     resolved?.autoActivateWhileChatOpen,
     resolved?.workletUrl,
+    resolved?.ttsPlaybackRate,
   ]);
 
   return plugin;

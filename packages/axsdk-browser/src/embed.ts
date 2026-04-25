@@ -19,6 +19,7 @@ export interface AXSDKBrowserVoiceConfig {
   resumeOnRestore?: boolean;
   debug?: boolean;
   ttsVoice?: string;
+  ttsPlaybackRate?: number;
   reconnectOnce?: boolean;
   baseUrl?: string;
   wsUrl?: string;
