@@ -96,6 +96,21 @@ export function useVoicePlugin(config: AXVoiceConfig | null | undefined): VoiceP
         }
         _activePlugin = instance;
         setPlugin(instance);
+
+        // Server-provided voiceConfig may arrive after the plugin is
+        // constructed (during AXSDK.init's getAppInfo). Apply via update()
+        // when it shows up. If it had already arrived before this effect,
+        // resolveVoiceConfig above would have read the merged values from
+        // AXSDK.config.voice already.
+        const onRemote = (p: { voice: Partial<VoicePluginConfig> }) => {
+          if (!instance) return;
+          if (resolved.debug) console.log('[useVoicePlugin] applying remote voiceConfig', p.voice);
+          instance.update(p.voice);
+        };
+        AXSDK.eventBus().on('voice.config.remote', onRemote);
+        // Fold the cleanup into the cancelled flag path below.
+        ;(instance as unknown as { __remoteOff?: () => void }).__remoteOff = () =>
+          AXSDK.eventBus().off('voice.config.remote', onRemote);
       } catch (err) {
         console.error('[AXUI voice] failed to load @axsdk/voice. Install it as a peer dep.', err);
       }
@@ -103,6 +118,8 @@ export function useVoicePlugin(config: AXVoiceConfig | null | undefined): VoiceP
 
     return () => {
       cancelled = true;
+      const off = (instance as unknown as { __remoteOff?: () => void } | null)?.__remoteOff;
+      if (off) off();
       instance?.detach();
       if (_activePlugin === instance) _activePlugin = null;
       setPlugin(null);

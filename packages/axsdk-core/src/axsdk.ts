@@ -95,6 +95,19 @@ class AxSdk extends EventEmitter {
     }
     if (appInfo) appStore.getState().setAppInfoReady(true);
     if (appInfo?.version != null) appStore.getState().setVersion(appInfo.version);
+
+    // Merge server-provided voiceConfig (e.g. { stt, tts, ttsPlaybackRate })
+    // into the active config and broadcast so the voice plugin can apply it
+    // via update() if already attached, or so a late-mounting React hook can
+    // read the merged values from AXSDK.config.voice on first init.
+    const remoteVoice = (appInfo?.app as { voiceConfig?: Record<string, unknown> } | undefined)?.voiceConfig;
+    if (remoteVoice && this.config) {
+      const localVoice = (this.config as { voice?: Record<string, unknown> }).voice ?? {};
+      const merged = { ...remoteVoice, ...localVoice };
+      (this.config as { voice?: Record<string, unknown> }).voice = merged;
+      EventBus.emit('voice.config.remote', { voice: merged });
+      if (config.debug) console.log('[AXSDK] applied remote voiceConfig', remoteVoice, '→', merged);
+    }
     const remoteTranslations = appInfo?.app?.translations ?? {};
     const translationLangs = new Set([
       ...Object.keys(AXSDK_TRANSLATIONS),
