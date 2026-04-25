@@ -24,7 +24,7 @@ Wires `VoicePlugin` to `AXSDK` without requiring a live AXSDK backend. Use it to
    cd /path/to/axsdk-voice
    cp .env.example .env   # set OPENAI_API_KEY
    bun install
-   bun run dev            # listens on http://localhost:5173
+   bun run dev            # listens on http://localhost:4875
    ```
 
 ### Run the demo
