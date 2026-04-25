@@ -26,9 +26,27 @@ export class TtsPlayer {
   #playing = false;
   #disposed = false;
   #unlocked = false;
+  #playbackRate = 1;
 
-  constructor(transport: VoiceTransport) {
+  constructor(transport: VoiceTransport, opts?: { playbackRate?: number }) {
     this.#transport = transport;
+    if (opts?.playbackRate && opts.playbackRate > 0) {
+      this.#playbackRate = opts.playbackRate;
+    }
+  }
+
+  setPlaybackRate(rate: number): void {
+    if (!(rate > 0)) return;
+    this.#playbackRate = rate;
+    if (this.#audio) this.#audio.playbackRate = rate;
+  }
+
+  #applyPlaybackRate(audio: HTMLAudioElement): void {
+    audio.playbackRate = this.#playbackRate;
+    const onLoaded = () => {
+      audio.playbackRate = this.#playbackRate;
+    };
+    audio.addEventListener('loadedmetadata', onLoaded, { once: true });
   }
 
   get needsUnlock(): boolean {
@@ -163,6 +181,7 @@ export class TtsPlayer {
     this.#releaseObjectUrl();
     this.#activeObjectUrl = URL.createObjectURL(ms);
     audio.src = this.#activeObjectUrl;
+    this.#applyPlaybackRate(audio);
 
     await new Promise<void>((resolve) => {
       if (ms.readyState === 'open') return resolve();
@@ -218,6 +237,7 @@ export class TtsPlayer {
             startedPlaying = true;
             try {
               await audio.play();
+              audio.playbackRate = this.#playbackRate;
               this.#unlocked = true;
               this.#emitter.emit('playback.started', { messageId });
             } catch (err) {
@@ -276,9 +296,11 @@ export class TtsPlayer {
     this.#activeObjectUrl = URL.createObjectURL(blob);
     const audio = this.#audio;
     audio.src = this.#activeObjectUrl;
+    this.#applyPlaybackRate(audio);
 
     try {
       await audio.play();
+      audio.playbackRate = this.#playbackRate;
     } catch (err) {
       if (isAutoplayBlocked(err)) {
         this.#deferred.push({ job: { id: messageId, text: '' }, blob });

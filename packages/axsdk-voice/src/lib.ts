@@ -14,6 +14,7 @@ export { OpenAIRealtimeTransport } from './transport';
 export type {
   VoiceTransport,
   VoiceTransportEvents,
+  VoiceTransportContext,
   OpenAIRealtimeTransportConfig,
 } from './transport';
 

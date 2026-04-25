@@ -12,6 +12,7 @@ export interface VoiceTransport {
   readonly ready: boolean;
   open(): Promise<void>;
   close(): Promise<void>;
+  reconnect(): Promise<void>;
   sendAudio(pcm16le: ArrayBuffer): void;
   synthesize(text: string, opts?: { voice?: string }): Promise<Blob>;
   synthesizeStream?(
@@ -28,11 +29,18 @@ export interface VoiceTransport {
   ): void;
 }
 
-export interface OpenAIRealtimeTransportConfig {
-  wsUrl: string;
-  ttsUrl: string;
+export interface VoiceTransportContext {
+  baseUrl?: string;
+  wsUrl?: string;
+  ttsUrl?: string;
   apiKey?: string;
   appId?: string;
+  appAuthToken?: string;
+  appUserId?: string;
+}
+
+export interface OpenAIRealtimeTransportConfig {
+  context: () => VoiceTransportContext;
   ttsVoice?: string;
   reconnectOnce?: boolean;
 }
@@ -45,7 +53,9 @@ type InternalEvent =
   | { kind: 'close'; code?: number; reason?: string };
 
 export class OpenAIRealtimeTransport implements VoiceTransport {
-  readonly #config: Required<OpenAIRealtimeTransportConfig>;
+  readonly #context: () => VoiceTransportContext;
+  readonly #ttsVoice: string;
+  readonly #reconnectOnce: boolean;
   readonly #emitter = new EventEmitter();
   #ws: WebSocket | null = null;
   #ready = false;
@@ -54,13 +64,9 @@ export class OpenAIRealtimeTransport implements VoiceTransport {
   #closed = false;
 
   constructor(config: OpenAIRealtimeTransportConfig) {
-    this.#config = {
-      ttsVoice: 'alloy',
-      reconnectOnce: true,
-      apiKey: '',
-      appId: '',
-      ...config,
-    };
+    this.#context = config.context;
+    this.#ttsVoice = config.ttsVoice ?? 'alloy';
+    this.#reconnectOnce = config.reconnectOnce ?? true;
   }
 
   get ready(): boolean {
@@ -85,6 +91,24 @@ export class OpenAIRealtimeTransport implements VoiceTransport {
     if (ws) {
       try { ws.close(); } catch {}
     }
+  }
+
+  async reconnect(): Promise<void> {
+    const wasOpen = this.#ws !== null;
+    if (this.#reconnectTimer) {
+      clearTimeout(this.#reconnectTimer);
+      this.#reconnectTimer = null;
+    }
+    const ws = this.#ws;
+    this.#ws = null;
+    this.#ready = false;
+    if (ws) {
+      try { ws.close(); } catch {}
+    }
+    if (!wasOpen) return;
+    this.#closed = false;
+    this.#reconnectUsed = false;
+    await this.#connect();
   }
 
   sendAudio(pcm16le: ArrayBuffer): void {
@@ -114,13 +138,16 @@ export class OpenAIRealtimeTransport implements VoiceTransport {
     text: string,
     opts?: { voice?: string },
   ): Promise<Response> {
-    const voice = opts?.voice ?? this.#config.ttsVoice;
+    const ctx = this.#context();
+    const voice = opts?.voice ?? this.#ttsVoice;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    if (this.#config.apiKey) headers['x-api-key'] = this.#config.apiKey;
-    if (this.#config.appId) headers['x-app-id'] = this.#config.appId;
-    const res = await fetch(this.#config.ttsUrl, {
+    if (ctx.apiKey) headers['x-api-key'] = ctx.apiKey;
+    if (ctx.appId) headers['x-app-id'] = ctx.appId;
+    if (ctx.appAuthToken) headers['x-app-authorization'] = ctx.appAuthToken;
+    if (ctx.appUserId) headers['x-app-user-id'] = ctx.appUserId;
+    const res = await fetch(this.#resolveTtsUrl(ctx), {
       method: 'POST',
       headers,
       body: JSON.stringify({ text, voice }),
@@ -204,7 +231,7 @@ export class OpenAIRealtimeTransport implements VoiceTransport {
       this.#ready = false;
       this.#ws = null;
       this.#emit({ kind: 'close', code: event.code, reason: event.reason });
-      if (this.#closed || !this.#config.reconnectOnce || this.#reconnectUsed) {
+      if (this.#closed || !this.#reconnectOnce || this.#reconnectUsed) {
         return;
       }
       this.#reconnectUsed = true;
@@ -221,13 +248,37 @@ export class OpenAIRealtimeTransport implements VoiceTransport {
     await this.#waitForOpen(ws);
   }
 
+  #resolveBase(ctx: VoiceTransportContext): string {
+    return (ctx.baseUrl ?? '').replace(/\/+$/, '');
+  }
+
+  #resolveWsUrl(ctx: VoiceTransportContext): string {
+    if (ctx.wsUrl) return ctx.wsUrl;
+    const base = this.#resolveBase(ctx);
+    if (!base) {
+      throw new Error('OpenAIRealtimeTransport: context() must return `baseUrl` or `wsUrl`');
+    }
+    return base.replace(/^http/i, 'ws') + '/voice/ws';
+  }
+
+  #resolveTtsUrl(ctx: VoiceTransportContext): string {
+    if (ctx.ttsUrl) return ctx.ttsUrl;
+    const base = this.#resolveBase(ctx);
+    if (!base) {
+      throw new Error('OpenAIRealtimeTransport: context() must return `baseUrl` or `ttsUrl`');
+    }
+    return base + '/voice/tts';
+  }
+
   // Browsers can't set arbitrary headers on WebSocket upgrades — auth must go
   // through the URL. Proxy reads these via `url.searchParams`.
   #buildWsUrl(): string {
-    if (!this.#config.apiKey && !this.#config.appId) return this.#config.wsUrl;
-    const url = new URL(this.#config.wsUrl);
-    if (this.#config.apiKey) url.searchParams.set('api_key', this.#config.apiKey);
-    if (this.#config.appId) url.searchParams.set('app_id', this.#config.appId);
+    const ctx = this.#context();
+    const url = new URL(this.#resolveWsUrl(ctx));
+    if (ctx.apiKey) url.searchParams.set('api_key', ctx.apiKey);
+    if (ctx.appId) url.searchParams.set('app_id', ctx.appId);
+    if (ctx.appAuthToken) url.searchParams.set('app_authorization', ctx.appAuthToken);
+    if (ctx.appUserId) url.searchParams.set('app_user_id', ctx.appUserId);
     return url.toString();
   }
 

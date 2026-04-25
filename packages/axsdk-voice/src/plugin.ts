@@ -8,7 +8,11 @@ import {
 import { DEFAULT_VAD_CONFIG, Vad, type VadConfig } from './vad';
 import { startSileroCapture, type SileroCaptureHandle } from './silero-capture';
 import { TtsPlayer } from './tts-player';
-import type { VoiceTransport } from './transport';
+import {
+  OpenAIRealtimeTransport,
+  type VoiceTransport,
+  type VoiceTransportContext,
+} from './transport';
 
 export type VoiceMode = 'assistant' | 'echo';
 export type VoiceSource = 'microphone' | 'desktop';
@@ -22,7 +26,6 @@ export type VoiceState =
   | 'error';
 
 export interface VoicePluginConfig {
-  transport: VoiceTransport;
   stt?: boolean;
   tts?: boolean;
   mode?: VoiceMode;
@@ -31,6 +34,13 @@ export interface VoicePluginConfig {
   vad?: Partial<VadConfig>;
   autoActivateWhileChatOpen?: boolean;
   primeMicOnAttach?: boolean;
+  ttsVoice?: string;
+  reconnectOnce?: boolean;
+  baseUrl?: string;
+  wsUrl?: string;
+  ttsUrl?: string;
+  ttsPlaybackRate?: number;
+  transportFactory?: (context: () => VoiceTransportContext) => VoiceTransport;
   /**
    * What to do when attach() finds the chat already open (e.g., a Zustand-
    * persisted session restored on page reload).
@@ -56,10 +66,6 @@ export interface VoiceEventMap {
   'voice.tts.playback.started': { messageId: string };
   'voice.tts.playback.ended': { messageId: string };
   'voice.tts.gesture_required': { messageId: string };
-  // Fired once at attach time when the chat store reports isOpen=true before
-  // the user interacted with the page — usually a Zustand-persisted session
-  // rehydrated from localStorage. Host apps typically show a small "voice
-  // resumed from previous session" banner or toast.
   'voice.session.restored': { sessionId?: string };
   'voice.error': {
     scope: 'capture' | 'transport' | 'tts';
@@ -78,24 +84,67 @@ interface ChatStoreApi {
   subscribe(listener: (state: ChatStoreShape, prev: ChatStoreShape) => void): () => void;
 }
 
+interface AppStateShape {
+  appAuthToken: string | undefined;
+  appUserId: string | undefined;
+  getAppUserId(): string;
+}
+
+interface AppStoreApi {
+  getState(): AppStateShape;
+  subscribe(listener: (state: AppStateShape, prev: AppStateShape) => void): () => void;
+}
+
+interface AxsdkConfigShape {
+  apiKey?: string;
+  appId?: string;
+  baseUrl?: string;
+  basePath?: string;
+}
+
 interface AxsdkLike {
+  config?: AxsdkConfigShape;
   eventBus(): EventEmitter;
   getChatStore(): ChatStoreApi;
+  getAppStore(): AppStoreApi;
+  getEndpoint?(): { baseUrl: string; basePath: string };
+}
+
+const DEFAULT_BASE_URL = 'https://api.axsdk.ai';
+const DEFAULT_BASE_PATH = '/axsdk';
+
+function resolveCoreBaseUrl(
+  cfg: AxsdkConfigShape | undefined,
+  endpoint: { baseUrl: string; basePath: string } | null,
+): string {
+  const rawBase = cfg?.baseUrl ?? endpoint?.baseUrl ?? DEFAULT_BASE_URL;
+  const rawPath = cfg?.basePath ?? endpoint?.basePath ?? DEFAULT_BASE_PATH;
+  const base = rawBase.replace(/\/+$/, '');
+  const path = (rawPath.startsWith('/') ? rawPath : `/${rawPath}`).replace(/\/+$/, '');
+  return base + path;
 }
 
 const FALLBACK_IDLE_MS = 800;
 
 export class VoicePlugin {
-  readonly #transport: VoiceTransport;
+  #transport: VoiceTransport | null = null;
   #config: Required<
-    Omit<VoicePluginConfig, 'transport' | 'vad' | 'workletUrl'>
+    Omit<VoicePluginConfig, 'vad' | 'workletUrl' | 'baseUrl' | 'wsUrl' | 'ttsUrl' | 'transportFactory' | 'ttsVoice' | 'ttsPlaybackRate'>
   > & {
     workletUrl: string | undefined;
     vad: VadConfig;
+    baseUrl: string | undefined;
+    wsUrl: string | undefined;
+    ttsUrl: string | undefined;
+    ttsVoice: string | undefined;
+    ttsPlaybackRate: number | undefined;
+    transportFactory: VoicePluginConfig['transportFactory'];
   };
 
   #axsdk: AxsdkLike | null = null;
   #unsubscribe: (() => void) | null = null;
+  #unsubscribeAuth: (() => void) | null = null;
+  #unsubscribeConfig: (() => void) | null = null;
   #capture: CaptureHandle | null = null;
   #sileroCapture: SileroCaptureHandle | null = null;
   #vad: Vad | null = null;
@@ -147,8 +196,7 @@ export class VoicePlugin {
     if (this.#state !== 'idle') this.#setState('listening');
   };
 
-  constructor(config: VoicePluginConfig) {
-    this.#transport = config.transport;
+  constructor(config: VoicePluginConfig = {}) {
     this.#config = normalizeConfig(config);
   }
 
@@ -172,7 +220,35 @@ export class VoicePlugin {
     }
     this.#axsdk = axsdk;
 
-    this.#ttsPlayer = new TtsPlayer(this.#transport);
+    const contextProvider = (): VoiceTransportContext => {
+      const cfg = axsdk.config;
+      const app = axsdk.getAppStore().getState();
+      const endpoint = axsdk.getEndpoint?.() ?? null;
+      const baseUrl = this.#config.baseUrl
+        ?? resolveCoreBaseUrl(cfg, endpoint);
+      return {
+        baseUrl,
+        wsUrl: this.#config.wsUrl,
+        ttsUrl: this.#config.ttsUrl,
+        apiKey: cfg?.apiKey,
+        appId: cfg?.appId,
+        appAuthToken: app.appAuthToken,
+        appUserId: app.getAppUserId(),
+      };
+    };
+
+    this.#transport = this.#config.transportFactory
+      ? this.#config.transportFactory(contextProvider)
+      : new OpenAIRealtimeTransport({
+          context: contextProvider,
+          ttsVoice: this.#config.ttsVoice,
+          reconnectOnce: this.#config.reconnectOnce,
+        });
+    const transport = this.#transport;
+
+    this.#ttsPlayer = new TtsPlayer(transport, {
+      playbackRate: this.#config.ttsPlaybackRate,
+    });
     this.#ttsPlayer.on('queued', (p) => this.#emit('voice.tts.queued', p));
     this.#ttsPlayer.on('playback.started', (p) => {
       this.#setState('speaking');
@@ -202,11 +278,34 @@ export class VoicePlugin {
       this.#onStoreUpdate(state);
     });
 
-    this.#transport.on('ready', this.#onReady);
-    this.#transport.on('delta', this.#onDelta);
-    this.#transport.on('finalized', this.#onFinalized);
-    this.#transport.on('error', this.#onTransportError);
-    this.#transport.on('close', this.#onTransportClose);
+    const appStore = axsdk.getAppStore();
+    let prevAuth = appStore.getState().appAuthToken;
+    let prevUserId = appStore.getState().appUserId;
+    const reconnect = () => {
+      void transport.reconnect().catch((err) => {
+        const message = err instanceof Error ? err.message : String(err);
+        this.#emit('voice.error', { scope: 'transport', message });
+      });
+    };
+    this.#unsubscribeAuth = appStore.subscribe((state) => {
+      const authChanged = state.appAuthToken !== prevAuth;
+      const userChanged = state.appUserId !== prevUserId;
+      if (!authChanged && !userChanged) return;
+      prevAuth = state.appAuthToken;
+      prevUserId = state.appUserId;
+      reconnect();
+    });
+
+    const bus = axsdk.eventBus();
+    const onConfigChanged = () => reconnect();
+    bus.on('config.changed', onConfigChanged);
+    this.#unsubscribeConfig = () => bus.off('config.changed', onConfigChanged);
+
+    transport.on('ready', this.#onReady);
+    transport.on('delta', this.#onDelta);
+    transport.on('finalized', this.#onFinalized);
+    transport.on('error', this.#onTransportError);
+    transport.on('close', this.#onTransportClose);
 
     if (this.#config.primeMicOnAttach) {
       void primeMicrophonePermission();
@@ -264,16 +363,27 @@ export class VoicePlugin {
       this.#unsubscribe();
       this.#unsubscribe = null;
     }
+    if (this.#unsubscribeAuth) {
+      this.#unsubscribeAuth();
+      this.#unsubscribeAuth = null;
+    }
+    if (this.#unsubscribeConfig) {
+      this.#unsubscribeConfig();
+      this.#unsubscribeConfig = null;
+    }
     if (this.#visibilityHandler && typeof document !== 'undefined') {
       document.removeEventListener('visibilitychange', this.#visibilityHandler);
       this.#visibilityHandler = null;
     }
     this.#pausedByVisibility = false;
-    this.#transport.off('ready', this.#onReady);
-    this.#transport.off('delta', this.#onDelta);
-    this.#transport.off('finalized', this.#onFinalized);
-    this.#transport.off('error', this.#onTransportError);
-    this.#transport.off('close', this.#onTransportClose);
+    const transport = this.#transport;
+    if (transport) {
+      transport.off('ready', this.#onReady);
+      transport.off('delta', this.#onDelta);
+      transport.off('finalized', this.#onFinalized);
+      transport.off('error', this.#onTransportError);
+      transport.off('close', this.#onTransportClose);
+    }
 
     void this.#stopCapture();
     if (this.#ttsPlayer) {
@@ -282,11 +392,12 @@ export class VoicePlugin {
     }
     this.#clearFallbackTimer();
     this.#spokenIds.clear();
+    this.#transport = null;
     this.#setState('idle');
   }
 
   update(partial: Partial<VoicePluginConfig>): void {
-    const next = normalizeConfig({ ...this.#config, ...partial, transport: this.#transport });
+    const next = normalizeConfig({ ...this.#config, ...partial });
     const prev = this.#config;
     this.#config = next;
 
@@ -300,6 +411,10 @@ export class VoicePlugin {
 
     if (prev.tts && !next.tts) {
       this.#ttsPlayer?.clear();
+    }
+
+    if (next.ttsPlaybackRate && next.ttsPlaybackRate !== prev.ttsPlaybackRate) {
+      this.#ttsPlayer?.setPlaybackRate(next.ttsPlaybackRate);
     }
   }
 
@@ -320,6 +435,14 @@ export class VoicePlugin {
     if (status !== this.#prevStatus) {
       const prev = this.#prevStatus;
       this.#prevStatus = status;
+      if (this.#ttsPlayer) {
+        this.#ttsPlayer.stop();
+      }
+      this.#clearFallbackTimer();
+      if (this.#state === 'speaking') {
+        const hasCapture = this.#capture !== null || this.#sileroCapture !== null;
+        this.#setState(hasCapture ? 'listening' : 'idle');
+      }
       if (prev === 'busy' && status === 'idle') {
         this.#maybeSpeakLatestAssistant(state.messages);
       }
@@ -335,10 +458,12 @@ export class VoicePlugin {
   async #startCapture(): Promise<void> {
     if (this.#capture || this.#sileroCapture) return;
     if (!this.#config.stt) return;
+    const transport = this.#transport;
+    if (!transport) return;
     this.#setState('connecting');
     try {
-      if (!this.#transport.ready) {
-        await this.#transport.open();
+      if (!transport.ready) {
+        await transport.open();
       }
       if (this.#config.vad.engine === 'silero') {
         await this.#startSilero();
@@ -363,6 +488,8 @@ export class VoicePlugin {
   }
 
   async #startSilero(): Promise<void> {
+    const transport = this.#transport;
+    if (!transport) return;
     this.#sileroCapture = await startSileroCapture({
       positiveThreshold: this.#config.vad.sileroPositiveThreshold,
       negativeThreshold: this.#config.vad.sileroNegativeThreshold,
@@ -373,9 +500,9 @@ export class VoicePlugin {
       },
       onSpeechEnded: () => {
         this.#emit('voice.vad.speech.ended', { at: Date.now(), durationMs: 0 });
-        this.#setState(this.#transport.ready ? 'listening' : 'connecting');
+        this.#setState(transport.ready ? 'listening' : 'connecting');
       },
-      onFrame: (pcm) => this.#transport.sendAudio(pcm),
+      onFrame: (pcm) => transport.sendAudio(pcm),
     });
   }
 
@@ -390,12 +517,14 @@ export class VoicePlugin {
     }
     this.#vad?.reset();
     this.#vad = null;
-    try { await this.#transport.close(); } catch {}
+    try { await this.#transport?.close(); } catch {}
     if (this.#state !== 'error') this.#setState('idle');
   }
 
   #handleFrame(frame: ArrayBuffer): void {
     if (!this.#vad) return;
+    const transport = this.#transport;
+    if (!transport) return;
     const result = this.#vad.process(frame);
     if (result.started) {
       // Barge-in: abort current TTS so the user is heard without overlap.
@@ -403,13 +532,13 @@ export class VoicePlugin {
       this.#emit('voice.vad.speech.started', { at: Date.now() });
       this.#setState('capturing');
     }
-    for (const buf of result.forward) this.#transport.sendAudio(buf);
+    for (const buf of result.forward) transport.sendAudio(buf);
     if (result.ended) {
       this.#emit('voice.vad.speech.ended', {
         at: Date.now(),
         durationMs: result.durationMs ?? 0,
       });
-      this.#setState(this.#transport.ready ? 'listening' : 'connecting');
+      this.#setState(transport.ready ? 'listening' : 'connecting');
     }
   }
 
@@ -480,9 +609,17 @@ export class VoicePlugin {
 
 function normalizeConfig(
   input: VoicePluginConfig,
-): Required<Omit<VoicePluginConfig, 'transport' | 'vad' | 'workletUrl'>> & {
+): Required<
+  Omit<VoicePluginConfig, 'vad' | 'workletUrl' | 'baseUrl' | 'wsUrl' | 'ttsUrl' | 'transportFactory' | 'ttsVoice' | 'ttsPlaybackRate'>
+> & {
   workletUrl: string | undefined;
   vad: VadConfig;
+  baseUrl: string | undefined;
+  wsUrl: string | undefined;
+  ttsUrl: string | undefined;
+  ttsVoice: string | undefined;
+  ttsPlaybackRate: number | undefined;
+  transportFactory: VoicePluginConfig['transportFactory'];
 } {
   return {
     stt: input.stt ?? true,
@@ -495,6 +632,13 @@ function normalizeConfig(
     primeMicOnAttach: input.primeMicOnAttach ?? true,
     resumeOnRestore: input.resumeOnRestore ?? true,
     debug: input.debug ?? false,
+    ttsVoice: input.ttsVoice,
+    reconnectOnce: input.reconnectOnce ?? true,
+    baseUrl: input.baseUrl,
+    wsUrl: input.wsUrl,
+    ttsUrl: input.ttsUrl,
+    ttsPlaybackRate: input.ttsPlaybackRate,
+    transportFactory: input.transportFactory,
   };
 }
 
@@ -520,7 +664,7 @@ function extractAssistantText(message: ChatMessage): string {
 // Adapter for the @axsdk/core plugin system (AXSDK.use / unload / plugin).
 // Returns the underlying VoicePlugin instance as the plugin API so host code
 // can still call unlockAudio(), update(), etc. via AXSDK.plugin('@axsdk/voice').
-export function voicePlugin(config: VoicePluginConfig): {
+export function voicePlugin(config: VoicePluginConfig = {}): {
   readonly name: string;
   readonly version: string;
   install(ctx: { sdk: unknown }): VoicePlugin;

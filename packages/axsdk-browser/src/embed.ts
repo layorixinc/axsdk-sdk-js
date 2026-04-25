@@ -3,10 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { AXSDK, type DeferFn } from '@axsdk/core';
 import { AXUI, AXShadowRootProvider } from '@axsdk/react';
 import {
-  OpenAIRealtimeTransport,
   VoicePlugin,
   type VoicePluginConfig,
-  type OpenAIRealtimeTransportConfig,
   type VadConfig,
 } from '@axsdk/voice';
 import { handleAX } from './axhandler';
@@ -15,7 +13,7 @@ import type { AXTheme } from './types';
 
 export type { AXTheme };
 
-export interface AXSDKBrowserVoiceConfig extends OpenAIRealtimeTransportConfig {
+export interface AXSDKBrowserVoiceConfig {
   stt?: boolean;
   tts?: boolean;
   mode?: VoicePluginConfig['mode'];
@@ -24,6 +22,11 @@ export interface AXSDKBrowserVoiceConfig extends OpenAIRealtimeTransportConfig {
   primeMicOnAttach?: boolean;
   resumeOnRestore?: boolean;
   debug?: boolean;
+  ttsVoice?: string;
+  reconnectOnce?: boolean;
+  baseUrl?: string;
+  wsUrl?: string;
+  ttsUrl?: string;
 }
 
 export interface AXSDKBrowserConfig {
@@ -131,16 +134,7 @@ const AXSDKBrowser = {
 
     if (voice) {
       try {
-        const transport = new OpenAIRealtimeTransport({
-          wsUrl: voice.wsUrl,
-          ttsUrl: voice.ttsUrl,
-          apiKey: voice.apiKey ?? config.apiKey,
-          appId: voice.appId ?? config.appId,
-          ttsVoice: voice.ttsVoice,
-          reconnectOnce: voice.reconnectOnce,
-        });
         _voice = new VoicePlugin({
-          transport,
           workletUrl: workletBlobUrl(),
           stt: voice.stt,
           tts: voice.tts,
@@ -150,6 +144,11 @@ const AXSDKBrowser = {
           primeMicOnAttach: voice.primeMicOnAttach,
           resumeOnRestore: voice.resumeOnRestore,
           debug: voice.debug,
+          ttsVoice: voice.ttsVoice,
+          reconnectOnce: voice.reconnectOnce,
+          baseUrl: voice.baseUrl,
+          wsUrl: voice.wsUrl,
+          ttsUrl: voice.ttsUrl,
         });
         _voice.attach(AXSDK);
       } catch (err) {

@@ -3,14 +3,14 @@
 import { useEffect, useState } from 'react';
 import { AXSDK } from '@axsdk/core';
 import type {
-  OpenAIRealtimeTransportConfig,
   VadConfig,
   VoiceMode,
   VoicePlugin as VoicePluginType,
+  VoicePluginConfig,
   VoiceState,
 } from '@axsdk/voice';
 
-export interface AXVoiceConfig extends OpenAIRealtimeTransportConfig {
+export interface AXVoiceConfig {
   stt?: boolean;
   tts?: boolean;
   mode?: VoiceMode;
@@ -19,15 +19,15 @@ export interface AXVoiceConfig extends OpenAIRealtimeTransportConfig {
   primeMicOnAttach?: boolean;
   resumeOnRestore?: boolean;
   debug?: boolean;
+  ttsVoice?: string;
+  reconnectOnce?: boolean;
+  baseUrl?: string;
+  wsUrl?: string;
+  ttsUrl?: string;
 }
 
 interface VoiceModule {
-  VoicePlugin: typeof VoicePluginType;
-  OpenAIRealtimeTransport: new (config: OpenAIRealtimeTransportConfig) => {
-    open(): Promise<void>;
-    close(): Promise<void>;
-    ready: boolean;
-  } & object;
+  VoicePlugin: new (config?: VoicePluginConfig) => VoicePluginType;
 }
 
 let _cached: Promise<VoiceModule> | null = null;
@@ -51,17 +51,7 @@ export function useVoicePlugin(config: AXVoiceConfig | null | undefined): VoiceP
       try {
         const mod = await loadVoice();
         if (cancelled) return;
-        const core = AXSDK.config;
-        const transport = new mod.OpenAIRealtimeTransport({
-          wsUrl: config.wsUrl,
-          ttsUrl: config.ttsUrl,
-          apiKey: config.apiKey ?? core?.apiKey,
-          appId: config.appId ?? core?.appId,
-          ttsVoice: config.ttsVoice,
-          reconnectOnce: config.reconnectOnce,
-        });
         instance = new mod.VoicePlugin({
-          transport: transport as never,
           stt: config.stt,
           tts: config.tts,
           mode: config.mode,
@@ -70,6 +60,11 @@ export function useVoicePlugin(config: AXVoiceConfig | null | undefined): VoiceP
           primeMicOnAttach: config.primeMicOnAttach,
           resumeOnRestore: config.resumeOnRestore,
           debug: config.debug,
+          ttsVoice: config.ttsVoice,
+          reconnectOnce: config.reconnectOnce,
+          baseUrl: config.baseUrl,
+          wsUrl: config.wsUrl,
+          ttsUrl: config.ttsUrl,
         });
         instance.attach(AXSDK as never);
         if (cancelled) {
@@ -94,10 +89,9 @@ export function useVoicePlugin(config: AXVoiceConfig | null | undefined): VoiceP
     // still tracked here as the common case).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    config?.baseUrl,
     config?.wsUrl,
     config?.ttsUrl,
-    config?.apiKey,
-    config?.appId,
     config?.stt,
     config?.tts,
     config?.mode,

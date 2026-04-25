@@ -128,6 +128,8 @@ class AxSdk extends EventEmitter {
       DeferredCallManager.setHandler((command, args) => processAXHandler(command, args));
       DeferredCallManager.restore();
       await AXCHAT.start();
+    } else {
+      EventBus.emit('config.changed', { config });
     }
   }
 
@@ -170,8 +172,13 @@ class AxSdk extends EventEmitter {
     return appStore;
   }
 
+  public getEndpoint(): { baseUrl: string; basePath: string } {
+    return { baseUrl: Config.baseURL, basePath: Config.basePath };
+  }
+
   public setAppAuthToken(appAuthToken: string | undefined): void {
     appStore.getState().setAppAuthToken(appAuthToken);
+    EventBus.emit('config.changed', { config: this.config });
   }
 
   public getLanguage(): string {
