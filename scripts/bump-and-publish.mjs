@@ -9,8 +9,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, '..');
 const packagesDir = join(rootDir, 'packages');
 
-// Publish order (dependency order: core first, then react, then browser)
-const PUBLISH_ORDER = ['axsdk-core', 'axsdk-react', 'axsdk-browser'];
+// Publish order (dependency order: voice -> core -> react -> browser)
+const PUBLISH_ORDER = ['axsdk-voice', 'axsdk-core', 'axsdk-react', 'axsdk-browser'];
 
 const bumpType = process.argv[2] || 'patch';
 if (!['patch', 'minor', 'major'].includes(bumpType)) {

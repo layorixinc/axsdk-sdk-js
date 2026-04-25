@@ -12,7 +12,7 @@
     "bump:minor": "node scripts/bump-and-publish.mjs minor",
     "bump:major": "node scripts/bump-and-publish.mjs major",
     "bump:dry": "node scripts/bump-and-publish.mjs patch --dry-run",
-    "build": "node scripts/set-workspace-deps.mjs && cd packages/axsdk-core && bun install && bun run build && cd ../axsdk-react && bun install && bun run build && cd ../axsdk-browser && bun install && bun run build"
+    "build": "node scripts/set-workspace-deps.mjs && cd packages/axsdk-voice && bun install && bun run build && cd ../axsdk-core && bun install && bun run build && cd ../axsdk-react && bun install && bun run build && cd ../axsdk-browser && bun install && bun run build"
   },
   "workspaces": {
     "packages": [
