@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AXSDK } from '@axsdk/core';
-import type { VoiceState } from '@axsdk/voice';
-import { useVoiceState, useVoiceUnlockNeeded } from '../voice';
+import type { SttState, TtsState } from '@axsdk/voice';
+import { useSttState, useTtsState, useVoiceUnlockNeeded } from '../voice';
 import { useAXShadowRoot } from '../AXShadowRootContext';
 
 export interface AXVoiceIndicatorProps {
@@ -129,47 +129,29 @@ interface Visual {
   color: string;
   outerEffect?: React.ReactNode;
   innerAnimation?: string;
+  source: 'stt' | 'tts' | 'unlock' | 'error' | 'idle';
 }
 
-function getVisual(state: VoiceState, perm: PermState, needsUnlock: boolean): Visual {
+function getVisual(stt: SttState, tts: TtsState, perm: PermState, needsUnlock: boolean): Visual {
   if (needsUnlock) {
     return {
       icon: <PlayIcon />,
       bg: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
       color: '#fff',
       innerAnimation: 'axv-unlock-pulse 1.6s ease-in-out infinite',
+      source: 'unlock',
     };
   }
-  if (state === 'idle') {
+  if (stt === 'error' || tts === 'error') {
     return {
-      icon: <MicIcon muted />,
-      bg: 'rgba(30,30,40,0.55)',
-      color: 'rgba(255,255,255,0.85)',
-    };
-  }
-  if (state === 'connecting') {
-    return {
-      icon: perm === 'prompt' ? <MicIcon /> : <Spinner />,
-      bg: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+      icon: <MicIcon slashed />,
+      bg: 'linear-gradient(135deg, #b91c1c, #7f1d1d)',
       color: '#fff',
+      innerAnimation: 'axv-error-blink 1.6s ease-in-out 1',
+      source: 'error',
     };
   }
-  if (state === 'listening') {
-    return {
-      icon: <MicIcon />,
-      bg: 'linear-gradient(135deg, #10b981, #059669)',
-      color: '#fff',
-      innerAnimation: 'axv-breathe 2.4s ease-in-out infinite',
-    };
-  }
-  if (state === 'capturing') {
-    return {
-      icon: <Bars />,
-      bg: 'linear-gradient(135deg, #ef4444, #f97316)',
-      color: '#fff',
-    };
-  }
-  if (state === 'speaking') {
+  if (tts === 'speaking') {
     return {
       icon: <SpeakerIcon />,
       bg: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
@@ -180,14 +162,66 @@ function getVisual(state: VoiceState, perm: PermState, needsUnlock: boolean): Vi
           <div style={ringStyle(0.6)} />
         </>
       ),
+      source: 'tts',
+    };
+  }
+  if (stt === 'capturing') {
+    return {
+      icon: <Bars />,
+      bg: 'linear-gradient(135deg, #ef4444, #f97316)',
+      color: '#fff',
+      source: 'stt',
+    };
+  }
+  if (tts === 'queued') {
+    return {
+      icon: <Spinner />,
+      bg: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+      color: '#fff',
+      source: 'tts',
+    };
+  }
+  if (stt === 'listening') {
+    return {
+      icon: <MicIcon />,
+      bg: 'linear-gradient(135deg, #10b981, #059669)',
+      color: '#fff',
+      innerAnimation: 'axv-breathe 2.4s ease-in-out infinite',
+      source: 'stt',
+    };
+  }
+  if (stt === 'connecting') {
+    return {
+      icon: perm === 'prompt' ? <MicIcon /> : <Spinner />,
+      bg: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+      color: '#fff',
+      source: 'stt',
     };
   }
   return {
-    icon: <MicIcon slashed />,
-    bg: 'linear-gradient(135deg, #b91c1c, #7f1d1d)',
-    color: '#fff',
-    innerAnimation: 'axv-error-blink 1.6s ease-in-out 1',
+    icon: <MicIcon muted />,
+    bg: 'rgba(30,30,40,0.55)',
+    color: 'rgba(255,255,255,0.85)',
+    source: 'idle',
   };
+}
+
+interface AuxDot {
+  color: string;
+  pulse?: boolean;
+}
+
+function getAuxDot(stt: SttState, tts: TtsState, mainSource: Visual['source']): AuxDot | null {
+  if (mainSource === 'unlock' || mainSource === 'error' || mainSource === 'idle') return null;
+  if (mainSource === 'tts') {
+    if (stt === 'capturing') return { color: '#ef4444', pulse: true };
+    if (stt === 'listening') return { color: '#10b981' };
+    if (stt === 'connecting') return { color: '#6366f1' };
+    return null;
+  }
+  if (tts === 'speaking') return { color: '#06b6d4', pulse: true };
+  if (tts === 'queued') return { color: '#8b5cf6', pulse: true };
+  return null;
 }
 
 function ringStyle(delay: number): React.CSSProperties {
@@ -203,45 +237,48 @@ function ringStyle(delay: number): React.CSSProperties {
 }
 
 function tooltipText(
-  state: VoiceState,
+  stt: SttState,
+  tts: TtsState,
   perm: PermState,
   errorMsg: string | null,
   needsUnlock: boolean,
 ): string {
   if (needsUnlock) return AXSDK.t('voiceUnlockPrompt');
-  if (state === 'error') {
+  if (stt === 'error' || tts === 'error') {
     if (errorMsg && /permission|denied|notallowed/i.test(errorMsg)) {
       return AXSDK.t('voicePermissionDenied');
     }
     return errorMsg || AXSDK.t('voiceError');
   }
-  if (state === 'idle') return AXSDK.t('voiceIdle');
-  if (state === 'connecting') {
-    return perm === 'prompt'
-      ? AXSDK.t('voicePermissionWaiting')
-      : AXSDK.t('voiceConnecting');
+  const parts: string[] = [];
+  if (tts === 'speaking') parts.push(AXSDK.t('voiceSpeaking'));
+  else if (tts === 'queued') parts.push(AXSDK.t('voiceConnecting'));
+  if (stt === 'capturing') parts.push(AXSDK.t('voiceCapturing'));
+  else if (stt === 'listening') parts.push(AXSDK.t('voiceListening'));
+  else if (stt === 'connecting') {
+    parts.push(perm === 'prompt' ? AXSDK.t('voicePermissionWaiting') : AXSDK.t('voiceConnecting'));
   }
-  if (state === 'listening') return AXSDK.t('voiceListening');
-  if (state === 'capturing') return AXSDK.t('voiceCapturing');
-  if (state === 'speaking') return AXSDK.t('voiceSpeaking');
-  return '';
+  if (parts.length === 0) return AXSDK.t('voiceIdle');
+  return parts.join(' · ');
 }
 
-function shouldAutoShowTooltip(state: VoiceState, perm: PermState, needsUnlock: boolean): boolean {
+function shouldAutoShowTooltip(stt: SttState, perm: PermState, needsUnlock: boolean, hasError: boolean): boolean {
   if (needsUnlock) return true;
-  if (state === 'error') return true;
-  if (state === 'connecting' && perm === 'prompt') return true;
+  if (hasError) return true;
+  if (stt === 'connecting' && perm === 'prompt') return true;
   return false;
 }
 
 export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceIndicatorProps) {
   const shadowRoot = useAXShadowRoot();
-  const state = useVoiceState();
+  const stt = useSttState();
+  const tts = useTtsState();
   const [perm, setPerm] = useState<PermState>('unknown');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [hover, setHover] = useState(false);
   const needsUnlock = useVoiceUnlockNeeded();
-  const prevStateRef = useRef<VoiceState>('idle');
+  const prevSttRef = useRef<SttState>('idle');
+  const prevTtsRef = useRef<TtsState>('idle');
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -264,11 +301,16 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
   }, []);
 
   useEffect(() => {
-    if (debug && prevStateRef.current !== state) {
-      console.log('[AXVoiceIndicator] state →', state, 'perm:', perm, 'needsUnlock:', needsUnlock);
+    if (!debug) return;
+    if (prevSttRef.current !== stt) {
+      console.log('[AXVoiceIndicator] stt →', stt, 'perm:', perm, 'needsUnlock:', needsUnlock);
+      prevSttRef.current = stt;
     }
-    prevStateRef.current = state;
-  }, [state, perm, needsUnlock, debug]);
+    if (prevTtsRef.current !== tts) {
+      console.log('[AXVoiceIndicator] tts →', tts);
+      prevTtsRef.current = tts;
+    }
+  }, [stt, tts, perm, needsUnlock, debug]);
 
   useEffect(() => {
     let cancelled = false;
@@ -318,15 +360,17 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
     };
   }, [debug]);
 
-  const activeError = state === 'error' ? errorMsg : null;
+  const hasError = stt === 'error' || tts === 'error';
+  const activeError = hasError ? errorMsg : null;
 
-  const visual = getVisual(state, perm, needsUnlock);
+  const visual = getVisual(stt, tts, perm, needsUnlock);
+  const aux = getAuxDot(stt, tts, visual.source);
   const orbCSS = typeof orbSize === 'number' ? `${orbSize}px` : orbSize;
   const badgeSize = needsUnlock
     ? `calc(${orbCSS} * 0.55)`
     : `calc(${orbCSS} * 0.45)`;
-  const tooltip = tooltipText(state, perm, activeError, needsUnlock);
-  const showTooltip = hover || shouldAutoShowTooltip(state, perm, needsUnlock);
+  const tooltip = tooltipText(stt, tts, perm, activeError, needsUnlock);
+  const showTooltip = hover || shouldAutoShowTooltip(stt, perm, needsUnlock, hasError);
 
   return (
     <div
@@ -357,6 +401,22 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
       >
         {visual.icon}
       </div>
+
+      {aux && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '-8%',
+            right: '-8%',
+            width: '32%',
+            height: '32%',
+            borderRadius: '50%',
+            background: aux.color,
+            boxShadow: '0 0 0 2px var(--ax-bg-popover, rgba(20,20,30,0.92)), 0 2px 6px rgba(0,0,0,0.4)',
+            animation: aux.pulse ? 'axv-breathe 1.4s ease-in-out infinite' : undefined,
+          }}
+        />
+      )}
 
       {showTooltip && tooltip && (
         <div

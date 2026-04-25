@@ -1,9 +1,11 @@
-export { VoicePlugin, voicePlugin, VOICE_PLUGIN_VERSION } from './plugin';
+export { VoicePlugin, voicePlugin, VOICE_PLUGIN_VERSION, deriveVoiceState } from './plugin';
 export type {
   VoicePluginConfig,
   VoiceMode,
   VoiceSource,
   VoiceState,
+  SttState,
+  TtsState,
   VoiceEventMap,
 } from './plugin';
 

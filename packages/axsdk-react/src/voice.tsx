@@ -8,6 +8,8 @@ import type {
   VoicePlugin as VoicePluginType,
   VoicePluginConfig,
   VoiceState,
+  SttState,
+  TtsState,
 } from '@axsdk/voice';
 
 export interface AXVoiceConfig {
@@ -137,6 +139,28 @@ export function useVoiceState(initial: VoiceState = 'idle'): VoiceState {
     return () => {
       bus.off('voice.state', handler);
     };
+  }, []);
+  return state;
+}
+
+export function useSttState(initial: SttState = 'idle'): SttState {
+  const [state, setState] = useState<SttState>(initial);
+  useEffect(() => {
+    const bus = AXSDK.eventBus();
+    const handler = (p: { status: SttState }) => setState(p.status);
+    bus.on('voice.stt.state', handler);
+    return () => { bus.off('voice.stt.state', handler); };
+  }, []);
+  return state;
+}
+
+export function useTtsState(initial: TtsState = 'idle'): TtsState {
+  const [state, setState] = useState<TtsState>(initial);
+  useEffect(() => {
+    const bus = AXSDK.eventBus();
+    const handler = (p: { status: TtsState }) => setState(p.status);
+    bus.on('voice.tts.state', handler);
+    return () => { bus.off('voice.tts.state', handler); };
   }, []);
   return state;
 }

@@ -17,6 +17,19 @@ import {
 export type VoiceMode = 'assistant' | 'echo';
 export type VoiceSource = 'microphone' | 'desktop';
 
+export type SttState =
+  | 'idle'
+  | 'connecting'
+  | 'listening'
+  | 'capturing'
+  | 'error';
+
+export type TtsState =
+  | 'idle'
+  | 'queued'
+  | 'speaking'
+  | 'error';
+
 export type VoiceState =
   | 'idle'
   | 'connecting'
@@ -24,6 +37,16 @@ export type VoiceState =
   | 'capturing'
   | 'speaking'
   | 'error';
+
+export function deriveVoiceState(stt: SttState, tts: TtsState): VoiceState {
+  if (stt === 'error' || tts === 'error') return 'error';
+  if (tts === 'speaking') return 'speaking';
+  if (stt === 'capturing') return 'capturing';
+  if (stt === 'listening') return 'listening';
+  if (stt === 'connecting') return 'connecting';
+  if (tts === 'queued') return 'connecting';
+  return 'idle';
+}
 
 export interface VoicePluginConfig {
   stt?: boolean;
@@ -58,6 +81,8 @@ export interface VoicePluginConfig {
 
 export interface VoiceEventMap {
   'voice.state': { status: VoiceState };
+  'voice.stt.state': { status: SttState };
+  'voice.tts.state': { status: TtsState };
   'voice.vad.speech.started': { at: number };
   'voice.vad.speech.ended': { at: number; durationMs: number };
   'voice.transcript.delta': { text: string };
@@ -149,7 +174,9 @@ export class VoicePlugin {
   #sileroCapture: SileroCaptureHandle | null = null;
   #vad: Vad | null = null;
   #ttsPlayer: TtsPlayer | null = null;
-  #state: VoiceState = 'idle';
+  #sttState: SttState = 'idle';
+  #ttsState: TtsState = 'idle';
+  #lastDerived: VoiceState = 'idle';
 
   #prevIsOpen = false;
   #prevStatus: string | undefined = undefined;
@@ -162,12 +189,12 @@ export class VoicePlugin {
   #fallbackTimer: ReturnType<typeof setTimeout> | null = null;
   #deferredCloseAfterSpeak = false;
 
-  // VAD rising edge owns the `capturing` transition — `ready` must not force
-  // it, otherwise the UI would think we're uploading voice when the mic is
-  // still silent.
+  // VAD owns 'capturing'; transport ready only nudges STT to 'listening' if STT was actually starting up.
   readonly #onReady = () => {
-    if (this.#state === 'capturing' || this.#state === 'speaking') return;
-    this.#setState('listening');
+    const hasCapture = this.#capture !== null || this.#sileroCapture !== null;
+    if (!hasCapture) return;
+    if (this.#sttState === 'capturing') return;
+    this.#setSttState('listening');
   };
   readonly #onDelta = ({ text }: { text: string }) => {
     this.#emit('voice.transcript.delta', { text });
@@ -194,7 +221,8 @@ export class VoicePlugin {
     this.#emit('voice.error', { scope: 'transport', message });
   };
   readonly #onTransportClose = () => {
-    if (this.#state !== 'idle') this.#setState('listening');
+    const hasCapture = this.#capture !== null || this.#sileroCapture !== null;
+    if (hasCapture && this.#sttState !== 'idle') this.#setSttState('connecting');
   };
 
   constructor(config: VoicePluginConfig = {}) {
@@ -202,7 +230,15 @@ export class VoicePlugin {
   }
 
   get state(): VoiceState {
-    return this.#state;
+    return deriveVoiceState(this.#sttState, this.#ttsState);
+  }
+
+  get sttState(): SttState {
+    return this.#sttState;
+  }
+
+  get ttsState(): TtsState {
+    return this.#ttsState;
   }
 
   async unlockAudio(): Promise<void> {
@@ -259,29 +295,33 @@ export class VoicePlugin {
     this.#ttsPlayer = new TtsPlayer(transport, {
       playbackRate: this.#config.ttsPlaybackRate,
     });
-    this.#ttsPlayer.on('queued', (p) => this.#emit('voice.tts.queued', p));
+    this.#ttsPlayer.on('queued', (p) => {
+      this.#emit('voice.tts.queued', p);
+      if (this.#ttsState === 'idle') this.#setTtsState('queued');
+    });
     this.#ttsPlayer.on('playback.started', (p) => {
-      this.#setState('speaking');
+      this.#setTtsState('speaking');
       this.#emit('voice.tts.playback.started', p);
     });
     this.#ttsPlayer.on('playback.ended', (p) => {
       this.#emit('voice.tts.playback.ended', p);
-      const hasCapture = this.#capture !== null || this.#sileroCapture !== null;
-      this.#setState(hasCapture ? 'listening' : 'idle');
+      if (!this.#ttsPlayer?.isActive) this.#setTtsState('idle');
       if (this.#deferredCloseAfterSpeak) {
         this.#deferredCloseAfterSpeak = false;
         void this.#stopCapture();
       }
     });
-    this.#ttsPlayer.on('error', ({ messageId, message }) =>
+    this.#ttsPlayer.on('error', ({ messageId, message }) => {
       this.#emit('voice.error', {
         scope: 'tts',
         message: `${messageId}: ${message}`,
-      }),
-    );
-    this.#ttsPlayer.on('gesture_required', ({ messageId }) =>
-      this.#emit('voice.tts.gesture_required', { messageId }),
-    );
+      });
+      if (!this.#ttsPlayer?.isActive) this.#setTtsState('idle');
+    });
+    this.#ttsPlayer.on('gesture_required', ({ messageId }) => {
+      this.#emit('voice.tts.gesture_required', { messageId });
+      this.#setTtsState('queued');
+    });
 
     const store = axsdk.getChatStore();
     const initial = store.getState();
@@ -407,7 +447,8 @@ export class VoicePlugin {
     this.#clearFallbackTimer();
     this.#spokenIds.clear();
     this.#transport = null;
-    this.#setState('idle');
+    this.#setSttState('idle');
+    this.#setTtsState('idle');
   }
 
   update(partial: Partial<VoicePluginConfig>): void {
@@ -442,12 +483,10 @@ export class VoicePlugin {
         this.#deferredCloseAfterSpeak = false;
         if (this.#shouldAutoStart()) void this.#startCapture();
       } else {
-        // voice.state may race chat-close on the same tick — check the player directly.
         const ttsActive = !!this.#ttsPlayer?.isActive;
         if (ttsActive) {
           void this.#stopMicOnly();
           this.#deferredCloseAfterSpeak = true;
-          if (this.#state !== 'speaking') this.#setState('speaking');
         } else {
           void this.#stopCapture();
         }
@@ -462,10 +501,7 @@ export class VoicePlugin {
         this.#ttsPlayer.stop();
       }
       this.#clearFallbackTimer();
-      if (this.#state === 'speaking') {
-        const hasCapture = this.#capture !== null || this.#sileroCapture !== null;
-        this.#setState(hasCapture ? 'listening' : 'idle');
-      }
+      if (this.#ttsState !== 'idle') this.#setTtsState('idle');
       if (prev === 'busy' && status === 'idle') {
         this.#maybeSpeakLatestAssistant(state.messages);
       }
@@ -483,9 +519,7 @@ export class VoicePlugin {
     if (!this.#config.stt) return;
     const transport = this.#transport;
     if (!transport) return;
-    // 'speaking' wins over 'connecting'/'listening' — mic starts silently while TTS finishes.
-    const speaking = this.#state === 'speaking';
-    if (!speaking) this.#setState('connecting');
+    this.#setSttState('connecting');
     try {
       if (!transport.ready) {
         await transport.open();
@@ -495,11 +529,11 @@ export class VoicePlugin {
       } else {
         await this.#startRms();
       }
-      if (this.#state !== 'speaking') this.#setState('listening');
+      if (this.#sttState !== 'capturing') this.#setSttState('listening');
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.#emit('voice.error', { scope: 'capture', message });
-      this.#setState('error');
+      this.#setSttState('error');
       await this.#stopCapture();
     }
   }
@@ -519,13 +553,13 @@ export class VoicePlugin {
       positiveThreshold: this.#config.vad.sileroPositiveThreshold,
       negativeThreshold: this.#config.vad.sileroNegativeThreshold,
       onSpeechStarted: () => {
-        if (this.#state === 'speaking') this.#ttsPlayer?.stop();
+        if (this.#ttsState === 'speaking') this.#ttsPlayer?.stop();
         this.#emit('voice.vad.speech.started', { at: Date.now() });
-        this.#setState('capturing');
+        this.#setSttState('capturing');
       },
       onSpeechEnded: () => {
         this.#emit('voice.vad.speech.ended', { at: Date.now(), durationMs: 0 });
-        this.#setState(transport.ready ? 'listening' : 'connecting');
+        this.#setSttState(transport.ready ? 'listening' : 'connecting');
       },
       onFrame: (pcm) => transport.sendAudio(pcm),
     });
@@ -542,12 +576,12 @@ export class VoicePlugin {
     }
     this.#vad?.reset();
     this.#vad = null;
+    if (this.#sttState !== 'error') this.#setSttState('idle');
   }
 
   async #stopCapture(): Promise<void> {
     await this.#stopMicOnly();
     try { await this.#transport?.close(); } catch {}
-    if (this.#state !== 'error' && this.#state !== 'speaking') this.#setState('idle');
   }
 
   #handleFrame(frame: ArrayBuffer): void {
@@ -557,9 +591,9 @@ export class VoicePlugin {
     const result = this.#vad.process(frame);
     if (result.started) {
       // Barge-in: abort current TTS so the user is heard without overlap.
-      if (this.#state === 'speaking') this.#ttsPlayer?.stop();
+      if (this.#ttsState === 'speaking') this.#ttsPlayer?.stop();
       this.#emit('voice.vad.speech.started', { at: Date.now() });
-      this.#setState('capturing');
+      this.#setSttState('capturing');
     }
     for (const buf of result.forward) transport.sendAudio(buf);
     if (result.ended) {
@@ -567,7 +601,7 @@ export class VoicePlugin {
         at: Date.now(),
         durationMs: result.durationMs ?? 0,
       });
-      this.#setState(transport.ready ? 'listening' : 'connecting');
+      this.#setSttState(transport.ready ? 'listening' : 'connecting');
     }
   }
 
@@ -621,10 +655,29 @@ export class VoicePlugin {
     }
   }
 
-  #setState(next: VoiceState): void {
-    if (this.#state === next) return;
-    this.#state = next;
-    this.#emit('voice.state', { status: next });
+  #setSttState(next: SttState): void {
+    if (this.#sttState === next) return;
+    const prev = this.#sttState;
+    this.#sttState = next;
+    this.#debug(`[stt] ${prev} → ${next}`);
+    this.#emit('voice.stt.state', { status: next });
+    this.#emitDerived();
+  }
+
+  #setTtsState(next: TtsState): void {
+    if (this.#ttsState === next) return;
+    const prev = this.#ttsState;
+    this.#ttsState = next;
+    this.#debug(`[tts] ${prev} → ${next}`);
+    this.#emit('voice.tts.state', { status: next });
+    this.#emitDerived();
+  }
+
+  #emitDerived(): void {
+    const derived = deriveVoiceState(this.#sttState, this.#ttsState);
+    if (derived === this.#lastDerived) return;
+    this.#lastDerived = derived;
+    this.#emit('voice.state', { status: derived });
   }
 
   #emit<K extends keyof VoiceEventMap>(event: K, payload: VoiceEventMap[K]): void {
