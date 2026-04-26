@@ -172,6 +172,8 @@ export class VoicePlugin {
   #unsubscribeConfig: (() => void) | null = null;
   #capture: CaptureHandle | null = null;
   #sileroCapture: SileroCaptureHandle | null = null;
+  #startingCapture = false;
+  #reconnectDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   #vad: Vad | null = null;
   #ttsPlayer: TtsPlayer | null = null;
   #sttState: SttState = 'idle';
@@ -349,6 +351,13 @@ export class VoicePlugin {
         this.#emit('voice.error', { scope: 'transport', message });
       });
     };
+    const reconnectDebounced = () => {
+      if (this.#reconnectDebounceTimer) clearTimeout(this.#reconnectDebounceTimer);
+      this.#reconnectDebounceTimer = setTimeout(() => {
+        this.#reconnectDebounceTimer = null;
+        reconnect();
+      }, 100);
+    };
     this.#unsubscribeAuth = appStore.subscribe((state) => {
       const authChanged = state.appAuthToken !== prevAuth;
       const userChanged = state.appUserId !== prevUserId;
@@ -359,7 +368,7 @@ export class VoicePlugin {
     });
 
     const bus = axsdk.eventBus();
-    const onConfigChanged = () => reconnect();
+    const onConfigChanged = () => reconnectDebounced();
     bus.on('config.changed', onConfigChanged);
     this.#unsubscribeConfig = () => bus.off('config.changed', onConfigChanged);
 
@@ -432,6 +441,10 @@ export class VoicePlugin {
     if (this.#unsubscribeConfig) {
       this.#unsubscribeConfig();
       this.#unsubscribeConfig = null;
+    }
+    if (this.#reconnectDebounceTimer) {
+      clearTimeout(this.#reconnectDebounceTimer);
+      this.#reconnectDebounceTimer = null;
     }
     if (this.#visibilityHandler && typeof document !== 'undefined') {
       document.removeEventListener('visibilitychange', this.#visibilityHandler);
@@ -535,10 +548,11 @@ export class VoicePlugin {
   }
 
   async #startCapture(): Promise<void> {
-    if (this.#capture || this.#sileroCapture) return;
+    if (this.#capture || this.#sileroCapture || this.#startingCapture) return;
     if (!this.#config.stt) return;
     const transport = this.#transport;
     if (!transport) return;
+    this.#startingCapture = true;
     this.#setSttState('connecting');
     try {
       if (!transport.ready) {
@@ -555,6 +569,8 @@ export class VoicePlugin {
       this.#emit('voice.error', { scope: 'capture', message });
       this.#setSttState('error');
       await this.#stopCapture();
+    } finally {
+      this.#startingCapture = false;
     }
   }
 

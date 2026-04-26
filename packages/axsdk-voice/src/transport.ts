@@ -128,7 +128,7 @@ export class OpenAIRealtimeTransport implements VoiceTransport {
   sendAudio(pcm16le: ArrayBuffer): void {
     const ws = this.#ws;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    ws.send(pcm16le);
+    try { ws.send(pcm16le); } catch {}
   }
 
   async synthesize(text: string, opts?: { voice?: string }): Promise<Blob> {
