@@ -61,8 +61,14 @@ export async function getKnowledgeGroups() {
   return api.get('/knowledge/groups') as Promise<{ groups: { group: string; count: number }[] }>;
 }
 
-export async function searchKnowledge(options: { group?: string; regex: string; page?: number; limit?: number }) {
-  const page = options.page ?? 1
+export async function searchKnowledge(options: { group?: string; regex: string; cursor?: string; limit?: number }) {
   const limit = options.limit ?? 20
-  return api.get('/knowledge/search', { params: { group: options.group ?? '', pattern: options.regex, page, limit } });
+  return api.get('/knowledge/search', {
+    params: {
+      group: options.group ?? '',
+      pattern: options.regex,
+      cursor: options.cursor ?? '',
+      limit,
+    },
+  });
 }

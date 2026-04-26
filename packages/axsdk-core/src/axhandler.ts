@@ -66,29 +66,31 @@ export async function AX_get_knowledge_groups() {
 
 export const AX_search_knowledge_schema = `{
   "name": "AX_search_knowledge",
-  "description": "Search knowledge base using regex pattern. Optionally fetch and search from an external JSON URL.",
+  "description": "Search the knowledge base with a case-insensitive regex. Escape regex metacharacters (. * + ? ( ) [ ] etc.) when you want a literal match. Use the returned next_cursor to fetch the next page with the same regex.",
   "parameters": {
     "type": "object",
     "properties": {
-      "regex": { "type": "string", "description": "Regular expression pattern to search" },
-      "group": { "type": "string", "description": "Knowledge group to search within" },
-      "url": { "type": "string", "description": "Optional Knowledge URL. If specified, fetches JSON data from this URL and searches within it instead of the local knowledge base. Expected response format: { total: number, data: [...] }" },
-      "page": { "type": "number", "description": "Page number for pagination (default: 1)" },
-      "limit": { "type": "number", "description": "Number of results per page (default: 20)" }
+      "regex":  { "type": "string", "description": "Case-insensitive regular expression." },
+      "group":  { "type": "string", "description": "Restrict search to this knowledge group." },
+      "cursor": { "type": "string", "description": "Opaque cursor from a previous response to fetch the next page." },
+      "limit":  { "type": "integer", "description": "Max results per call (1-50, default 20).", "minimum": 1, "maximum": 50 }
     },
     "required": ["regex"]
   }
 }`;
 
 export async function AX_search_knowledge(args: unknown) {
-  const { group, regex, page = 1, limit = 20, url } = args as { group?: string; regex: string; page?: number; limit?: number; url?: string };
+  const { regex, group, cursor, limit } = (args ?? {}) as {
+    regex?: string; group?: string; cursor?: string; limit?: number;
+  };
   if (!regex) {
-    return { groups: {}, total: 0, page, limit, error: 'Missing regex' };
+    return { results: [], next_cursor: null, error: 'missing_regex' };
   }
+  const cap = Math.min(Math.max(1, Number(limit) || 20), 50);
   try {
-    return await AXSDK.searchKnowledge({ group, regex, page, limit, url });
+    return await AXSDK.searchKnowledge({ regex, group, cursor, limit: cap });
   } catch (e) {
-    return { groups: {}, total: 0, page, limit, error: (e as Error).message };
+    return { results: [], next_cursor: null, error: (e as Error).message };
   }
 }
 

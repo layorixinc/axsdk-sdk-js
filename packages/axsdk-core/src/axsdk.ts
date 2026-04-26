@@ -15,6 +15,20 @@ import { Config } from './config';
 import { PluginRegistry, type AxPlugin, type PluginContext } from './plugin';
 export type { AxPlugin, PluginContext, PluginLogger, PluginCoreStores, AxSdkLike } from './plugin';
 
+const encodeCursor = (raw: string): string => {
+  const bytes = new TextEncoder().encode(raw);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]!);
+  return btoa(bin);
+};
+
+const decodeCursor = (cursor: string): string => {
+  const bin = atob(cursor);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+};
+
 class AxSdk extends EventEmitter {
   public config: AXSDKConfig | undefined;
 
@@ -286,15 +300,40 @@ class AxSdk extends EventEmitter {
     };
   }
 
-  public async searchKnowledge(options: { group?: string; regex: string | RegExp; page?: number; limit?: number; url?: string }): Promise<{
-    groups: Record<string, unknown[]>;
-    total: number;
-    page: number;
-    limit: number;
+  public async searchKnowledge(options: { regex: string; group?: string; cursor?: string; limit?: number }): Promise<{
+    results: { group: string; item: unknown }[];
+    next_cursor: string | null;
+    error?: string;
   }> {
-    const page = options.page ?? 1;
-    const limit = options.limit ?? 10;
-    const re = typeof options.regex === 'string' ? new RegExp(options.regex, 'i') : options.regex;
+    const limit = Math.max(1, options.limit ?? 20);
+
+    let re: RegExp;
+    try {
+      re = new RegExp(options.regex, 'i');
+    } catch {
+      return { results: [], next_cursor: null, error: 'invalid_regex' };
+    }
+
+    if (this.config?.remote_knowledge) {
+      return await api.searchKnowledge({
+        regex: options.regex,
+        group: options.group,
+        cursor: options.cursor,
+        limit,
+      }) as { results: { group: string; item: unknown }[]; next_cursor: string | null; error?: string };
+    }
+
+    let start: { g: string | null; i: number } = { g: null, i: -1 };
+    if (options.cursor) {
+      try {
+        const decoded = JSON.parse(decodeCursor(options.cursor!));
+        if (typeof decoded?.g === 'string' && Number.isInteger(decoded?.i)) {
+          start = { g: decoded.g, i: decoded.i };
+        }
+      } catch {
+        return { results: [], next_cursor: null, error: 'invalid_cursor' };
+      }
+    }
 
     const matches = (value: unknown): boolean => {
       if (value == null) return false;
@@ -308,97 +347,41 @@ class AxSdk extends EventEmitter {
       return false;
     };
 
-    const isUrlItem = (item: unknown): item is { name: string; content: string } => {
-      const entry = item as Record<string, unknown>;
-      return entry?.name === 'url' && typeof entry?.content === 'string';
-    };
+    const knowledge = knowledgeStore.getState().knowledge ?? {};
+    const groups = options.group
+      ? (knowledge[options.group] ? [options.group] : [])
+      : Object.keys(knowledge);
 
-    if (options.url) {
-      const res = await fetch(options.url);
-      if (!res.ok) {
-        throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
+    const results: { group: string; item: unknown }[] = [];
+    let lastG: string | null = null;
+    let lastI = -1;
+    let hasMore = false;
+    let resumed = start.g === null;
+
+    outer: for (const g of groups) {
+      if (!resumed) {
+        if (g !== start.g) continue;
+        resumed = true;
       }
-      const json = await res.json() as { total: number; data: unknown[] };
-      const items: unknown[] = json.data ?? [];
-      const filtered = items.filter(matches);
-      const total = filtered.length;
-      const start = (page - 1) * limit;
-      const groupKey = options.group ?? '';
-
-      return {
-        groups: { [groupKey]: filtered.slice(start, start + limit) },
-        total,
-        page,
-        limit,
-      };
-    }
-
-    let source: Record<string, unknown[]>;
-    if (this.config?.remote_knowledge) {
-      const raw = await this.fetchKnowledge({ group: options.group, page: 1, limit: 10000 });
-      source = raw.groups;
-    } else {
-      const knowledge = knowledgeStore.getState().knowledge ?? {};
-      source = options.group
-        ? { [options.group]: knowledge[options.group] ?? [] }
-        : knowledge;
-    }
-
-    const allFiltered: Record<string, unknown[]> = {};
-    let total = 0;
-
-    const urlFetchEnabled = !!this.config?.knowledge_url_fetch;
-
-    for (const [group, items] of Object.entries(source)) {
-      const regularItems = urlFetchEnabled ? items.filter(item => !isUrlItem(item)) : items;
-      const hit = regularItems.filter(matches);
-      if (hit.length) {
-        allFiltered[group] = hit;
-        total += hit.length;
-      }
-
-      if (urlFetchEnabled) {
-        const urlItems = items.filter(isUrlItem);
-        for (const urlItem of urlItems) {
-          try {
-            const urlResult = await this.searchKnowledge({
-              group,
-              regex: options.regex,
-              url: urlItem.content,
-              page: 1,
-              limit: 10000,
-            });
-            const urlData = urlResult.groups[group] ?? [];
-            if (urlData.length) {
-              allFiltered[group] = [...(allFiltered[group] ?? []), ...urlData];
-              total += urlData.length;
-            }
-          } catch {
-          }
+      const items = knowledge[g] ?? [];
+      const from = g === start.g ? start.i + 1 : 0;
+      for (let i = from; i < items.length; i++) {
+        if (!matches(items[i])) continue;
+        if (results.length >= limit) {
+          hasMore = true;
+          break outer;
         }
+        results.push({ group: g, item: items[i] });
+        lastG = g;
+        lastI = i;
       }
     }
 
-    const start = (page - 1) * limit;
-    const end = start + limit;
-    const sliced: Record<string, unknown[]> = {};
-    let seen = 0;
-    for (const [group, items] of Object.entries(allFiltered)) {
-      const groupStart = seen;
-      const groupEnd = seen + items.length;
-      seen = groupEnd;
-      if (groupEnd <= start || groupStart >= end) continue;
-      const localStart = Math.max(0, start - groupStart);
-      const localEnd = Math.min(items.length, end - groupStart);
-      sliced[group] = items.slice(localStart, localEnd);
-    }
+    const next_cursor = hasMore && lastG !== null
+      ? encodeCursor(JSON.stringify({ g: lastG, i: lastI }))
+      : null;
 
-    return {
-      groups: sliced,
-      total,
-      page,
-      limit,
-    };
+    return { results, next_cursor };
   }
 
   public async complete(message?: string): Promise<void> {

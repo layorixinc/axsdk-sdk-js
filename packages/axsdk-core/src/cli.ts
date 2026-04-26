@@ -158,15 +158,15 @@ async function main() {
           break;
         }
         case 'search': {
-          // search <regex> [group] [page]
+          // search <regex> [group] [cursor]
           if (!rest.length) {
-            console.log('usage: search <regex> [group] [page]');
+            console.log('usage: search <regex> [group] [cursor]');
             break;
           }
           const regex = rest[0]!;
           const group = rest[1];
-          const page = rest[2] ? Number(rest[2]) || 1 : 1;
-          const result = await AXSDK.searchKnowledge({ regex, group, page, limit: 100 });
+          const cursor = rest[2];
+          const result = await AXSDK.searchKnowledge({ regex, group, cursor, limit: 100 });
           console.log(JSON.stringify(result, null, 2));
           break;
         }
