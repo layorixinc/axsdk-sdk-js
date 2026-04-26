@@ -1,4 +1,6 @@
 import EventEmitter from 'eventemitter3';
+import { interpret } from 'robot3';
+import { transportMachine, type TransportState } from './state/transport-machine';
 
 export interface VoiceTransportEvents {
   ready: void;
@@ -59,10 +61,11 @@ export class OpenAIRealtimeTransport implements VoiceTransport {
   readonly #reconnectOnce: boolean;
   readonly #emitter = new EventEmitter();
   #ws: WebSocket | null = null;
-  #ready = false;
+  #service = interpret(transportMachine, () => {});
   #reconnectUsed = false;
   #reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   #closed = false;
+  get #state(): TransportState { return this.#service.machine.current as TransportState; }
 
   constructor(config: OpenAIRealtimeTransportConfig) {
     this.#context = config.context;
@@ -71,12 +74,13 @@ export class OpenAIRealtimeTransport implements VoiceTransport {
   }
 
   get ready(): boolean {
-    return this.#ready;
+    return this.#state === 'ready';
   }
 
   async open(): Promise<void> {
     this.#closed = false;
     this.#reconnectUsed = false;
+    this.#service.send('OPEN');
     await this.#connect();
   }
 
@@ -88,7 +92,7 @@ export class OpenAIRealtimeTransport implements VoiceTransport {
     }
     const ws = this.#ws;
     this.#ws = null;
-    this.#ready = false;
+    this.#service.send('CLOSE');
     if (ws) {
       try { ws.close(); } catch {}
     }
@@ -115,13 +119,13 @@ export class OpenAIRealtimeTransport implements VoiceTransport {
       });
     }
     this.#ws = null;
-    this.#ready = false;
     if (ws && ws.readyState === WebSocket.OPEN) {
       try { ws.close(); } catch {}
     }
     if (!wasOpen) return;
     this.#closed = false;
     this.#reconnectUsed = false;
+    this.#service.send('OPEN');
     await this.#connect();
   }
 
@@ -211,7 +215,6 @@ export class OpenAIRealtimeTransport implements VoiceTransport {
     const ws = new WebSocket(this.#buildWsUrl());
     ws.binaryType = 'arraybuffer';
     this.#ws = ws;
-    this.#ready = false;
 
     ws.addEventListener('message', (event: MessageEvent) => {
       const data = event.data;
@@ -221,7 +224,7 @@ export class OpenAIRealtimeTransport implements VoiceTransport {
       const msg = parsed as { type?: string; text?: string; message?: string };
       switch (msg.type) {
         case 'ready':
-          this.#ready = true;
+          this.#service.send('WS_READY');
           this.#reconnectUsed = false;
           this.#emit({ kind: 'ready' });
           break;
@@ -242,16 +245,18 @@ export class OpenAIRealtimeTransport implements VoiceTransport {
     });
 
     ws.addEventListener('close', (event: CloseEvent) => {
-      this.#ready = false;
       this.#ws = null;
+      this.#service.send('WS_CLOSED');
       this.#emit({ kind: 'close', code: event.code, reason: event.reason });
       if (this.#closed || !this.#reconnectOnce || this.#reconnectUsed) {
         return;
       }
       this.#reconnectUsed = true;
+      this.#service.send('SCHEDULE_RECONNECT');
       this.#reconnectTimer = setTimeout(() => {
         this.#reconnectTimer = null;
         if (this.#closed) return;
+        this.#service.send('RECONNECT_FIRE');
         void this.#connect().catch((err) => {
           const message = err instanceof Error ? err.message : String(err);
           this.#emit({ kind: 'error', message });

@@ -51,7 +51,6 @@
       "version": "0.5.0",
       "dependencies": {
         "@axsdk/core": "^0.4",
-        "@axsdk/voice": "workspace: *",
         "react": "^19",
         "react-dom": "^19",
         "react-markdown": "^10.1.0",
@@ -59,6 +58,7 @@
         "zustand": "^5.0.11",
       },
       "devDependencies": {
+        "@axsdk/voice": "workspace:*",
         "@eslint/js": "^9.39.4",
         "@types/node": "^24.12.0",
         "@types/react": "^19",
