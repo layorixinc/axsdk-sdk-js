@@ -559,12 +559,18 @@ export class VoicePlugin {
       const prev = this.#prevStatus;
       this.#prevStatus = status;
       if (this.#config.debug) console.log('[axsdk-voice] session status', { prev, status });
-      if (this.#ttsPlayer) {
-        this.#ttsPlayer.stop();
+      // Only reset TTS/fallback when a NEW turn starts (status becomes 'busy').
+      // Intermediate transitions through undefined (multi-step tool calls) must
+      // not clobber the pending fallback or stop in-flight TTS.
+      if (status === 'busy') {
+        this.#ttsPlayer?.stop();
+        this.#clearFallbackTimer();
+        if (this.#ttsState !== 'idle') this.#setTtsState('idle');
       }
-      this.#clearFallbackTimer();
-      if (this.#ttsState !== 'idle') this.#setTtsState('idle');
-      if (prev === 'busy' && status === 'idle' && state.session) {
+      // Dispatch when settling into 'idle' from any non-idle state. The
+      // session goes busy → undefined → … → idle during streaming, so a strict
+      // busy→idle check would miss most turns.
+      if (prev !== 'idle' && status === 'idle' && state.session) {
         this.#maybeSpeakLatestAssistant(state);
       }
     }
