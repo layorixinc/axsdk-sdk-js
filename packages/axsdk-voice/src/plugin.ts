@@ -56,6 +56,7 @@ export interface VoicePluginConfig {
   wsUrl?: string;
   ttsUrl?: string;
   ttsPlaybackRate?: number;
+  ttsMaxChars?: number;
   transportFactory?: (context: () => VoiceTransportContext) => VoiceTransport;
   /**
    * What to do when attach() finds the chat already open (e.g., a Zustand-
@@ -133,6 +134,7 @@ interface AxsdkLike {
   getChatStore(): ChatStoreApi;
   getAppStore(): AppStoreApi;
   getEndpoint?(): { baseUrl: string; basePath: string };
+  t?(id: string): string;
 }
 
 const DEFAULT_BASE_URL = 'https://api.axsdk.ai';
@@ -154,7 +156,7 @@ const FALLBACK_IDLE_MS = 800;
 export class VoicePlugin {
   #transport: VoiceTransport | null = null;
   #config: Required<
-    Omit<VoicePluginConfig, 'vad' | 'workletUrl' | 'baseUrl' | 'wsUrl' | 'ttsUrl' | 'transportFactory' | 'ttsVoice' | 'ttsPlaybackRate'>
+    Omit<VoicePluginConfig, 'vad' | 'workletUrl' | 'baseUrl' | 'wsUrl' | 'ttsUrl' | 'transportFactory' | 'ttsVoice' | 'ttsPlaybackRate' | 'ttsMaxChars'>
   > & {
     workletUrl: string | undefined;
     vad: VadConfig;
@@ -163,6 +165,7 @@ export class VoicePlugin {
     ttsUrl: string | undefined;
     ttsVoice: string | undefined;
     ttsPlaybackRate: number | undefined;
+    ttsMaxChars: number;
     transportFactory: VoicePluginConfig['transportFactory'];
   };
 
@@ -212,7 +215,7 @@ export class VoicePlugin {
         if (cleaned) {
           this.#ttsPlayer?.speak({
             id: `echo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            text: cleaned,
+            text: this.#clipTts(cleaned),
           });
         }
       }
@@ -679,7 +682,13 @@ export class VoicePlugin {
     const id = last.info.id;
     if (this.#spokenIds.has(id)) return;
     this.#spokenIds.add(id);
-    this.#ttsPlayer?.speak({ id, text });
+    this.#ttsPlayer?.speak({ id, text: this.#clipTts(text) });
+  }
+
+  #clipTts(text: string): string {
+    const max = this.#config.ttsMaxChars;
+    const suffix = this.#axsdk?.t?.('voiceTtsClipped') ?? '';
+    return clipForTts(text, max, suffix);
   }
 
   #armFallbackTimer(state: ChatStoreShape): void {
@@ -758,7 +767,7 @@ export class VoicePlugin {
 function normalizeConfig(
   input: VoicePluginConfig,
 ): Required<
-  Omit<VoicePluginConfig, 'vad' | 'workletUrl' | 'baseUrl' | 'wsUrl' | 'ttsUrl' | 'transportFactory' | 'ttsVoice' | 'ttsPlaybackRate'>
+  Omit<VoicePluginConfig, 'vad' | 'workletUrl' | 'baseUrl' | 'wsUrl' | 'ttsUrl' | 'transportFactory' | 'ttsVoice' | 'ttsPlaybackRate' | 'ttsMaxChars'>
 > & {
   workletUrl: string | undefined;
   vad: VadConfig;
@@ -767,6 +776,7 @@ function normalizeConfig(
   ttsUrl: string | undefined;
   ttsVoice: string | undefined;
   ttsPlaybackRate: number | undefined;
+  ttsMaxChars: number;
   transportFactory: VoicePluginConfig['transportFactory'];
 } {
   return {
@@ -786,6 +796,7 @@ function normalizeConfig(
     wsUrl: input.wsUrl,
     ttsUrl: input.ttsUrl,
     ttsPlaybackRate: input.ttsPlaybackRate,
+    ttsMaxChars: input.ttsMaxChars ?? 200,
     transportFactory: input.transportFactory,
   };
 }
@@ -819,6 +830,17 @@ function extractAssistantText(message: ChatMessage): string {
     }
   }
   return stripThinking(chunks.join(' ')).trim();
+}
+
+function clipForTts(text: string, maxChars: number, suffix: string): string {
+  if (!Number.isFinite(maxChars) || maxChars <= 0) return text;
+  if (text.length <= maxChars) return text;
+  const slice = text.slice(0, maxChars);
+  const wsMatch = slice.match(/\s+\S*$/);
+  const cut = wsMatch ? wsMatch.index ?? maxChars : maxChars;
+  const safeCut = cut < maxChars * 0.5 ? maxChars : cut;
+  const head = text.slice(0, safeCut).trimEnd();
+  return suffix ? `${head} ${suffix}` : head;
 }
 
 function stripThinking(text: string): string {

@@ -42,6 +42,7 @@ export const AXSDK_TRANSLATIONS: Record<string, Record<string, string>> = {
     voiceMicIosThirdParty: 'On iPhone/iPad, please open this page in Safari to use the microphone.',
     voiceMicIosOpenSafari: 'Tap to open in Safari',
     voiceMicUnavailable: 'Microphone is not available in this browser.',
+    voiceTtsClipped: '(See the rest on screen.)',
   },
   ko: {
     chatInput: '무엇을 도와드릴까요?',
@@ -86,5 +87,6 @@ export const AXSDK_TRANSLATIONS: Record<string, Record<string, string>> = {
     voiceMicIosThirdParty: 'iPhone/iPad에서는 Safari로 열어야 마이크를 사용할 수 있습니다.',
     voiceMicIosOpenSafari: 'Safari로 열기',
     voiceMicUnavailable: '이 브라우저에서는 마이크를 사용할 수 없습니다.',
+    voiceTtsClipped: '(자세한 내용은 화면을 확인해 주세요.)',
   },
 };
