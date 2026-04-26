@@ -1,6 +1,7 @@
 'use client';
 
-import { AXChatMessagePopoverBase, type AXCornerPosition } from './AXChatMessagePopoverBase';
+import { AXChatMessagePopoverBase } from './AXChatMessagePopoverBase';
+import type { AXCornerPosition } from './AXButton';
 
 export interface AXChatLastMessageProps {
   message?: { id: string, text: string };

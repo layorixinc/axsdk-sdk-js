@@ -20,7 +20,7 @@ function parseThinking(text: string): { cleaned: string; isThinking: boolean } {
   return { cleaned: cleaned.trim(), isThinking };
 }
 
-export type AXCornerPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+import type { AXCornerPosition } from './AXButton';
 
 export interface AXChatMessagePopoverBaseProps {
   message?: { id: string, text: string };
