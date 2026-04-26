@@ -1,5 +1,6 @@
 import type { ChatMessage, ChatSession } from '@axsdk/core';
 import type EventEmitter from 'eventemitter3';
+import { interpret } from 'robot3';
 import {
   primeMicrophonePermission,
   startCapture,
@@ -13,22 +14,12 @@ import {
   type VoiceTransport,
   type VoiceTransportContext,
 } from './transport';
+import { sttMachine, sttEventForState, type SttState } from './state/stt-machine';
+import { ttsMachine, ttsEventForState, type TtsState } from './state/tts-machine';
 
+export type { SttState, TtsState };
 export type VoiceMode = 'assistant' | 'echo';
 export type VoiceSource = 'microphone' | 'desktop';
-
-export type SttState =
-  | 'idle'
-  | 'connecting'
-  | 'listening'
-  | 'capturing'
-  | 'error';
-
-export type TtsState =
-  | 'idle'
-  | 'queued'
-  | 'speaking'
-  | 'error';
 
 export type VoiceState =
   | 'idle'
@@ -176,8 +167,10 @@ export class VoicePlugin {
   #reconnectDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   #vad: Vad | null = null;
   #ttsPlayer: TtsPlayer | null = null;
-  #sttState: SttState = 'idle';
-  #ttsState: TtsState = 'idle';
+  #sttService = interpret(sttMachine, () => {});
+  #ttsService = interpret(ttsMachine, () => {});
+  get #sttState(): SttState { return this.#sttService.machine.current as SttState; }
+  get #ttsState(): TtsState { return this.#ttsService.machine.current as TtsState; }
   #lastDerived: VoiceState = 'idle';
 
   #prevIsOpen = false;
@@ -692,20 +685,24 @@ export class VoicePlugin {
   }
 
   #setSttState(next: SttState): void {
-    if (this.#sttState === next) return;
     const prev = this.#sttState;
-    this.#sttState = next;
-    this.#debug(`[stt] ${prev} → ${next}`);
-    this.#emit('voice.stt.state', { status: next });
+    if (prev === next) return;
+    this.#sttService.send(sttEventForState[next]);
+    const after = this.#sttState;
+    if (after === prev) return;
+    this.#debug(`[stt] ${prev} → ${after}`);
+    this.#emit('voice.stt.state', { status: after });
     this.#emitDerived();
   }
 
   #setTtsState(next: TtsState): void {
-    if (this.#ttsState === next) return;
     const prev = this.#ttsState;
-    this.#ttsState = next;
-    this.#debug(`[tts] ${prev} → ${next}`);
-    this.#emit('voice.tts.state', { status: next });
+    if (prev === next) return;
+    this.#ttsService.send(ttsEventForState[next]);
+    const after = this.#ttsState;
+    if (after === prev) return;
+    this.#debug(`[tts] ${prev} → ${after}`);
+    this.#emit('voice.tts.state', { status: after });
     this.#emitDerived();
   }
 

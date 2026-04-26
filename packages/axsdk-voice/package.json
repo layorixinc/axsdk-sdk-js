@@ -38,7 +38,8 @@
     "publish": "bun run build && npm publish --access=public"
   },
   "dependencies": {
-    "eventemitter3": "^5.0.4"
+    "eventemitter3": "^5.0.4",
+    "robot3": "^1.2.0"
   },
   "peerDependencies": {
     "@axsdk/core": "^0.4",
@@ -46,7 +47,9 @@
     "typescript": "^5"
   },
   "peerDependenciesMeta": {
-    "@ricky0123/vad-web": { "optional": true }
+    "@ricky0123/vad-web": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@axsdk/core": "workspace:*",
