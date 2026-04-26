@@ -3,8 +3,6 @@
 import { useEffect, useState } from 'react';
 import { AXSDK } from '@axsdk/core';
 import type {
-  VadConfig,
-  VoiceMode,
   VoicePlugin as VoicePluginType,
   VoicePluginConfig,
   VoiceState,
@@ -12,22 +10,20 @@ import type {
   TtsState,
 } from '@axsdk/voice';
 
-export interface AXVoiceConfig {
-  stt?: boolean;
-  tts?: boolean;
-  mode?: VoiceMode;
-  vad?: Partial<VadConfig>;
-  autoActivateWhileChatOpen?: boolean;
-  primeMicOnAttach?: boolean;
-  resumeOnRestore?: boolean;
-  debug?: boolean;
-  ttsVoice?: string;
-  ttsPlaybackRate?: number;
-  reconnectOnce?: boolean;
-  baseUrl?: string;
-  wsUrl?: string;
-  ttsUrl?: string;
-  workletUrl?: string;
+export type AXVoiceConfig = Omit<VoicePluginConfig, 'transportFactory'>;
+
+declare const __AXSDK_PCM_WORKLET__: string;
+const _workletSource: string =
+  typeof __AXSDK_PCM_WORKLET__ !== 'undefined' ? __AXSDK_PCM_WORKLET__ : '';
+
+let _workletUrl: string | null = null;
+function workletBlobUrl(): string | undefined {
+  if (typeof window === 'undefined' || typeof Blob === 'undefined' || typeof URL === 'undefined') return undefined;
+  if (!_workletSource) return undefined;
+  if (_workletUrl) return _workletUrl;
+  const blob = new Blob([_workletSource], { type: 'text/javascript' });
+  _workletUrl = URL.createObjectURL(blob);
+  return _workletUrl;
 }
 
 export function resolveVoiceConfig(
@@ -68,21 +64,8 @@ export function useVoicePlugin(config: AXVoiceConfig | null | undefined): VoiceP
         const mod = await loadVoice();
         if (cancelled) return;
         instance = new mod.VoicePlugin({
-          stt: resolved.stt,
-          tts: resolved.tts,
-          mode: resolved.mode,
-          vad: resolved.vad,
-          autoActivateWhileChatOpen: resolved.autoActivateWhileChatOpen,
-          primeMicOnAttach: resolved.primeMicOnAttach,
-          resumeOnRestore: resolved.resumeOnRestore,
-          debug: resolved.debug,
-          ttsVoice: resolved.ttsVoice,
-          ttsPlaybackRate: resolved.ttsPlaybackRate,
-          reconnectOnce: resolved.reconnectOnce,
-          baseUrl: resolved.baseUrl,
-          wsUrl: resolved.wsUrl,
-          ttsUrl: resolved.ttsUrl,
-          workletUrl: resolved.workletUrl,
+          ...resolved,
+          workletUrl: resolved.workletUrl ?? workletBlobUrl(),
         });
         instance.attach(AXSDK as never);
         if (cancelled) {
@@ -94,6 +77,9 @@ export function useVoicePlugin(config: AXVoiceConfig | null | undefined): VoiceP
 
         const onRemote = (p: { voice: Partial<VoicePluginConfig> }) => {
           if (!instance) return;
+          if (p?.voice && !p.voice.workletUrl) {
+            p.voice.workletUrl = workletBlobUrl();
+          }
           if (resolved.debug) console.log('[useVoicePlugin] applying remote voiceConfig', p.voice);
           instance.update(p.voice);
         };

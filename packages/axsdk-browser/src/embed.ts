@@ -2,31 +2,14 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { AXSDK, type DeferFn } from '@axsdk/core';
 import { AXUI, AXShadowRootProvider } from '@axsdk/react';
-import type { VoicePlugin, VoicePluginConfig, VadConfig } from '@axsdk/voice';
+import type { VoicePlugin, VoicePluginConfig } from '@axsdk/voice';
 import { handleAX } from './axhandler';
 import '@axsdk/react/index.css';
 import type { AXTheme } from './types';
 
 export type { AXTheme };
 
-export interface AXSDKBrowserVoiceConfig {
-  stt?: boolean;
-  tts?: boolean;
-  mode?: VoicePluginConfig['mode'];
-  vad?: Partial<VadConfig>;
-  autoActivateWhileChatOpen?: boolean;
-  primeMicOnAttach?: boolean;
-  resumeOnRestore?: boolean;
-  debug?: boolean;
-  ttsVoice?: string;
-  ttsPlaybackRate?: number;
-  reconnectOnce?: boolean;
-  baseUrl?: string;
-  wsUrl?: string;
-  ttsUrl?: string;
-  /** Override the bundled PCM worklet blob URL. Rarely needed. */
-  workletUrl?: string;
-}
+export type AXSDKBrowserVoiceConfig = Omit<VoicePluginConfig, 'transportFactory'>;
 
 export interface AXSDKBrowserConfig {
   apiKey: string;
@@ -84,6 +67,7 @@ const _baseCss = `
 
 let _root: ReactDOM.Root | null = null;
 let _hostElement: HTMLElement | null = null;
+let _onRemoteVoice: ((p: { voice?: Record<string, unknown> }) => void) | null = null;
 
 const AXSDKBrowser = {
   init(config: AXSDKBrowserConfig): void {
@@ -94,10 +78,16 @@ const AXSDKBrowser = {
 
     const { axHandler, theme, voice, ...axsdkConfig } = config;
 
-    // IIFE bundle: inject the bundled worklet blob URL since no separate file is served.
     const voiceForCore = voice
       ? { ...voice, workletUrl: voice.workletUrl ?? workletBlobUrl() }
       : undefined;
+
+    _onRemoteVoice = (p: { voice?: Record<string, unknown> }) => {
+      if (p?.voice && !p.voice.workletUrl) {
+        p.voice.workletUrl = workletBlobUrl();
+      }
+    };
+    AXSDK.eventBus().on('voice.config.remote', _onRemoteVoice);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     AXSDK.init({
@@ -146,6 +136,10 @@ const AXSDKBrowser = {
     if (_workletUrl) {
       try { URL.revokeObjectURL(_workletUrl); } catch {}
       _workletUrl = null;
+    }
+    if (_onRemoteVoice) {
+      AXSDK.eventBus().off('voice.config.remote', _onRemoteVoice);
+      _onRemoteVoice = null;
     }
     if (typeof (AXSDK as unknown as Record<string, unknown>).destroy === 'function') {
       (AXSDK as unknown as { destroy(): void }).destroy();

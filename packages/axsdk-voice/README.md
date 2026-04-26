@@ -25,7 +25,7 @@ const voice = new VoicePlugin({
     wsUrl: '/ws',
     ttsUrl: '/tts',
   }),
-  workletUrl: '/pcm-worklet.js', // served by your host
+  workletUrl: '/pcm-worklet.js', // served by your host (only needed for standalone use — see below)
   // stt/tts default true; autoActivateWhileChatOpen default true.
 });
 
@@ -43,7 +43,7 @@ voice.attach(AXSDK);
 | `tts` | `true` | Speak assistant replies |
 | `mode` | `'assistant'` | `'assistant'` routes transcripts into chat; `'echo'` speaks the transcript itself |
 | `source` | `'microphone'` | (Only `'microphone'` in MVP) |
-| `workletUrl` | `'/pcm-worklet.js'` | Where the host serves the AudioWorklet |
+| `workletUrl` | `'/pcm-worklet.js'` | Where the host serves the AudioWorklet (auto-injected as a blob URL when used via `@axsdk/react` or `@axsdk/browser` — set explicitly only for standalone use) |
 | `vad` | see below | Client-side silence gate |
 | `autoActivateWhileChatOpen` | `true` | Start capture automatically when the chat opens |
 | `primeMicOnAttach` | `true` | Pre-request mic permission at attach time |
@@ -62,7 +62,10 @@ vad: {
 
 ## Serving the worklet
 
-The `AudioWorklet` runs in a separate context and must be loaded from a URL. This package ships the compiled JS at `public/pcm-worklet.js` and exposes it via the package export `@axsdk/voice/pcm-worklet.js`. Copy it into your static assets or wire your bundler to emit it, then pass the final URL as `workletUrl`.
+The `AudioWorklet` runs in a separate context and must be loaded from a URL.
+
+- **Using `@axsdk/react` or `@axsdk/browser`**: nothing to do. The worklet source is inlined into the bundle at build time and served via a `Blob` + `URL.createObjectURL` at runtime. No static asset hosting required.
+- **Using `@axsdk/voice` standalone**: this package ships the compiled JS at `public/pcm-worklet.js` and exposes it via the package export `@axsdk/voice/pcm-worklet.js`. Copy it into your static assets or wire your bundler to emit it, then pass the final URL as `workletUrl`.
 
 ## Events
 

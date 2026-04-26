@@ -27,7 +27,10 @@ Optional voice I/O plugin for `@axsdk/core`. While a chat session is open, the p
 | `usage.ts` | Optional client-side cost metering (console) |
 | `pcm-worklet.ts` | Exports the worklet asset URL helper |
 
-`public/pcm-worklet.js` is the raw AudioWorklet source — must be served by the host bundler/static server. Exposed via package export `@axsdk/voice/pcm-worklet.js`.
+`public/pcm-worklet.js` is the raw AudioWorklet source. Exposed via package export `@axsdk/voice/pcm-worklet.js`.
+
+- `@axsdk/react` and `@axsdk/browser` read this file at **build time** via Vite `define` (`__AXSDK_PCM_WORKLET__`) and inline it into their bundles, then create a `Blob` URL at runtime — host needs no static asset.
+- Standalone `@axsdk/voice` consumers must serve it themselves and pass `workletUrl` to `VoicePlugin`.
 
 ## Build
 
@@ -66,6 +69,6 @@ Produces `dist/lib.js` (ESM), `dist/lib.cjs` (CJS), `dist/lib.d.ts`. Both bundle
 ## What to be careful about
 
 - `<audio>` autoplay: the first chat-open must be user-initiated or TTS may fail on the first utterance. Plugin falls back to `voice.error` with scope `'tts'`.
-- AudioWorklet URL: hosts bundle assets differently (Vite, webpack, plain static). Document the asset-serving requirement, don't try to auto-detect.
+- AudioWorklet URL: when integrating via `@axsdk/react` or `@axsdk/browser` the worklet is inlined as a blob URL at build time — `workletUrl` is auto-supplied. Standalone `@axsdk/voice` consumers must serve `public/pcm-worklet.js` and pass `workletUrl`. Both packages also patch missing `workletUrl` in server-injected `voice.config.remote` payloads, so server `voiceConfig` doesn't 404 on `/pcm-worklet.js`.
 - Do not tear down `AudioContext` on transient transport errors — just reopen the socket. Tearing down the context forfeits the mic gesture and forces another permission prompt.
 - If both the primary (`session.status`) and fallback (`delta-quiet timeout`) fire for the same assistant message, only speak once — dedupe by `messageId` in the TTS queue.
