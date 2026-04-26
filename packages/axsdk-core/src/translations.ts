@@ -40,6 +40,8 @@ export const AXSDK_TRANSLATIONS: Record<string, Record<string, string>> = {
     voiceUnlockPrompt: 'Tap to enable audio',
     voiceMicInsecure: 'Microphone requires HTTPS. Please reload over a secure connection.',
     voiceMicIosThirdParty: 'On iPhone/iPad, please open this page in Safari to use the microphone.',
+    voiceMicIosOpenSafari: 'Tap to open in Safari',
+    voiceMicIosUrlCopied: 'Page URL copied. Open Safari and paste it into the address bar.',
     voiceMicUnavailable: 'Microphone is not available in this browser.',
   },
   ko: {
@@ -83,6 +85,8 @@ export const AXSDK_TRANSLATIONS: Record<string, Record<string, string>> = {
     voiceUnlockPrompt: '오디오를 켜려면 탭하세요',
     voiceMicInsecure: '마이크는 HTTPS에서만 동작합니다. 보안 연결로 다시 접속해주세요.',
     voiceMicIosThirdParty: 'iPhone/iPad에서는 Safari로 열어야 마이크를 사용할 수 있습니다.',
+    voiceMicIosOpenSafari: 'Safari로 열기',
+    voiceMicIosUrlCopied: '페이지 주소가 복사되었습니다. Safari를 열고 주소창에 붙여넣어주세요.',
     voiceMicUnavailable: '이 브라우저에서는 마이크를 사용할 수 없습니다.',
   },
 };

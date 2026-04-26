@@ -122,6 +122,7 @@ export interface ChatState {
   sessionClosed: SessionClosed | null;
   setSessionClosed: (sessionClosed: SessionClosed | null) => void;
   messages: ChatMessage[];
+  latestAssistantWithText: ChatMessage | null;
   setMessages: (messages: ChatMessage[]) => void;
   updateMessage: (message: ChatMessage) => void;
   setIsOpen: (isOpen: boolean) => void;
@@ -136,6 +137,19 @@ export interface ChatState {
   removeDeferredCall: (deferId: string) => void;
 }
 
+function findLatestAssistantWithText(messages: ChatMessage[]): ChatMessage | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (!m || m.info.role !== 'assistant') continue;
+    const parts = m.parts;
+    if (!parts) continue;
+    for (const p of parts) {
+      if (p.type === 'text' && typeof p.text === 'string' && p.text.length > 0) return m;
+    }
+  }
+  return null;
+}
+
 export const chatStore = createStore<ChatState>()(
   persist(
     (set, get) => ({
@@ -147,13 +161,20 @@ export const chatStore = createStore<ChatState>()(
       sessionClosed: null,
       setSessionClosed: (sessionClosed) => set({ sessionClosed }),
       messages: [],
-      setMessages: (messages) => set({ messages }),
+      latestAssistantWithText: null,
+      setMessages: (messages) => set({
+        messages,
+        latestAssistantWithText: findLatestAssistantWithText(messages),
+      }),
       updateMessage: (message: ChatMessage) => {
         const msgs = get().messages;
         const idx = msgs.findIndex(m => m.info.id === message.info.id);
-        set({ messages: idx >= 0
+        const next = idx >= 0
           ? msgs.with(idx, { ...msgs[idx], ...message })
-          : [...msgs, message].sort((a, b) => a.info.id.localeCompare(b.info.id)),
+          : [...msgs, message].sort((a, b) => a.info.id.localeCompare(b.info.id));
+        set({
+          messages: next,
+          latestAssistantWithText: findLatestAssistantWithText(next),
         });
       },
       setIsOpen: (isOpen) => set({ isOpen }),
@@ -178,6 +199,11 @@ export const chatStore = createStore<ChatState>()(
         return noop;
       })())),
       partialize: (state) => ({ session: state.session, sessionClosed: state.sessionClosed, messages: state.messages, isOpen: state.isOpen, deferredCalls: state.deferredCalls }),
+      merge: (persisted, current) => {
+        const merged = { ...current, ...(persisted as Partial<ChatState>) };
+        merged.latestAssistantWithText = findLatestAssistantWithText(merged.messages ?? []);
+        return merged;
+      },
     }
   ),
 );

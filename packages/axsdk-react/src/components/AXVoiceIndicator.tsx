@@ -267,6 +267,37 @@ function tooltipText(
   return parts.join(' · ');
 }
 
+async function openInSafari(): Promise<void> {
+  const url = window.location.href;
+  // Strategy 1: x-safari-https scheme — works on iOS Chrome / Edge / Firefox
+  // when the app supports it. If unsupported the page just stays put.
+  try {
+    const stripped = url.replace(/^https?:\/\//, '');
+    window.location.href = `x-safari-https://${stripped}`;
+  } catch {}
+  // Strategy 2 (fallback ~800ms later if we are still here): system share
+  // sheet. iOS Safari is in the share targets, and copying the URL gives the
+  // user a manual escape hatch.
+  setTimeout(async () => {
+    if (document.hidden) return; // navigation succeeded — page backgrounded
+    const nav = navigator as Navigator & {
+      share?: (data: { url?: string; title?: string; text?: string }) => Promise<void>;
+      clipboard?: { writeText?: (s: string) => Promise<void> };
+    };
+    if (nav.share) {
+      try {
+        await nav.share({ url, title: document.title });
+        return;
+      } catch {}
+    }
+    try {
+      await nav.clipboard?.writeText?.(url);
+      // eslint-disable-next-line no-alert
+      alert(AXSDK.t('voiceMicIosUrlCopied'));
+    } catch {}
+  }, 800);
+}
+
 function shouldAutoShowTooltip(stt: SttState, perm: PermState, needsUnlock: boolean, hasError: boolean): boolean {
   if (needsUnlock) return true;
   if (hasError) return true;
@@ -281,6 +312,7 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
   const [perm, setPerm] = useState<PermState>('unknown');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [dismissed, setDismissed] = useState(false);
   const [hover, setHover] = useState(false);
   const needsUnlock = useVoiceUnlockNeeded();
   const prevSttRef = useRef<SttState>('idle');
@@ -359,6 +391,7 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
       if (p.scope !== 'capture' && p.scope !== 'transport') return;
       setErrorMsg(p.message);
       setErrorCode(p.code ?? null);
+      setDismissed(false);
       if (debug) console.log('[AXVoiceIndicator] voice.error', p);
     };
     bus.on('voice.error', onError);
@@ -378,7 +411,7 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
     : `calc(${orbCSS} * 0.45)`;
   const activeCode = hasError ? errorCode : null;
   const tooltip = tooltipText(stt, tts, perm, activeError, activeCode, needsUnlock);
-  const showTooltip = hover || shouldAutoShowTooltip(stt, perm, needsUnlock, hasError);
+  const showTooltip = !dismissed && (hover || shouldAutoShowTooltip(stt, perm, needsUnlock, hasError));
 
   return (
     <div
@@ -428,6 +461,16 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
 
       {showTooltip && tooltip && (
         <div
+          className="axv-tooltip"
+          onClick={
+            activeCode === 'ios-third-party-browser'
+              ? (e) => {
+                  e.stopPropagation();
+                  setDismissed(true);
+                  void openInSafari();
+                }
+              : undefined
+          }
           style={{
             position: 'absolute',
             right: `calc(100% + 10px)`,
@@ -437,16 +480,27 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
             background: 'var(--ax-bg-popover, rgba(20, 20, 30, 0.92))',
             color: 'var(--ax-text-primary, #fff)',
             border: '1px solid var(--ax-border-primary, rgba(168, 85, 247, 0.35))',
-            borderRadius: 10,
-            padding: '6px 10px',
-            fontSize: '0.75em',
-            lineHeight: 1.3,
-            whiteSpace: 'nowrap',
+            borderRadius: 'var(--ax-tooltip-radius, 12px)',
+            padding: 'var(--ax-tooltip-padding, 10px 14px)',
+            fontSize: 'var(--ax-tooltip-font-size, 0.95em)',
+            lineHeight: 1.35,
+            minWidth: `calc(90vw - ${orbCSS} - 2em)`,
+            maxWidth: `calc(90vw - ${orbCSS} - 2em)`,
+            whiteSpace: 'normal',
+            wordBreak: 'keep-all',
+            overflowWrap: 'break-word',
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            textAlign: 'left',
             backdropFilter: 'blur(10px)',
             WebkitBackdropFilter: 'blur(10px)',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.45)',
+            boxShadow: 'var(--ax-tooltip-shadow, 0 4px 16px rgba(0,0,0,0.45))',
             animation: 'axv-tooltip-in 0.18s ease-out',
-            pointerEvents: 'none',
+            cursor: activeCode === 'ios-third-party-browser' ? 'pointer' : 'default',
+            pointerEvents: activeCode === 'ios-third-party-browser' ? 'auto' : 'none',
+            textDecoration: activeCode === 'ios-third-party-browser' ? 'underline' : 'none',
           }}
         >
           {tooltip}

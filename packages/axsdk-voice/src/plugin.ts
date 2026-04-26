@@ -101,6 +101,7 @@ interface ChatStoreShape {
   isOpen: boolean;
   session: ChatSession | null;
   messages: ChatMessage[];
+  latestAssistantWithText?: ChatMessage | null;
 }
 
 interface ChatStoreApi {
@@ -560,11 +561,11 @@ export class VoicePlugin {
       this.#clearFallbackTimer();
       if (this.#ttsState !== 'idle') this.#setTtsState('idle');
       if (prev === 'busy' && status === 'idle' && state.session) {
-        this.#maybeSpeakLatestAssistant(state.messages);
+        this.#maybeSpeakLatestAssistant(state);
       }
     }
 
-    this.#armFallbackTimer(state.messages);
+    this.#armFallbackTimer(state);
   }
 
   #shouldAutoStart(): boolean {
@@ -668,10 +669,10 @@ export class VoicePlugin {
     }
   }
 
-  #maybeSpeakLatestAssistant(messages: ChatMessage[]): void {
+  #maybeSpeakLatestAssistant(state: ChatStoreShape): void {
     if (!this.#config.tts) return;
     if (this.#config.mode !== 'assistant') return;
-    const last = findLatestAssistant(messages);
+    const last = findSpeakableAssistant(state);
     if (!last) return;
     const text = extractAssistantText(last);
     if (!text) return;
@@ -681,11 +682,9 @@ export class VoicePlugin {
     this.#ttsPlayer?.speak({ id, text });
   }
 
-  // Fallback path for hosts that don't emit session.status busy/idle — fires
-  // TTS when the latest assistant message stops receiving deltas.
-  #armFallbackTimer(messages: ChatMessage[]): void {
+  #armFallbackTimer(state: ChatStoreShape): void {
     if (!this.#config.tts || this.#config.mode !== 'assistant') return;
-    const last = findLatestAssistant(messages);
+    const last = findSpeakableAssistant(state);
     if (!last) return;
     const text = extractAssistantText(last);
     if (!text) return;
@@ -703,11 +702,11 @@ export class VoicePlugin {
       this.#fallbackTimer = null;
       const store = this.#axsdk?.getChatStore();
       if (!store) return;
-      const stateNow = store.getState();
+      const stateNow = store.getState() as ChatStoreShape;
       if (stateNow.session?.status === 'busy') return;
-      const lastNow = findLatestAssistant(stateNow.messages);
+      const lastNow = findSpeakableAssistant(stateNow);
       if (!lastNow || lastNow.info.id !== snapshotId) return;
-      this.#maybeSpeakLatestAssistant(stateNow.messages);
+      this.#maybeSpeakLatestAssistant(stateNow);
     }, FALLBACK_IDLE_MS);
   }
 
@@ -791,10 +790,22 @@ function normalizeConfig(
   };
 }
 
-function findLatestAssistant(messages: ChatMessage[]): ChatMessage | null {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const msg = messages[i];
-    if (msg && msg.info.role === 'assistant') return msg;
+function findSpeakableAssistant(state: ChatStoreShape): ChatMessage | null {
+  const candidate = state.latestAssistantWithText;
+  if (candidate !== undefined) {
+    if (!candidate) return null;
+    if (extractAssistantText(candidate)) return candidate;
+    const idx = state.messages.indexOf(candidate);
+    for (let i = idx - 1; i >= 0; i--) {
+      const m = state.messages[i];
+      if (m?.info.role === 'assistant' && extractAssistantText(m)) return m;
+    }
+    return null;
+  }
+  for (let i = state.messages.length - 1; i >= 0; i--) {
+    const m = state.messages[i];
+    if (!m || m.info.role !== 'assistant') continue;
+    if (extractAssistantText(m)) return m;
   }
   return null;
 }
