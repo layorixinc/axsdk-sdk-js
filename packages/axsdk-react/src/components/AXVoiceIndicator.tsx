@@ -269,35 +269,11 @@ function tooltipText(
 
 const sessionDismissedCodes = new Set<string>();
 
-async function openInSafari(): Promise<void> {
-  const url = window.location.href;
-  // Strategy 1: x-safari-https scheme — works on iOS Chrome / Edge / Firefox
-  // when the app supports it. If unsupported the page just stays put.
+function openInSafari(): void {
   try {
-    const stripped = url.replace(/^https?:\/\//, '');
+    const stripped = window.location.href.replace(/^https?:\/\//, '');
     window.location.href = `x-safari-https://${stripped}`;
   } catch {}
-  // Strategy 2 (fallback ~800ms later if we are still here): system share
-  // sheet. iOS Safari is in the share targets, and copying the URL gives the
-  // user a manual escape hatch.
-  setTimeout(async () => {
-    if (document.hidden) return; // navigation succeeded — page backgrounded
-    const nav = navigator as Navigator & {
-      share?: (data: { url?: string; title?: string; text?: string }) => Promise<void>;
-      clipboard?: { writeText?: (s: string) => Promise<void> };
-    };
-    if (nav.share) {
-      try {
-        await nav.share({ url, title: document.title });
-        return;
-      } catch {}
-    }
-    try {
-      await nav.clipboard?.writeText?.(url);
-      // eslint-disable-next-line no-alert
-      alert(AXSDK.t('voiceMicIosUrlCopied'));
-    } catch {}
-  }, 800);
 }
 
 function shouldAutoShowTooltip(stt: SttState, perm: PermState, needsUnlock: boolean, hasError: boolean): boolean {
@@ -470,7 +446,7 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
                   e.stopPropagation();
                   sessionDismissedCodes.add('ios-third-party-browser');
                   forceRender((n) => n + 1);
-                  void openInSafari();
+                  openInSafari();
                 }
               : undefined
           }
