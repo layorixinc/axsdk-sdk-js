@@ -303,9 +303,9 @@ export class VoicePlugin {
     });
     this.#ttsPlayer.on('playback.ended', (p) => {
       this.#emit('voice.tts.playback.ended', p);
-      queueMicrotask(() => {
+      setTimeout(() => {
         if (!this.#ttsPlayer?.isActive) this.#setTtsState('idle');
-      });
+      }, 0);
       if (this.#deferredCloseAfterSpeak) {
         this.#deferredCloseAfterSpeak = false;
         void this.#stopCapture();
@@ -316,9 +316,9 @@ export class VoicePlugin {
         scope: 'tts',
         message: `${messageId}: ${message}`,
       });
-      queueMicrotask(() => {
+      setTimeout(() => {
         if (!this.#ttsPlayer?.isActive) this.#setTtsState('idle');
-      });
+      }, 0);
     });
     this.#ttsPlayer.on('gesture_required', ({ messageId }) => {
       this.#emit('voice.tts.gesture_required', { messageId });
