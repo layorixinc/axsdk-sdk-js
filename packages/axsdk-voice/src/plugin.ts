@@ -558,6 +558,7 @@ export class VoicePlugin {
     if (status !== this.#prevStatus) {
       const prev = this.#prevStatus;
       this.#prevStatus = status;
+      if (this.#config.debug) console.log('[axsdk-voice] session status', { prev, status });
       if (this.#ttsPlayer) {
         this.#ttsPlayer.stop();
       }
@@ -673,15 +674,36 @@ export class VoicePlugin {
   }
 
   #maybeSpeakLatestAssistant(state: ChatStoreShape): void {
-    if (!this.#config.tts) return;
-    if (this.#config.mode !== 'assistant') return;
+    const debug = this.#config.debug;
+    if (!this.#config.tts) {
+      if (debug) console.log('[axsdk-voice] speak skip: tts disabled');
+      return;
+    }
+    if (this.#config.mode !== 'assistant') {
+      if (debug) console.log('[axsdk-voice] speak skip: mode is', this.#config.mode);
+      return;
+    }
+    const cacheState = state.latestAssistantWithText;
     const last = findSpeakableAssistant(state);
-    if (!last) return;
+    if (!last) {
+      if (debug) console.log('[axsdk-voice] speak skip: no speakable assistant', {
+        cache: cacheState === undefined ? 'undefined' : cacheState === null ? 'null' : cacheState.info.id,
+        messages: state.messages?.length ?? 0,
+      });
+      return;
+    }
     const text = extractAssistantText(last);
-    if (!text) return;
+    if (!text) {
+      if (debug) console.log('[axsdk-voice] speak skip: extracted text empty', { id: last.info.id });
+      return;
+    }
     const id = last.info.id;
-    if (this.#spokenIds.has(id)) return;
+    if (this.#spokenIds.has(id)) {
+      if (debug) console.log('[axsdk-voice] speak skip: already spoken', { id, textLen: text.length });
+      return;
+    }
     this.#spokenIds.add(id);
+    if (debug) console.log('[axsdk-voice] speak dispatch', { id, textLen: text.length });
     this.#ttsPlayer?.speak({ id, text: this.#clipTts(text) });
   }
 
@@ -692,6 +714,7 @@ export class VoicePlugin {
   }
 
   #armFallbackTimer(state: ChatStoreShape): void {
+    const debug = this.#config.debug;
     if (!this.#config.tts || this.#config.mode !== 'assistant') return;
     const last = findSpeakableAssistant(state);
     if (!last) return;
@@ -707,14 +730,25 @@ export class VoicePlugin {
     if (!changed) return;
     this.#clearFallbackTimer();
     const snapshotId = last.info.id;
+    if (debug) console.log('[axsdk-voice] fallback armed', { id: snapshotId, textLen: text.length });
     this.#fallbackTimer = setTimeout(() => {
       this.#fallbackTimer = null;
       const store = this.#axsdk?.getChatStore();
       if (!store) return;
       const stateNow = store.getState() as ChatStoreShape;
-      if (stateNow.session?.status === 'busy') return;
+      if (stateNow.session?.status === 'busy') {
+        if (debug) console.log('[axsdk-voice] fallback skip: still busy', { id: snapshotId });
+        return;
+      }
       const lastNow = findSpeakableAssistant(stateNow);
-      if (!lastNow || lastNow.info.id !== snapshotId) return;
+      if (!lastNow || lastNow.info.id !== snapshotId) {
+        if (debug) console.log('[axsdk-voice] fallback skip: target changed', {
+          expected: snapshotId,
+          got: lastNow?.info.id ?? null,
+        });
+        return;
+      }
+      if (debug) console.log('[axsdk-voice] fallback fire', { id: snapshotId });
       this.#maybeSpeakLatestAssistant(stateNow);
     }, FALLBACK_IDLE_MS);
   }
