@@ -27,6 +27,7 @@ export class TtsPlayer {
   #disposed = false;
   #unlocked = false;
   #playbackRate = 1;
+  #cancelInflight: (() => void) | null = null;
 
   constructor(transport: VoiceTransport, opts?: { playbackRate?: number }) {
     this.#transport = transport;
@@ -81,6 +82,11 @@ export class TtsPlayer {
       this.#audio.removeAttribute('src');
     }
     this.#releaseObjectUrl();
+    if (this.#cancelInflight) {
+      const cancel = this.#cancelInflight;
+      this.#cancelInflight = null;
+      cancel();
+    }
     this.#playing = false;
   }
 
@@ -108,6 +114,7 @@ export class TtsPlayer {
             const cleanup = () => {
               audio.removeEventListener('ended', onEnded);
               audio.removeEventListener('error', onError);
+              this.#cancelInflight = null;
             };
             const onEnded = () => {
               cleanup();
@@ -121,6 +128,7 @@ export class TtsPlayer {
             };
             audio.addEventListener('ended', onEnded, { once: true });
             audio.addEventListener('error', onError, { once: true });
+            this.#cancelInflight = () => { cleanup(); resolve(); };
           });
           this.#releaseObjectUrl();
         } catch (err) {
@@ -320,6 +328,7 @@ export class TtsPlayer {
       const cleanup = () => {
         audio.removeEventListener('ended', onEnded);
         audio.removeEventListener('error', onError);
+        this.#cancelInflight = null;
       };
       const onEnded = () => {
         cleanup();
@@ -333,6 +342,7 @@ export class TtsPlayer {
       };
       audio.addEventListener('ended', onEnded, { once: true });
       audio.addEventListener('error', onError, { once: true });
+      this.#cancelInflight = () => { cleanup(); resolve(); };
       if (streamError) {
         this.#emitter.emit('error', { messageId, message: streamError.message });
         cleanup();
@@ -373,6 +383,7 @@ export class TtsPlayer {
       const cleanup = () => {
         audio.removeEventListener('ended', onEnded);
         audio.removeEventListener('error', onError);
+        this.#cancelInflight = null;
       };
       const onEnded = () => {
         cleanup();
@@ -386,6 +397,7 @@ export class TtsPlayer {
       };
       audio.addEventListener('ended', onEnded, { once: true });
       audio.addEventListener('error', onError, { once: true });
+      this.#cancelInflight = () => { cleanup(); resolve(); };
       this.#emitter.emit('playback.started', { messageId });
     });
 

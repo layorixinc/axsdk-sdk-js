@@ -37,6 +37,7 @@ export interface VoiceTransportContext {
   appId?: string;
   appAuthToken?: string;
   appUserId?: string;
+  appUserSessionId?: string;
 }
 
 export interface OpenAIRealtimeTransportConfig {
@@ -100,9 +101,22 @@ export class OpenAIRealtimeTransport implements VoiceTransport {
       this.#reconnectTimer = null;
     }
     const ws = this.#ws;
+    if (ws && ws.readyState === WebSocket.CONNECTING) {
+      await new Promise<void>((resolve) => {
+        const settled = () => {
+          ws.removeEventListener('open', settled);
+          ws.removeEventListener('error', settled);
+          ws.removeEventListener('close', settled);
+          resolve();
+        };
+        ws.addEventListener('open', settled);
+        ws.addEventListener('error', settled);
+        ws.addEventListener('close', settled);
+      });
+    }
     this.#ws = null;
     this.#ready = false;
-    if (ws) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
       try { ws.close(); } catch {}
     }
     if (!wasOpen) return;
@@ -279,6 +293,7 @@ export class OpenAIRealtimeTransport implements VoiceTransport {
     if (ctx.appId) url.searchParams.set('app_id', ctx.appId);
     if (ctx.appAuthToken) url.searchParams.set('app_authorization', ctx.appAuthToken);
     if (ctx.appUserId) url.searchParams.set('app_user_id', ctx.appUserId);
+    if (ctx.appUserSessionId) url.searchParams.set('app_user_session_id', ctx.appUserSessionId);
     return url.toString();
   }
 

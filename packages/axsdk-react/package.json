@@ -40,6 +40,7 @@
   },
   "dependencies": {
     "@axsdk/core": "^0.4",
+    "@axsdk/voice": "workspace: *",
     "react": "^19",
     "react-dom": "^19",
     "react-markdown": "^10.1.0",

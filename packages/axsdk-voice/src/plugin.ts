@@ -180,6 +180,7 @@ export class VoicePlugin {
 
   #prevIsOpen = false;
   #prevStatus: string | undefined = undefined;
+  #prevSessionId: string | undefined = undefined;
   #spokenIds = new Set<string>();
   #pausedByVisibility = false;
   #visibilityHandler: (() => void) | null = null;
@@ -269,6 +270,7 @@ export class VoicePlugin {
     const contextProvider = (): VoiceTransportContext => {
       const cfg = axsdk.config;
       const app = axsdk.getAppStore().getState();
+      const chat = axsdk.getChatStore().getState();
       const endpoint = axsdk.getEndpoint?.() ?? null;
       const baseUrl = this.#config.baseUrl
         ?? resolveCoreBaseUrl(cfg, endpoint);
@@ -280,6 +282,7 @@ export class VoicePlugin {
         appId: cfg?.appId,
         appAuthToken: app.appAuthToken,
         appUserId: app.getAppUserId(),
+        appUserSessionId: chat.session?.id,
       };
     };
 
@@ -305,7 +308,9 @@ export class VoicePlugin {
     });
     this.#ttsPlayer.on('playback.ended', (p) => {
       this.#emit('voice.tts.playback.ended', p);
-      if (!this.#ttsPlayer?.isActive) this.#setTtsState('idle');
+      queueMicrotask(() => {
+        if (!this.#ttsPlayer?.isActive) this.#setTtsState('idle');
+      });
       if (this.#deferredCloseAfterSpeak) {
         this.#deferredCloseAfterSpeak = false;
         void this.#stopCapture();
@@ -316,7 +321,9 @@ export class VoicePlugin {
         scope: 'tts',
         message: `${messageId}: ${message}`,
       });
-      if (!this.#ttsPlayer?.isActive) this.#setTtsState('idle');
+      queueMicrotask(() => {
+        if (!this.#ttsPlayer?.isActive) this.#setTtsState('idle');
+      });
     });
     this.#ttsPlayer.on('gesture_required', ({ messageId }) => {
       this.#emit('voice.tts.gesture_required', { messageId });
@@ -327,6 +334,7 @@ export class VoicePlugin {
     const initial = store.getState();
     this.#prevIsOpen = initial.isOpen;
     this.#prevStatus = initial.session?.status;
+    this.#prevSessionId = initial.session?.id;
 
     this.#unsubscribe = store.subscribe((state) => {
       this.#onStoreUpdate(state);
@@ -476,6 +484,18 @@ export class VoicePlugin {
   #onStoreUpdate(state: ChatStoreShape): void {
     const isOpen = state.isOpen;
     const status = state.session?.status;
+    const sessionId = state.session?.id;
+
+    if (sessionId !== this.#prevSessionId) {
+      this.#prevSessionId = sessionId;
+      const transport = this.#transport;
+      if (transport) {
+        void transport.reconnect().catch((err) => {
+          const message = err instanceof Error ? err.message : String(err);
+          this.#emit('voice.error', { scope: 'transport', message });
+        });
+      }
+    }
 
     if (isOpen !== this.#prevIsOpen) {
       this.#prevIsOpen = isOpen;
@@ -502,7 +522,7 @@ export class VoicePlugin {
       }
       this.#clearFallbackTimer();
       if (this.#ttsState !== 'idle') this.#setTtsState('idle');
-      if (prev === 'busy' && status === 'idle') {
+      if (prev === 'busy' && status === 'idle' && state.session) {
         this.#maybeSpeakLatestAssistant(state.messages);
       }
     }

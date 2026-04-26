@@ -44,8 +44,7 @@ let _activePlugin: VoicePluginType | null = null;
 let _cached: Promise<VoiceModule> | null = null;
 function loadVoice(): Promise<VoiceModule> {
   if (!_cached) {
-    const pkg = '@axsdk/voice';
-    _cached = import(/* @vite-ignore */ pkg) as unknown as Promise<VoiceModule>;
+    _cached = import('@axsdk/voice') as unknown as Promise<VoiceModule>;
   }
   return _cached;
 }
@@ -63,6 +62,12 @@ export function useVoicePlugin(config: AXVoiceConfig | null | undefined): VoiceP
       try {
         const mod = await loadVoice();
         if (cancelled) return;
+        if (_activePlugin) {
+          const prev = _activePlugin as unknown as { __remoteOff?: () => void };
+          prev.__remoteOff?.();
+          _activePlugin.detach();
+          _activePlugin = null;
+        }
         instance = new mod.VoicePlugin({
           ...resolved,
           workletUrl: resolved.workletUrl ?? workletBlobUrl(),

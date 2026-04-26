@@ -28,13 +28,14 @@ export default defineConfig({
     },
     rolldownOptions: {
       plugins: [esmExternalRequirePlugin({
-        external: ["react", "react-dom", "@axsdk/core", 'react/jsx-runtime']
+        external: ["react", "react-dom", "@axsdk/core", "@axsdk/voice", 'react/jsx-runtime']
       })],
       output: {
         globals: {
           react: "React",
           "react-dom": "ReactDOM",
-          "@axsdk/core": "AXSDKCore"
+          "@axsdk/core": "AXSDKCore",
+          "@axsdk/voice": "AXSDKVoice"
         }
       }
     }
