@@ -241,10 +241,15 @@ function tooltipText(
   tts: TtsState,
   perm: PermState,
   errorMsg: string | null,
+  errorCode: string | null,
   needsUnlock: boolean,
 ): string {
   if (needsUnlock) return AXSDK.t('voiceUnlockPrompt');
   if (stt === 'error' || tts === 'error') {
+    if (errorCode === 'ios-third-party-browser') return AXSDK.t('voiceMicIosThirdParty');
+    if (errorCode === 'insecure-context') return AXSDK.t('voiceMicInsecure');
+    if (errorCode === 'no-media-devices') return AXSDK.t('voiceMicUnavailable');
+    if (errorCode === 'permission-denied') return AXSDK.t('voicePermissionDenied');
     if (errorMsg && /permission|denied|notallowed/i.test(errorMsg)) {
       return AXSDK.t('voicePermissionDenied');
     }
@@ -275,6 +280,7 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
   const tts = useTtsState();
   const [perm, setPerm] = useState<PermState>('unknown');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [hover, setHover] = useState(false);
   const needsUnlock = useVoiceUnlockNeeded();
   const prevSttRef = useRef<SttState>('idle');
@@ -349,9 +355,10 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
 
   useEffect(() => {
     const bus = AXSDK.eventBus();
-    const onError = (p: { scope: string; message: string }) => {
+    const onError = (p: { scope: string; message: string; code?: string }) => {
       if (p.scope !== 'capture' && p.scope !== 'transport') return;
       setErrorMsg(p.message);
+      setErrorCode(p.code ?? null);
       if (debug) console.log('[AXVoiceIndicator] voice.error', p);
     };
     bus.on('voice.error', onError);
@@ -369,7 +376,8 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
   const badgeSize = needsUnlock
     ? `calc(${orbCSS} * 0.55)`
     : `calc(${orbCSS} * 0.45)`;
-  const tooltip = tooltipText(stt, tts, perm, activeError, needsUnlock);
+  const activeCode = hasError ? errorCode : null;
+  const tooltip = tooltipText(stt, tts, perm, activeError, activeCode, needsUnlock);
   const showTooltip = hover || shouldAutoShowTooltip(stt, perm, needsUnlock, hasError);
 
   return (
@@ -425,6 +433,7 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
             right: `calc(100% + 10px)`,
             top: '50%',
             transform: 'translateY(-50%)',
+            zIndex: 10010,
             background: 'var(--ax-bg-popover, rgba(20, 20, 30, 0.92))',
             color: 'var(--ax-text-primary, #fff)',
             border: '1px solid var(--ax-border-primary, rgba(168, 85, 247, 0.35))',

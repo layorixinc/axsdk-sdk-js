@@ -20,4 +20,8 @@ export type {
   OpenAIRealtimeTransportConfig,
 } from './transport';
 
-export { primeMicrophonePermission } from './capture';
+export {
+  primeMicrophonePermission,
+  MicrophoneUnsupportedError,
+  isMicrophoneSupported,
+} from './capture';

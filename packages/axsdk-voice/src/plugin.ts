@@ -2,6 +2,8 @@ import type { ChatMessage, ChatSession } from '@axsdk/core';
 import type EventEmitter from 'eventemitter3';
 import { interpret } from 'robot3';
 import {
+  isMicrophoneSupported,
+  MicrophoneUnsupportedError,
   primeMicrophonePermission,
   startCapture,
   type CaptureHandle,
@@ -86,6 +88,12 @@ export interface VoiceEventMap {
   'voice.error': {
     scope: 'capture' | 'transport' | 'tts';
     message: string;
+    code?:
+      | 'insecure-context'
+      | 'ios-third-party-browser'
+      | 'no-media-devices'
+      | 'permission-denied'
+      | 'unknown';
   };
 }
 
@@ -199,10 +207,13 @@ export class VoicePlugin {
     this.#emit('voice.transcript.finalized', { text });
     if (this.#config.mode === 'echo') {
       if (this.#config.tts) {
-        this.#ttsPlayer?.speak({
-          id: `echo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          text,
-        });
+        const cleaned = stripThinking(text).trim();
+        if (cleaned) {
+          this.#ttsPlayer?.speak({
+            id: `echo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            text: cleaned,
+          });
+        }
       }
       return;
     }
@@ -371,7 +382,27 @@ export class VoicePlugin {
     transport.on('error', this.#onTransportError);
     transport.on('close', this.#onTransportClose);
 
-    if (this.#config.primeMicOnAttach) {
+    if (this.#config.stt && !isMicrophoneSupported()) {
+      try {
+        // re-throw via assert path inside startCapture would be too late; do it now
+        // so the indicator/tooltip surfaces the localized message immediately.
+        const probe = new MicrophoneUnsupportedError(
+          (typeof window !== 'undefined' && window.isSecureContext === false)
+            ? 'insecure-context'
+            : (/iPad|iPhone|iPod/.test(typeof navigator !== 'undefined' ? navigator.userAgent : '') &&
+               /CriOS|FxiOS|EdgiOS|OPiOS|mercury/i.test(typeof navigator !== 'undefined' ? navigator.userAgent : ''))
+              ? 'ios-third-party-browser'
+              : 'no-media-devices',
+          'Microphone unavailable in this environment.',
+        );
+        this.#emit('voice.error', {
+          scope: 'capture',
+          message: probe.message,
+          code: probe.code,
+        });
+        this.#setSttState('error');
+      } catch {}
+    } else if (this.#config.primeMicOnAttach) {
       void primeMicrophonePermission();
     }
 
@@ -559,7 +590,10 @@ export class VoicePlugin {
       if (this.#sttState !== 'capturing') this.#setSttState('listening');
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      this.#emit('voice.error', { scope: 'capture', message });
+      const code = err instanceof MicrophoneUnsupportedError
+        ? err.code
+        : (/permission|denied|notallowed/i.test(message) ? 'permission-denied' : 'unknown');
+      this.#emit('voice.error', { scope: 'capture', message, code });
       this.#setSttState('error');
       await this.#stopCapture();
     } finally {
@@ -773,7 +807,16 @@ function extractAssistantText(message: ChatMessage): string {
       chunks.push(part.text);
     }
   }
-  return chunks.join(' ').trim();
+  return stripThinking(chunks.join(' ')).trim();
+}
+
+function stripThinking(text: string): string {
+  // Strip closed <think>/<thinking> blocks (case-insensitive, multi-line) and
+  // any unclosed trailing block — the latter happens while streaming deltas.
+  return text
+    .replace(/<think(?:ing)?\b[^>]*>[\s\S]*?<\/think(?:ing)?>/gi, '')
+    .replace(/<think(?:ing)?\b[^>]*>[\s\S]*$/i, '')
+    .replace(/\s{2,}/g, ' ');
 }
 
 // Adapter for the @axsdk/core plugin system (AXSDK.use / unload / plugin).

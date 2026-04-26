@@ -164,7 +164,7 @@ export function AXButton({
       className={className}
       style={{
         position: "fixed",
-        zIndex: 10000,
+        zIndex: 10003,
         bottom: "1em",
         right: "1em",
         width: sizeCSS,

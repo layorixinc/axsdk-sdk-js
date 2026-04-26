@@ -38,6 +38,9 @@ export const AXSDK_TRANSLATIONS: Record<string, Record<string, string>> = {
     voiceError: 'Voice unavailable',
     voiceIdle: 'Voice ready',
     voiceUnlockPrompt: 'Tap to enable audio',
+    voiceMicInsecure: 'Microphone requires HTTPS. Please reload over a secure connection.',
+    voiceMicIosThirdParty: 'On iPhone/iPad, please open this page in Safari to use the microphone.',
+    voiceMicUnavailable: 'Microphone is not available in this browser.',
   },
   ko: {
     chatInput: '무엇을 도와드릴까요?',
@@ -78,5 +81,8 @@ export const AXSDK_TRANSLATIONS: Record<string, Record<string, string>> = {
     voiceError: '음성을 사용할 수 없습니다',
     voiceIdle: '음성 준비됨',
     voiceUnlockPrompt: '오디오를 켜려면 탭하세요',
+    voiceMicInsecure: '마이크는 HTTPS에서만 동작합니다. 보안 연결로 다시 접속해주세요.',
+    voiceMicIosThirdParty: 'iPhone/iPad에서는 Safari로 열어야 마이크를 사용할 수 있습니다.',
+    voiceMicUnavailable: '이 브라우저에서는 마이크를 사용할 수 없습니다.',
   },
 };

@@ -13,10 +13,53 @@ export interface CaptureHandle {
   stop(): Promise<void>;
 }
 
+export class MicrophoneUnsupportedError extends Error {
+  readonly code:
+    | 'insecure-context'
+    | 'ios-third-party-browser'
+    | 'no-media-devices';
+  constructor(
+    code: MicrophoneUnsupportedError['code'],
+    message: string,
+  ) {
+    super(message);
+    this.name = 'MicrophoneUnsupportedError';
+    this.code = code;
+  }
+}
+
+function assertMicrophoneSupported(): void {
+  if (typeof window !== 'undefined' && window.isSecureContext === false) {
+    throw new MicrophoneUnsupportedError(
+      'insecure-context',
+      'Microphone requires a secure context (HTTPS or localhost).',
+    );
+  }
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua) ||
+    (ua.includes('Mac') && typeof document !== 'undefined' &&
+      'ontouchend' in document);
+  const isIOSThirdParty = isIOS && /CriOS|FxiOS|EdgiOS|OPiOS|mercury/i.test(ua);
+  if (isIOSThirdParty) {
+    throw new MicrophoneUnsupportedError(
+      'ios-third-party-browser',
+      'On iOS, the microphone is only available in Safari. Please open this page in Safari.',
+    );
+  }
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new MicrophoneUnsupportedError(
+      'no-media-devices',
+      'navigator.mediaDevices.getUserMedia is not available in this browser.',
+    );
+  }
+}
+
 export async function startCapture(
   options: CaptureOptions = {},
 ): Promise<CaptureHandle> {
   const sampleRate = options.sampleRate ?? 24000;
+
+  assertMicrophoneSupported();
 
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: {
@@ -94,8 +137,17 @@ async function closeSilently(ctx: AudioContext): Promise<void> {
   try { await ctx.close(); } catch {}
 }
 
+export function isMicrophoneSupported(): boolean {
+  try {
+    assertMicrophoneSupported();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function primeMicrophonePermission(): Promise<void> {
-  if (!navigator.mediaDevices?.getUserMedia) return;
+  if (!isMicrophoneSupported()) return;
   try {
     const s = await navigator.mediaDevices.getUserMedia({ audio: true });
     stopStream(s);
