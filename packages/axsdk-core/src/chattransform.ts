@@ -83,6 +83,30 @@ export async function updateFromSessionStatus(payload: unknown) {
   return status;
 }
 
+export async function updateFromSessionError(payload: unknown) {
+  const data = payload as {
+    sessionID?: string;
+    code?: string;
+    message?: string;
+    name?: string;
+    statusCode?: number;
+    responseBody?: unknown;
+  };
+  const id = data.sessionID ?? `session-error-${Date.now()}`;
+  errorStore.getState().removeError(id);
+  errorStore.getState().addError({
+    id,
+    timestamp: Date.now(),
+    url: `axsdk://${id}`,
+    method: 'session',
+    status: data.statusCode ?? 500,
+    statusText: data.code ?? data.name ?? 'session.error',
+    message: data.message ?? '',
+    requestBody: undefined,
+    responseBody: data.responseBody ?? data.message,
+  } as ApiError);
+}
+
 export async function updateFromSessionUpdate(payload: unknown) {
   const chatState = chatStore.getState();
   const session = chatState.session;

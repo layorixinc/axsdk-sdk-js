@@ -1,4 +1,5 @@
 import { ApiClient, type RequestInterceptor, type ErrorInterceptor } from './apiclient';
+import { sessionsPath } from './config';
 
 export const api = new ApiClient({
   defaultHeaders: {
@@ -17,22 +18,29 @@ export async function getAppInfo() {
   return api.get('') as Promise<{ app?: { translations?: Record<string, Record<string, string>> }; version?: number }>;
 }
 
-export async function createSession() {
-  return api.post('/sessions');
+export interface CreateSessionOptions {
+  message?: string;
+  sessionId?: string;
+  defaultAgent?: string;
+  systemPrompt?: string;
+}
+
+export async function createSession(opts: CreateSessionOptions = {}) {
+  return api.post(sessionsPath(), opts);
 }
 
 export async function getMessages() {
-  return api.get('/sessions/messages');
+  return api.get(`${sessionsPath()}/messages`);
 }
 
 export async function postMessage(text: string, images: string[]) {
-  return api.post('/sessions/message', {
+  return api.post(`${sessionsPath()}/message`, {
     text, images,
   });
 }
 
 export async function cancelSession(sessionID: string) {
-  return api.get(`/sessions/${sessionID}/cancel`);
+  return api.get(`${sessionsPath()}/${sessionID}/cancel`);
 }
 
 export async function getPendingCalls() {

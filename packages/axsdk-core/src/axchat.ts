@@ -4,7 +4,7 @@ import { getSSEService, type SSE } from './sse';
 import { appStore, chatStore, envStore } from './store';
 import { EventBus } from './eventbus';
 import { updateFromMessages,
-  updateFromSessionStatus, updateFromSessionUpdate,
+  updateFromSessionStatus, updateFromSessionUpdate, updateFromSessionError,
   updateFromMessageUpdate, updateFromMessagePartUpdate, updateFromMessagePartDelta } from './chattransform';
 import AXSDK from './axsdk';
 import { processAXHandler } from './axhandler';
@@ -95,7 +95,11 @@ async function handleChatMessage(properties: unknown) {
     chatStore.getState().setSessionClosed(null);
   }
   if (!session) {
-    const data = await api.createSession() as { session: ChatSession };
+    const cfg = AXSDK.config;
+    const data = await api.createSession({
+      defaultAgent: cfg?.defaultAgent,
+      systemPrompt: cfg?.systemPrompt,
+    }) as { session: ChatSession };
     session = data.session;
     chatStore.getState().setSession(session);
     EventBus.emit('message.chat', { type: 'axsdk.chat.session', data: { sessionID: session.id } });
@@ -123,6 +127,14 @@ async function handleSessionStatus(properties: unknown) {
 
 async function handleSessionUpdate(properties: unknown) {
   updateFromSessionUpdate(properties);
+}
+
+async function handleSessionError(properties: unknown) {
+  updateFromSessionError(properties);
+}
+
+async function handleQuestionResolved() {
+  chatStore.getState().setQuestions(null);
 }
 
 function ensureSessionBusy() {
@@ -231,6 +243,9 @@ async function handleMessage(properties: unknown) {
   else if (type === 'session.updated') {
     return handleSessionUpdate(data);
   }
+  else if (type === 'session.error') {
+    return handleSessionError(data);
+  }
   else if (type === 'message.updated') {
     return handleMessageUpdate(data);
   }
@@ -242,6 +257,16 @@ async function handleMessage(properties: unknown) {
   }
   else if (type === 'question.asked') {
     return handleQuestionAsked(data);
+  }
+  else if (type === 'question.answered'
+    || type === 'question.cancelled'
+    || type === 'question.timeout') {
+    return handleQuestionResolved();
+  }
+  else if (type === 'axsdk.tool.invoked'
+    || type === 'axsdk.tool.completed'
+    || type === 'axsdk.tool.failed') {
+    return;
   }
   else if (type == 'server.connected') {
     return handleServerConnected(data);

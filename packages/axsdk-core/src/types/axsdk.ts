@@ -10,6 +10,9 @@ export type AXSDKTranslationsSchema = z.infer<typeof AXSDKTranslationsSchema>;
 export const AXSDKConfigSchema = z.object({
   baseUrl: z.string().optional(),
   basePath: z.string().optional(),
+  apiVersion: z.enum(['v1', 'v2']).optional(),
+  defaultAgent: z.string().optional(),
+  systemPrompt: z.string().optional(),
   apiKey: z.string(),
   appId: z.string(),
   headers: z.record(z.string(), z.string()).optional(),

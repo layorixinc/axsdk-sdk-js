@@ -57,10 +57,17 @@ class AxSdk extends EventEmitter {
       if (type === 'server.connected'
         || type === 'session.status'
         || type === 'session.updated'
+        || type === 'session.error'
         || type === 'message.updated'
         || type === 'message.part.updated'
         || type === 'message.part.delta'
         || type === 'question.asked'
+        || type === 'question.answered'
+        || type === 'question.cancelled'
+        || type === 'question.timeout'
+        || type === 'axsdk.tool.invoked'
+        || type === 'axsdk.tool.completed'
+        || type === 'axsdk.tool.failed'
       ) {
         EventBus.emit('message.chat', { type, data: properties });
       }
@@ -75,6 +82,7 @@ class AxSdk extends EventEmitter {
 
     Config.baseURL = config.baseUrl || Config.baseURL;
     Config.basePath = config.basePath || Config.basePath;
+    Config.apiVersion = config.apiVersion || Config.apiVersion;
     appStore.getState().setApiKey(config.apiKey);
     appStore.getState().setAppId(config.appId);
     const browserLanguage = (typeof navigator !== 'undefined' && navigator.language)
