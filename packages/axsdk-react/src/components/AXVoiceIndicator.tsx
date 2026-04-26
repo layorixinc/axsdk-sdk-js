@@ -267,6 +267,8 @@ function tooltipText(
   return parts.join(' · ');
 }
 
+const sessionDismissedCodes = new Set<string>();
+
 async function openInSafari(): Promise<void> {
   const url = window.location.href;
   // Strategy 1: x-safari-https scheme — works on iOS Chrome / Edge / Firefox
@@ -312,7 +314,7 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
   const [perm, setPerm] = useState<PermState>('unknown');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
-  const [dismissed, setDismissed] = useState(false);
+  const [, forceRender] = useState(0);
   const [hover, setHover] = useState(false);
   const needsUnlock = useVoiceUnlockNeeded();
   const prevSttRef = useRef<SttState>('idle');
@@ -391,7 +393,6 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
       if (p.scope !== 'capture' && p.scope !== 'transport') return;
       setErrorMsg(p.message);
       setErrorCode(p.code ?? null);
-      setDismissed(false);
       if (debug) console.log('[AXVoiceIndicator] voice.error', p);
     };
     bus.on('voice.error', onError);
@@ -411,7 +412,8 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
     : `calc(${orbCSS} * 0.45)`;
   const activeCode = hasError ? errorCode : null;
   const tooltip = tooltipText(stt, tts, perm, activeError, activeCode, needsUnlock);
-  const showTooltip = !dismissed && (hover || shouldAutoShowTooltip(stt, perm, needsUnlock, hasError));
+  const isDismissed = activeCode ? sessionDismissedCodes.has(activeCode) : false;
+  const showTooltip = !isDismissed && (hover || shouldAutoShowTooltip(stt, perm, needsUnlock, hasError));
 
   return (
     <div
@@ -466,7 +468,8 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
             activeCode === 'ios-third-party-browser'
               ? (e) => {
                   e.stopPropagation();
-                  setDismissed(true);
+                  sessionDismissedCodes.add('ios-third-party-browser');
+                  forceRender((n) => n + 1);
                   void openInSafari();
                 }
               : undefined
@@ -474,8 +477,8 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
           style={{
             position: 'absolute',
             right: `calc(100% + 10px)`,
-            top: '50%',
-            transform: 'translateY(-50%)',
+            bottom: '50%',
+            transform: 'translateY(50%) translateY(-1.5em)',
             zIndex: 10010,
             background: 'var(--ax-bg-popover, rgba(20, 20, 30, 0.92))',
             color: 'var(--ax-text-primary, #fff)',
@@ -484,8 +487,8 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
             padding: 'var(--ax-tooltip-padding, 10px 14px)',
             fontSize: 'var(--ax-tooltip-font-size, 0.95em)',
             lineHeight: 1.35,
-            minWidth: `calc(90vw - ${orbCSS} - 2em)`,
-            maxWidth: `calc(90vw - ${orbCSS} - 2em)`,
+            minWidth: `calc(95vw - ${orbCSS} - 1em)`,
+            maxWidth: `calc(95vw - ${orbCSS} - 1em)`,
             whiteSpace: 'normal',
             wordBreak: 'keep-all',
             overflowWrap: 'break-word',

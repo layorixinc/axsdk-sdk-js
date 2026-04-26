@@ -362,7 +362,25 @@ export function AXUI({ children, theme, voice }: AXUIProps) {
         userMessage={userMessage}
         visible={notifVisible}
         onClose={() => setDismissedNotification(true)}
-        onOpen={() => { if (appInfoReady) setIsOpen(true); }}
+        onOpen={() => {
+          if (!appInfoReady) return;
+          if (effectiveVoice) {
+            const plugin = getVoicePlugin();
+            if (voiceNeedsUnlock) {
+              if (effectiveVoice.debug) console.log('[AXUI voice] notification open → unlockAudio()');
+              void plugin?.unlockAudio().catch((err) => {
+                if (effectiveVoice.debug) console.warn('[AXUI voice] unlockAudio() failed', err);
+              });
+            } else if (!hasPrimedVoiceRef.current) {
+              hasPrimedVoiceRef.current = true;
+              if (effectiveVoice.debug) console.log('[AXUI voice] notification open → primePermissions()');
+              void plugin?.primePermissions().catch((err) => {
+                if (effectiveVoice.debug) console.warn('[AXUI voice] primePermissions() failed', err);
+              });
+            }
+          }
+          setIsOpen(true);
+        }}
         isBusy={isBusy}
         isDesktop={isDesktop}
         inputBottomOffset={inputTopOffset ?? undefined}
