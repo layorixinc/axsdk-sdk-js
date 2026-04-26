@@ -66,7 +66,7 @@ export async function searchKnowledge(options: { group?: string; regex: string; 
   return api.get('/knowledge/search', {
     params: {
       group: options.group ?? '',
-      pattern: options.regex,
+      regex: options.regex,
       cursor: options.cursor ?? '',
       limit,
     },
