@@ -5,7 +5,7 @@ import ReactDOM from 'react-dom';
 
 import { useStore } from 'zustand';
 
-import { AXButton } from './AXButton';
+import { AXButton, type AXCornerPosition } from './AXButton';
 import { AXChatNotificationPopover } from './AXChatNotificationPopover';
 import { AXChatLastMessage } from './AXChatLastMessage';
 import { AXChatMessageInput } from './AXChatMessageInput';
@@ -18,6 +18,7 @@ import type { TextPart } from '@axsdk/core';
 
 import type { AXTheme } from '../theme';
 import { AXThemeProvider } from '../AXThemeContext';
+import { useAXTheme } from '../AXThemeContext';
 import { useAXShadowRoot } from '../AXShadowRootContext';
 import { injectCSSVariables } from '../cssVariables';
 import {
@@ -35,16 +36,126 @@ export interface AXUIProps {
   children?: React.ReactNode;
   theme?: AXTheme;
   voice?: AXVoiceConfig;
+  position?: AXCornerPosition;
+  defaultPosition?: AXCornerPosition;
+  onPositionChange?: (position: AXCornerPosition) => void;
 }
 
-function SpeechBubbleClosed({ visible }: { visible: boolean }) {
+function AXMoveControls({ position, setPosition, isOpen }: { position: AXCornerPosition; setPosition: (p: AXCornerPosition) => void; isOpen: boolean }) {
+  const { theme } = useAXTheme();
+  const isTopPos = position.startsWith('top');
+  const isLeftPos = position.endsWith('left');
+  const vertical: 'top' | 'bottom' = isTopPos ? 'top' : 'bottom';
+  const horizontal: 'left' | 'right' = isLeftPos ? 'left' : 'right';
+
+  const tx = isLeftPos ? '-40%' : '40%';
+  const ty = isTopPos ? '-40%' : '40%';
+
+  const containerStyle: React.CSSProperties = {
+    position: 'fixed',
+    [vertical]: '1em',
+    [horizontal]: '1em',
+    width: '12vh',
+    height: '12vh',
+    pointerEvents: 'none',
+    zIndex: 10004,
+    transform: isOpen ? `translate(${tx}, ${ty})` : undefined,
+    transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
+  };
+
+  const innerVertical: 'top' | 'bottom' = isTopPos ? 'bottom' : 'top';
+  const innerHorizontal: 'left' | 'right' = isLeftPos ? 'left' : 'right';
+
+  function startDrag(e: React.PointerEvent<HTMLDivElement>) {
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const threshold = 50;
+    let settled = false;
+    const onMove = (ev: PointerEvent) => {
+      if (settled) return;
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      const adx = Math.abs(dx);
+      const ady = Math.abs(dy);
+      if (adx < threshold && ady < threshold) return;
+      settled = true;
+      const dir: 'up' | 'down' | 'left' | 'right' =
+        adx > ady ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+      const v: 'top' | 'bottom' = dir === 'up' ? 'top' : dir === 'down' ? 'bottom' : (isTopPos ? 'top' : 'bottom');
+      const h: 'left' | 'right' = dir === 'left' ? 'left' : dir === 'right' ? 'right' : (isLeftPos ? 'left' : 'right');
+      const next = `${v}-${h}` as AXCornerPosition;
+      if (next !== position) setPosition(next);
+      cleanup();
+    };
+    const onUp = () => cleanup();
+    const cleanup = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+  }
+
+  return (
+    <div style={containerStyle}>
+      <div
+        role="button"
+        aria-label="Drag to move"
+        title="Drag to move"
+        onPointerDown={startDrag}
+        style={{
+          position: 'absolute',
+          [innerVertical]: -10,
+          [innerHorizontal]: -10,
+          width: 38,
+          height: 38,
+          borderRadius: '50%',
+          border: '1px solid var(--ax-border-primary, rgba(168, 85, 247, 0.4))',
+          background: 'var(--ax-bg-popover, rgba(20, 20, 30, 0.85))',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          color: 'var(--ax-text-primary, rgba(255,255,255,0.92))',
+          cursor: 'grab',
+          touchAction: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          pointerEvents: 'auto',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
+          userSelect: 'none',
+          transition: 'transform 0.15s ease',
+          ...theme.styles?.moveHandle?.handle,
+        }}
+        onPointerEnter={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.08)'; }}
+        onPointerLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)'; }}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={theme.styles?.moveHandle?.icon}>
+          <path d="M5 9l-3 3 3 3" />
+          <path d="M9 5l3-3 3 3" />
+          <path d="M15 19l-3 3-3-3" />
+          <path d="M19 9l3 3-3 3" />
+          <path d="M2 12h20" />
+          <path d="M12 2v20" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function SpeechBubbleClosed({ visible, position }: { visible: boolean; position: AXCornerPosition }) {
+  const isTopPos = position.startsWith('top');
+  const isLeftPos = position.endsWith('left');
+  const vKey = isTopPos ? 'top' : 'bottom';
+  const hKey = isLeftPos ? 'left' : 'right';
   return (
     <div
       aria-hidden={!visible}
       style={{
-      position: "fixed",
-      bottom: "calc(12vh + 1.5em + 14px)",
-        right: "1.25em",
+        position: "fixed",
+        [vKey]: "calc(12vh + 1.5em + 14px)",
+        [hKey]: "1.25em",
         zIndex: 10001,
         pointerEvents: "none",
         animation: visible
@@ -85,26 +196,26 @@ function SpeechBubbleClosed({ visible }: { visible: boolean }) {
       <div
         style={{
           position: "absolute",
-          bottom: -10,
-          right: "calc(12vh / 2 - 9px)",
+          [vKey]: -10,
+          [hKey]: "calc(12vh / 2 - 9px)",
           width: 0,
           height: 0,
           borderLeft: "9px solid transparent",
           borderRight: "9px solid transparent",
-          borderTop: "9px solid var(--ax-border-primary, rgba(168, 85, 247, 0.35))",
+          [isTopPos ? "borderBottom" : "borderTop"]: "9px solid var(--ax-border-primary, rgba(168, 85, 247, 0.35))",
           zIndex: -1,
         }}
       />
       <div
         style={{
           position: "absolute",
-          bottom: -8,
-          right: "calc(12vh / 2 - 8px)",
+          [vKey]: -8,
+          [hKey]: "calc(12vh / 2 - 8px)",
           width: 0,
           height: 0,
           borderLeft: "8px solid transparent",
           borderRight: "8px solid transparent",
-          borderTop: "8px solid var(--ax-bg-popover)",
+          [isTopPos ? "borderBottom" : "borderTop"]: "8px solid var(--ax-bg-popover)",
           filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.3))",
         }}
       />
@@ -114,11 +225,27 @@ function SpeechBubbleClosed({ visible }: { visible: boolean }) {
 
 const DESKTOP_BREAKPOINT = 768;
 
-export function AXUI({ children, theme, voice }: AXUIProps) {
+export function AXUI({ children, theme, voice, position: controlledPosition, defaultPosition = 'bottom-right', onPositionChange }: AXUIProps) {
   const shadowRoot = useAXShadowRoot();
   useVoicePlugin(voice ?? null);
   const effectiveVoice = resolveVoiceConfig(voice);
   const voiceNeedsUnlock = useVoiceUnlockNeeded();
+  const [internalPosition, setInternalPosition] = useState<AXCornerPosition>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? window.localStorage.getItem('axsdk:position') : null;
+      if (saved === 'top-left' || saved === 'top-right' || saved === 'bottom-left' || saved === 'bottom-right') return saved;
+    } catch { /* ignore storage errors */ }
+    const fromConfig = AXSDK.config?.defaultPosition as AXCornerPosition | undefined;
+    return fromConfig ?? defaultPosition;
+  });
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') window.localStorage.setItem('axsdk:position', internalPosition);
+    } catch { /* ignore storage errors */ }
+  }, [internalPosition]);
+  const position = controlledPosition ?? internalPosition;
+  const isTopPos = position.startsWith('top');
+  const isLeftPos = position.endsWith('left');
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
   const [dismissedNotification, setDismissedNotification] = useState(false);
   const [lastAnswer, setLastAnswer] = useState<{ questionIndex: number; selectedOption: number; label: string } | null>(null);
@@ -145,6 +272,9 @@ export function AXUI({ children, theme, voice }: AXUIProps) {
     const currentStatus = session?.status;
     if ((prevStatusRef.current === 'idle' || !prevStatusRef.current) && currentStatus === 'busy') {
       setIsOpen(false);
+    }
+    if (prevStatusRef.current === 'busy' && currentStatus === 'idle') {
+      setIsOpen(true);
     }
     prevStatusRef.current = currentStatus;
   }, [session?.status, setIsOpen]);
@@ -213,7 +343,7 @@ export function AXUI({ children, theme, voice }: AXUIProps) {
 
     const measure = () => {
       const rect = wrapper.getBoundingClientRect();
-      setInputTopOffset(window.innerHeight - rect.top + 8);
+      setInputTopOffset(isTopPos ? rect.bottom + 8 : window.innerHeight - rect.top + 8);
     };
 
     const timerId = setTimeout(() => {
@@ -239,7 +369,7 @@ export function AXUI({ children, theme, voice }: AXUIProps) {
       const wrapper = messageInputWrapperRef.current;
       if (!wrapper) return;
       const rect = wrapper.getBoundingClientRect();
-      setInputTopOffset(window.innerHeight - rect.top + 8);
+      setInputTopOffset(isTopPos ? rect.bottom + 8 : window.innerHeight - rect.top + 8);
       setScrollTrigger(n => n + 1);
       setFocusTrigger(n => n + 1);
     }, 320);
@@ -342,7 +472,7 @@ export function AXUI({ children, theme, voice }: AXUIProps) {
     <div>
     {children}
     <AXDevTools debug={AXSDK.config?.debug} messages={messages} />
-    <SpeechBubbleClosed visible={!isOpen && !chatWasEverOpened} />
+    <SpeechBubbleClosed visible={!isOpen && !chatWasEverOpened} position={position} />
     {isOpen ? (
       <AXChatLastMessage
         message={assistantMessage}
@@ -355,6 +485,7 @@ export function AXUI({ children, theme, voice }: AXUIProps) {
         inputBottomOffset={inputTopOffset ?? undefined}
         scrollToBottomTrigger={scrollTrigger}
         idleGuideText={!isBusy ? AXSDK.t("chatIdleGuide") : undefined}
+        position={position}
       />
     ) : (
       <AXChatNotificationPopover
@@ -362,6 +493,7 @@ export function AXUI({ children, theme, voice }: AXUIProps) {
         userMessage={userMessage}
         visible={notifVisible}
         onClose={() => setDismissedNotification(true)}
+        position={position}
         onOpen={() => {
           if (!appInfoReady) return;
           if (effectiveVoice) {
@@ -397,12 +529,12 @@ export function AXUI({ children, theme, voice }: AXUIProps) {
         right: 0,
         bottom: 0,
         display: "flex",
-        flexDirection: "column",
-        alignItems: isOpen && isDesktop ? "flex-end" : "center",
+        flexDirection: isTopPos ? "column-reverse" : "column",
+        alignItems: isOpen && isDesktop ? (isLeftPos ? "flex-start" : "flex-end") : "center",
         zIndex: 10000,
         pointerEvents: "none",
         transition: "transform 0.3s ease",
-        transform: isOpen ? "translateY(0)" : "translateY(100%)",
+        transform: isOpen ? "translateY(0)" : (isTopPos ? "translateY(-100%)" : "translateY(100%)"),
       }}
     >
       <div style={{ flex: 3 }} />
@@ -411,7 +543,8 @@ export function AXUI({ children, theme, voice }: AXUIProps) {
         style={{
           flex: 1,
           width: isOpen && isDesktop ? "min(420px, 40vw)" : "min(680px, 90vw)",
-          marginRight: isOpen && isDesktop ? "1.25em" : undefined,
+          marginRight: isOpen && isDesktop && !isLeftPos ? "1.25em" : undefined,
+          marginLeft: isOpen && isDesktop && isLeftPos ? "1.25em" : undefined,
           display: "flex",
           flexDirection: "column",
           justifyContent: "flex-start",
@@ -427,6 +560,8 @@ export function AXUI({ children, theme, voice }: AXUIProps) {
           autoFocus
           disabled={!appInfoReady}
           focusTrigger={focusTrigger}
+          cornerSide={isLeftPos ? 'left' : 'right'}
+          cornerVertical={isTopPos ? 'top' : 'bottom'}
           guideText={
             !appInfoReady ? AXSDK.t("chatInitializing") :
             !messages.length || session?.status === "idle" || !session?.status ? AXSDK.t("chatEmpty") :
@@ -472,8 +607,15 @@ export function AXUI({ children, theme, voice }: AXUIProps) {
       onClick={handleClick}
       isOpen={isOpen}
       status={session?.status}
+      position={position}
       overlay={effectiveVoice ? <AXVoiceIndicator orbSize="12vh" debug={effectiveVoice.debug} /> : undefined}
     />
+    {AXSDK.config?.dragHandleEnabled !== false && (
+      <AXMoveControls position={position} isOpen={isOpen} setPosition={(p) => {
+        if (controlledPosition === undefined) setInternalPosition(p);
+        onPositionChange?.(p);
+      }} />
+    )}
     <div style={{
       textAlign: 'center',
       fontSize: '0.65em',

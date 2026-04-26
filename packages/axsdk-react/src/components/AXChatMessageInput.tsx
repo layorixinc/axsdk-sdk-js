@@ -18,6 +18,8 @@ export interface AXChatMessageInputProps {
   autoFocus?: boolean;
   onAutoFocus?: () => void;
   focusTrigger?: number;
+  cornerSide?: 'left' | 'right';
+  cornerVertical?: 'top' | 'bottom';
 }
 
 export function AXChatMessageInput({
@@ -33,6 +35,8 @@ export function AXChatMessageInput({
   autoFocus = false,
   onAutoFocus,
   focusTrigger,
+  cornerSide = 'right',
+  cornerVertical = 'bottom',
 }: AXChatMessageInputProps) {
   const { theme } = useAXTheme();
   const [message, setMessage] = useState("");
@@ -101,7 +105,14 @@ export function AXChatMessageInput({
           ...theme.styles?.input?.guideText,
         }}
       >
-        {guideText}
+        <div
+          style={{
+            paddingLeft: cornerVertical === 'top' && cornerSide === 'left' ? "6vh" : undefined,
+            paddingRight: cornerVertical === 'top' && cornerSide === 'right' ? "6vh" : undefined,
+          }}
+        >
+          {guideText}
+        </div>
         {onboarding && (
           <div
             style={{
@@ -224,6 +235,7 @@ export function AXChatMessageInput({
             borderRadius: 10,
             color: "var(--ax-text-dim)",
             minWidth: "4em",
+            marginLeft: cornerVertical === 'bottom' && cornerSide === 'left' ? "3.5em" : 0,
             height: "3em",
             fontSize: "1em",
             fontWeight: 400,
@@ -277,7 +289,7 @@ export function AXChatMessageInput({
             border: "none",
             borderRadius: 10,
             marginLeft: "0.5em",
-            marginRight: "2em",
+            marginRight: cornerVertical === 'bottom' && cornerSide === 'right' ? "2em" : 0,
             height: "3em",
             color: message.trim() ? "#fff" : "var(--ax-text-dim)",
             fontSize: "1em",

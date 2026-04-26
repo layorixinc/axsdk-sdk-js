@@ -1,6 +1,6 @@
 'use client';
 
-import { AXChatMessagePopoverBase } from './AXChatMessagePopoverBase';
+import { AXChatMessagePopoverBase, type AXCornerPosition } from './AXChatMessagePopoverBase';
 
 export interface AXChatLastMessageProps {
   message?: { id: string, text: string };
@@ -14,10 +14,11 @@ export interface AXChatLastMessageProps {
   isDesktop?: boolean;
   scrollToBottomTrigger?: number;
   idleGuideText?: string;
+  position?: AXCornerPosition;
 }
 
 export function AXChatLastMessage({
-  message, userMessage, onClose, onOpen, visible, isBusy, isOpen = false, inputBottomOffset, isDesktop = false, scrollToBottomTrigger, idleGuideText,
+  message, userMessage, onClose, onOpen, visible, isBusy, isOpen = false, inputBottomOffset, isDesktop = false, scrollToBottomTrigger, idleGuideText, position,
 }: AXChatLastMessageProps) {
   if (!visible || (!message && !userMessage)) return null;
 
@@ -33,6 +34,7 @@ export function AXChatLastMessage({
       isDesktop={isDesktop}
       scrollToBottomTrigger={scrollToBottomTrigger}
       idleGuideText={idleGuideText}
+      position={position}
     />
   );
 }

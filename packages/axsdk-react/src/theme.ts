@@ -98,12 +98,18 @@ export interface AXThemeQuestionDialogStyles {
   declineButton?: React.CSSProperties;
 }
 
+export interface AXThemeMoveHandleStyles {
+  handle?: React.CSSProperties;
+  icon?: React.CSSProperties;
+}
+
 export interface AXThemeStyles {
   button?: AXThemeButtonStyles;
   input?: AXThemeInputStyles;
   popover?: AXThemePopoverStyles;
   message?: AXThemeMessageStyles;
   questionDialog?: AXThemeQuestionDialogStyles;
+  moveHandle?: AXThemeMoveHandleStyles;
 }
 
 export interface AXTheme {

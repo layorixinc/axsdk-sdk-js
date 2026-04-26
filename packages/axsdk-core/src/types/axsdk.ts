@@ -29,6 +29,8 @@ export const AXSDKConfigSchema = z.object({
     z.record(z.string(), z.any())
   ]).optional(),
   chatLinkEnabled: z.boolean().optional(),
+  dragHandleEnabled: z.boolean().optional(),
+  defaultPosition: z.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right']).optional(),
   remote_knowledge: z.boolean().optional(),
   knowledge_url_fetch: z.boolean().optional(),
   knowledge: z.union([

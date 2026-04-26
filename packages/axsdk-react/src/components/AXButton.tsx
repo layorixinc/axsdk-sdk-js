@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAXTheme } from '../AXThemeContext';
 
+export type AXCornerPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+
 export interface AXButtonProps {
   onClick?: () => void;
   visible?: boolean;
@@ -12,6 +14,7 @@ export interface AXButtonProps {
   status?: string;
   borderRadius?: string;
   overlay?: React.ReactNode;
+  position?: AXCornerPosition;
 }
 
 type AnimState = "show" | "idle" | "hide" | "unmounted";
@@ -31,8 +34,11 @@ export function AXButton({
   status,
   borderRadius: borderRadiusProp,
   overlay,
+  position = 'bottom-right',
 }: AXButtonProps) {
   const { theme } = useAXTheme();
+  const isTopPos = position.startsWith('top');
+  const isLeftPos = position.endsWith('left');
   const borderRadius = borderRadiusProp ?? theme.buttonBorderRadius ?? "50%";
   const rippleEnabled = theme.buttonRipple ?? true;
 
@@ -147,10 +153,12 @@ export function AXButton({
       ? { animation: "ax-hide 0.4s ease-in forwards" }
       : { animation: "ax-pulse 2.5s ease-in-out infinite" };
 
+  const tx = isLeftPos ? '-40%' : '40%';
+  const ty = isTopPos ? '-40%' : '40%';
   const outerTransform = isOpen
     ? pressed
-      ? "translate(40%, 40%) scale(0.9)"
-      : "translate(40%, 40%)"
+      ? `translate(${tx}, ${ty}) scale(0.9)`
+      : `translate(${tx}, ${ty})`
     : pressed
     ? "scale(0.9)"
     : undefined;
@@ -165,8 +173,8 @@ export function AXButton({
       style={{
         position: "fixed",
         zIndex: 10003,
-        bottom: "1em",
-        right: "1em",
+        [isTopPos ? "top" : "bottom"]: "1em",
+        [isLeftPos ? "left" : "right"]: "1em",
         width: sizeCSS,
         height: sizeCSS,
         transform: outerTransform,

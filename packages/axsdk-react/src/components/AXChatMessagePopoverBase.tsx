@@ -20,6 +20,8 @@ function parseThinking(text: string): { cleaned: string; isThinking: boolean } {
   return { cleaned: cleaned.trim(), isThinking };
 }
 
+export type AXCornerPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+
 export interface AXChatMessagePopoverBaseProps {
   message?: { id: string, text: string };
   userMessage?: { id: string, text: string };
@@ -32,6 +34,7 @@ export interface AXChatMessagePopoverBaseProps {
   scrollToBottomTrigger?: number;
   idleGuideText?: string;
   busyGuideText?: string;
+  position?: AXCornerPosition;
 }
 
 export function AXChatMessagePopoverBase({
@@ -46,7 +49,12 @@ export function AXChatMessagePopoverBase({
   scrollToBottomTrigger,
   idleGuideText,
   busyGuideText,
+  position = 'bottom-right',
 }: AXChatMessagePopoverBaseProps) {
+  const isTopPos = position.startsWith('top');
+  const isLeftPos = position.endsWith('left');
+  const vKey = isTopPos ? 'top' : 'bottom';
+  const hKey = isLeftPos ? 'left' : 'right';
   const { theme } = useAXTheme();
   const [expanded, setExpanded] = useState<boolean>(false);
   const scrollableRef = useRef<HTMLDivElement>(null);
@@ -255,20 +263,20 @@ export function AXChatMessagePopoverBase({
         aria-live="polite"
         style={isOpen && isDesktop ? {
           position: "fixed",
-          bottom: bottomOffset,
-          right: "1.25em",
+          [vKey]: bottomOffset,
+          [hKey]: "1.25em",
           width: "min(420px, 40vw)",
           boxSizing: "border-box",
           zIndex: 10001,
           pointerEvents: "none",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "flex-end",
+          justifyContent: isTopPos ? "flex-start" : "flex-end",
           alignItems: "stretch",
           animation: "axnotif-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards",
         } : isOpen ? {
           position: "fixed",
-          bottom: bottomOffset,
+          [vKey]: bottomOffset,
           left: 0,
           right: 0,
           width: "100%",
@@ -278,20 +286,20 @@ export function AXChatMessagePopoverBase({
           pointerEvents: "none",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "flex-end",
+          justifyContent: isTopPos ? "flex-start" : "flex-end",
           alignItems: "stretch",
           animation: "axnotif-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards",
         } : {
           position: "fixed",
-          bottom: bottomOffset,
-          right: "calc(1.25em + 12vh)",
+          [vKey]: "1.25em",
+          [hKey]: "calc(1.25em + 12vh)",
           zIndex: 10001,
           pointerEvents: "none",
           width: "min(420px, calc(100vw - 12vh - 1em - 16px))",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "flex-end",
-          alignItems: "flex-end",
+          justifyContent: isTopPos ? "flex-start" : "flex-end",
+          alignItems: isLeftPos ? "flex-start" : "flex-end",
           animation: "axnotif-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards",
         }}
       >
@@ -463,22 +471,22 @@ export function AXChatMessagePopoverBase({
         {!isOpen && <>
           <div style={{
             position: "absolute",
-            right: -10,
-            bottom: "calc(12vh / 2 - 9px)",
+            [hKey]: -10,
+            [vKey]: "calc(12vh / 2 - 9px)",
             width: 0, height: 0,
             borderTop: "9px solid transparent",
             borderBottom: "9px solid transparent",
-            borderLeft: "10px solid var(--ax-border-primary, rgba(168, 85, 247, 0.35))",
+            [isLeftPos ? "borderRight" : "borderLeft"]: "10px solid var(--ax-border-primary, rgba(168, 85, 247, 0.35))",
             zIndex: -1,
           }} />
           <div style={{
             position: "absolute",
-            right: -8,
-            bottom: "calc(12vh / 2 - 8px)",
+            [hKey]: -8,
+            [vKey]: "calc(12vh / 2 - 8px)",
             width: 0, height: 0,
             borderTop: "8px solid transparent",
             borderBottom: "8px solid transparent",
-            borderLeft: "8px solid var(--ax-bg-popover)",
+            [isLeftPos ? "borderRight" : "borderLeft"]: "8px solid var(--ax-bg-popover)",
           }} />
         </>}
       </div>

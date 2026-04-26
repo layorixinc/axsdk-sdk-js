@@ -1,6 +1,6 @@
 'use client';
 
-import { AXChatMessagePopoverBase } from './AXChatMessagePopoverBase';
+import { AXChatMessagePopoverBase, type AXCornerPosition } from './AXChatMessagePopoverBase';
 
 export interface AXChatNotificationPopoverProps {
   message?: { id: string, text: string };
@@ -15,10 +15,11 @@ export interface AXChatNotificationPopoverProps {
   scrollToBottomTrigger?: number;
   idleGuideText?: string;
   busyGuideText?: string;
+  position?: AXCornerPosition;
 }
 
 export function AXChatNotificationPopover({
-  message, userMessage, onClose, onOpen, visible, isBusy, isOpen = false, inputBottomOffset, isDesktop = false, scrollToBottomTrigger, idleGuideText, busyGuideText,
+  message, userMessage, onClose, onOpen, visible, isBusy, isOpen = false, inputBottomOffset, isDesktop = false, scrollToBottomTrigger, idleGuideText, busyGuideText, position,
 }: AXChatNotificationPopoverProps) {
   if (!visible) return null;
 
@@ -35,6 +36,7 @@ export function AXChatNotificationPopover({
       scrollToBottomTrigger={scrollToBottomTrigger}
       idleGuideText={idleGuideText}
       busyGuideText={busyGuideText}
+      position={position}
     />
   );
 }
