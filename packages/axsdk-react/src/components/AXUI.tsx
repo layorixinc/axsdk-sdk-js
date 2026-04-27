@@ -26,6 +26,7 @@ import {
   resolveVoiceConfig,
   useVoiceUnlockNeeded,
   useTtsPending,
+  useTtsState,
   getVoicePlugin,
   type AXVoiceConfig,
 } from '../voice';
@@ -42,15 +43,12 @@ export interface AXUIProps {
   onPositionChange?: (position: AXCornerPosition) => void;
 }
 
-function AXMoveControls({ position, setPosition, isOpen }: { position: AXCornerPosition; setPosition: (p: AXCornerPosition) => void; isOpen: boolean }) {
+function AXMoveControls({ position, setPosition }: { position: AXCornerPosition; setPosition: (p: AXCornerPosition) => void }) {
   const { theme } = useAXTheme();
   const isTopPos = position.startsWith('top');
   const isLeftPos = position.endsWith('left');
   const vertical: 'top' | 'bottom' = isTopPos ? 'top' : 'bottom';
   const horizontal: 'left' | 'right' = isLeftPos ? 'left' : 'right';
-
-  const tx = isLeftPos ? '-40%' : '40%';
-  const ty = isTopPos ? '-40%' : '40%';
 
   const containerStyle: React.CSSProperties = {
     position: 'fixed',
@@ -60,8 +58,6 @@ function AXMoveControls({ position, setPosition, isOpen }: { position: AXCornerP
     height: '12vh',
     pointerEvents: 'none',
     zIndex: 10004,
-    transform: isOpen ? `translate(${tx}, ${ty})` : undefined,
-    transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
   };
 
   const innerVertical: 'top' | 'bottom' = isTopPos ? 'bottom' : 'top';
@@ -267,11 +263,25 @@ export function AXUI({ children, theme, voice, position: controlledPosition, def
 
   const { isOpen, setIsOpen, chatWasEverOpened, setChatWasEverOpened, messages, questions, setQuestions, session, ttsEnabled, setTtsEnabled } = useStore(AXSDK.getChatStore());
   const ttsPending = useTtsPending();
+  const ttsState = useTtsState();
+  const [ttsErrorMessage, setTtsErrorMessage] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const bus = AXSDK.eventBus();
+    const onError = (p: { scope: string; message: string }) => {
+      if (p.scope !== 'tts') return;
+      setTtsErrorMessage((prev) => prev === p.message ? prev : p.message);
+    };
+    bus.on('voice.error', onError);
+    return () => { bus.off('voice.error', onError); };
+  }, []);
   const ttsControl = useMemo(() => {
     if (!effectiveVoice || effectiveVoice.tts === false) return undefined;
     return {
       enabled: ttsEnabled !== false,
       pending: ttsPending,
+      state: ttsState,
+      needsUnlock: voiceNeedsUnlock,
+      errorMessage: ttsState === 'error' ? ttsErrorMessage : undefined,
       onToggle: () => {
         const next = ttsEnabled === false;
         if (next) {
@@ -292,7 +302,7 @@ export function AXUI({ children, theme, voice, position: controlledPosition, def
         setTtsEnabled(next);
       },
     };
-  }, [effectiveVoice, ttsEnabled, ttsPending, setTtsEnabled, voiceNeedsUnlock]);
+  }, [effectiveVoice, ttsEnabled, ttsPending, ttsState, ttsErrorMessage, setTtsEnabled, voiceNeedsUnlock]);
   const appInfoReady = useStore(AXSDK.getAppStore(), (s) => s.appInfoReady);
   const isBusy = session?.status === 'busy';
 
@@ -646,10 +656,10 @@ export function AXUI({ children, theme, voice, position: controlledPosition, def
       isOpen={isOpen}
       status={session?.status}
       position={position}
-      overlay={effectiveVoice ? <AXVoiceIndicator orbSize="9vh" debug={effectiveVoice.debug} /> : undefined}
+      overlay={effectiveVoice ? <AXVoiceIndicator orbSize="5.5vh" debug={effectiveVoice.debug} /> : undefined}
     />
     {AXSDK.config?.dragHandleEnabled !== false && (
-      <AXMoveControls position={position} isOpen={isOpen} setPosition={(p) => {
+      <AXMoveControls position={position} setPosition={(p) => {
         if (controlledPosition === undefined) setInternalPosition(p);
         onPositionChange?.(p);
       }} />

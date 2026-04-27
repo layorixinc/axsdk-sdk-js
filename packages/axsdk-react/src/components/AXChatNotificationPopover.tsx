@@ -1,6 +1,6 @@
 'use client';
 
-import { AXChatMessagePopoverBase } from './AXChatMessagePopoverBase';
+import { AXChatMessagePopoverBase, type AXTtsControl } from './AXChatMessagePopoverBase';
 import type { AXCornerPosition } from './AXButton';
 
 export interface AXChatNotificationPopoverProps {
@@ -17,7 +17,7 @@ export interface AXChatNotificationPopoverProps {
   idleGuideText?: string;
   busyGuideText?: string;
   position?: AXCornerPosition;
-  ttsControl?: { enabled: boolean; pending: boolean; onToggle: () => void };
+  ttsControl?: AXTtsControl;
 }
 
 export function AXChatNotificationPopover({

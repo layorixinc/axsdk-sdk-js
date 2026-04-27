@@ -21,6 +21,152 @@ function parseThinking(text: string): { cleaned: string; isThinking: boolean } {
 }
 
 import type { AXCornerPosition } from './AXButton';
+import type { TtsState } from '@axsdk/voice';
+import type { AXTheme } from '../theme';
+
+export interface AXTtsControl {
+  enabled: boolean;
+  pending: boolean;
+  // AXUI fills these; downstream consumers may omit (treated as 'idle' / false / no-error).
+  state?: TtsState;
+  needsUnlock?: boolean;
+  errorMessage?: string;
+  onToggle: () => void;
+}
+
+const TTS_RING_BASE: React.CSSProperties = {
+  position: 'absolute',
+  inset: 0,
+  borderRadius: '50%',
+  border: '2px solid rgba(124, 58, 237, 0.55)',
+  animation: 'ax-tts-ripple 1.6s ease-out infinite',
+  pointerEvents: 'none',
+};
+const TTS_RING_0: React.CSSProperties = { ...TTS_RING_BASE, animationDelay: '0s' };
+const TTS_RING_1: React.CSSProperties = { ...TTS_RING_BASE, animationDelay: '0.6s' };
+
+function TtsToggleButton({ control, theme }: { control: AXTtsControl; theme: AXTheme }) {
+  const [hover, setHover] = useState(false);
+  const ttsState = control.state ?? 'idle';
+  const isError = ttsState === 'error';
+  const isSpeaking = ttsState === 'speaking';
+  const isQueued = ttsState === 'queued';
+  const isUnlock = !!control.needsUnlock;
+  const background = isError
+    ? 'linear-gradient(135deg, #b91c1c, #7f1d1d)'
+    : isUnlock
+    ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
+    : control.enabled
+    ? 'var(--ax-color-primary, #7c3aed)'
+    : 'rgba(255, 255, 255, 0.06)';
+  const fgColor = (isError || isUnlock || control.enabled)
+    ? 'var(--ax-text-primary, #fff)'
+    : 'var(--ax-text-muted)';
+  const animation = isUnlock
+    ? 'ax-tts-unlock-pulse 1.6s ease-in-out infinite'
+    : isError
+    ? 'ax-tts-error-blink 1.6s ease-in-out 3'
+    : !control.enabled && control.pending
+    ? 'ax-tts-pending-pulse 1.4s ease-in-out infinite'
+    : undefined;
+  const title = isError
+    ? (control.errorMessage || 'Voice error')
+    : isUnlock
+    ? 'Tap to enable voice'
+    : control.enabled ? 'Mute voice' : 'Unmute voice';
+  return (
+    <div style={{
+      display: 'flex',
+      justifyContent: 'flex-end',
+      padding: '6px 10px 2px 10px',
+      pointerEvents: 'auto',
+      ...theme.styles?.popover?.ttsToggleRow,
+    }}>
+      <div style={{ position: 'relative', width: 34, height: 34 }}>
+        {isSpeaking && (
+          <>
+            <div style={TTS_RING_0} />
+            <div style={TTS_RING_1} />
+          </>
+        )}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); AXSDK.eventBus().emit('voice.user-intent', undefined); control.onToggle(); }}
+          aria-label={title}
+          title={title}
+          style={{
+            position: 'relative',
+            width: 34,
+            height: 34,
+            padding: 0,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid var(--ax-border-primary, rgba(168, 85, 247, 0.4))',
+            borderRadius: '50%',
+            background,
+            color: fgColor,
+            cursor: 'pointer',
+            transition: 'filter 0.15s ease, color 0.15s ease',
+            filter: hover ? 'brightness(1.18) saturate(1.1)' : undefined,
+            boxShadow: '0 1px 0 rgba(255,255,255,0.08) inset, 0 1px 3px rgba(0,0,0,0.2)',
+            animation,
+            ...(control.enabled
+              ? theme.styles?.popover?.ttsToggleOn
+              : theme.styles?.popover?.ttsToggleOff),
+          }}
+          onMouseEnter={() => setHover(true)}
+          onMouseLeave={() => setHover(false)}
+        >
+          {isUnlock ? (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          ) : (
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              style={theme.styles?.popover?.ttsToggleIcon}
+            >
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none" />
+              {isError ? (
+                <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth="2.4" />
+              ) : control.enabled ? (
+                <>
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                </>
+              ) : (
+                <>
+                  <line x1="22" y1="9" x2="16" y2="15" />
+                  <line x1="16" y1="9" x2="22" y2="15" />
+                </>
+              )}
+            </svg>
+          )}
+          {isQueued && !isError && !isUnlock && (
+            <div style={{
+              position: 'absolute',
+              inset: -3,
+              borderRadius: '50%',
+              border: '2px solid rgba(255,255,255,0.25)',
+              borderTopColor: 'var(--ax-color-primary-light, #a855f7)',
+              animation: 'ax-tts-spin 0.9s linear infinite',
+              pointerEvents: 'none',
+            }} />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export interface AXChatMessagePopoverBaseProps {
   message?: { id: string, text: string };
@@ -35,7 +181,7 @@ export interface AXChatMessagePopoverBaseProps {
   idleGuideText?: string;
   busyGuideText?: string;
   position?: AXCornerPosition;
-  ttsControl?: { enabled: boolean; pending: boolean; onToggle: () => void };
+  ttsControl?: AXTtsControl;
 }
 
 export function AXChatMessagePopoverBase({
@@ -262,6 +408,19 @@ export function AXChatMessagePopoverBase({
           0%, 100% { box-shadow: 0 0 0 0 rgba(var(--ax-color-primary-rgb, 168, 85, 247), 0.55); transform: scale(1); }
           50%      { box-shadow: 0 0 0 10px rgba(var(--ax-color-primary-rgb, 168, 85, 247), 0); transform: scale(1.08); }
         }
+        @keyframes ax-tts-ripple {
+          0%   { transform: scale(0.7); opacity: 0.7; }
+          100% { transform: scale(2.0); opacity: 0; }
+        }
+        @keyframes ax-tts-unlock-pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.7), 0 1px 0 rgba(255,255,255,0.08) inset, 0 1px 3px rgba(0,0,0,0.2); }
+          50%      { box-shadow: 0 0 0 12px rgba(99,102,241,0), 0 1px 0 rgba(255,255,255,0.08) inset, 0 1px 3px rgba(0,0,0,0.2); }
+        }
+        @keyframes ax-tts-error-blink {
+          0%, 100% { opacity: 1; }
+          35%      { opacity: 0.45; }
+        }
+        @keyframes ax-tts-spin { to { transform: rotate(360deg); } }
         .ax-notif-content::-webkit-scrollbar { display: none; }
       `}</style>
       <div
@@ -457,85 +616,7 @@ export function AXChatMessagePopoverBase({
 
           <AXChatErrorBar />
 
-          {ttsControl && (
-            <div style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              padding: "6px 10px 2px 10px",
-              pointerEvents: "auto",
-              ...theme.styles?.popover?.ttsToggleRow,
-            }}>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); AXSDK.eventBus().emit('voice.user-intent', undefined); ttsControl.onToggle(); }}
-                aria-label={ttsControl.enabled ? "Mute voice" : "Unmute voice"}
-                title={ttsControl.enabled ? "Mute voice" : "Unmute voice"}
-                style={{
-                  width: 34,
-                  height: 34,
-                  padding: 0,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: "1px solid var(--ax-border-primary, rgba(168, 85, 247, 0.4))",
-                  borderRadius: "50%",
-                  background: ttsControl.enabled
-                    ? "var(--ax-color-primary, #7c3aed)"
-                    : "rgba(255, 255, 255, 0.06)",
-                  color: ttsControl.enabled
-                    ? "var(--ax-text-primary, #fff)"
-                    : "var(--ax-text-muted)",
-                  cursor: "pointer",
-                  transition: "background 0.15s ease, color 0.15s ease",
-                  boxShadow: "0 1px 0 rgba(255,255,255,0.08) inset, 0 1px 3px rgba(0,0,0,0.2)",
-                  animation: !ttsControl.enabled && ttsControl.pending
-                    ? "ax-tts-pending-pulse 1.4s ease-in-out infinite"
-                    : undefined,
-                  ...(ttsControl.enabled
-                    ? theme.styles?.popover?.ttsToggleOn
-                    : theme.styles?.popover?.ttsToggleOff),
-                }}
-                onMouseEnter={(e) => {
-                  const b = e.currentTarget as HTMLButtonElement;
-                  b.style.background = ttsControl.enabled
-                    ? "var(--ax-color-primary-light, #a855f7)"
-                    : "rgba(255, 255, 255, 0.12)";
-                }}
-                onMouseLeave={(e) => {
-                  const b = e.currentTarget as HTMLButtonElement;
-                  b.style.background = ttsControl.enabled
-                    ? "var(--ax-color-primary, #7c3aed)"
-                    : "rgba(255, 255, 255, 0.06)";
-                }}
-              >
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                  style={theme.styles?.popover?.ttsToggleIcon}
-                >
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none" />
-                  {ttsControl.enabled ? (
-                    <>
-                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-                    </>
-                  ) : (
-                    <>
-                      <line x1="22" y1="9" x2="16" y2="15" />
-                      <line x1="16" y1="9" x2="22" y2="15" />
-                    </>
-                  )}
-                </svg>
-              </button>
-            </div>
-          )}
+          {ttsControl && <TtsToggleButton control={ttsControl} theme={theme} />}
 
           {idleGuideText && (
             <div style={{

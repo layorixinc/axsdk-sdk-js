@@ -168,6 +168,7 @@ export function AXButton({
   const useCustomImage = Boolean(buttonImageUrl);
 
   return (
+    <>
     <div
       className={className}
       style={{
@@ -422,21 +423,25 @@ export function AXButton({
         />
       ))}
     </button>
+    </div>
     {overlay && (
       <div
         style={{
-          position: "absolute",
-          inset: 0,
+          position: "fixed",
+          zIndex: 10003,
+          [isTopPos ? "top" : "bottom"]: "1em",
+          [isLeftPos ? "left" : "right"]: "1em",
+          width: sizeCSS,
+          height: sizeCSS,
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          alignItems: isTopPos ? "flex-start" : "flex-end",
+          justifyContent: isLeftPos ? "flex-start" : "flex-end",
           pointerEvents: "none",
-          zIndex: 30,
         }}
       >
         {overlay}
       </div>
     )}
-    </div>
+    </>
   );
 }
