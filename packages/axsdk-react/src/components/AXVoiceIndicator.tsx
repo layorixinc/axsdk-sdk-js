@@ -263,7 +263,7 @@ function tooltipText(
   else if (stt === 'connecting') {
     parts.push(perm === 'prompt' ? AXSDK.t('voicePermissionWaiting') : AXSDK.t('voiceConnecting'));
   }
-  if (parts.length === 0) return AXSDK.t('voiceIdle');
+  if (parts.length === 0) return '';
   return parts.join(' · ');
 }
 
@@ -271,6 +271,28 @@ function openInSafari(): void {
   try {
     const stripped = window.location.href.replace(/^https?:\/\//, '');
     window.location.href = `x-safari-https://${stripped}`;
+  } catch {}
+}
+
+const PERSISTENT_ENV_CODES = new Set([
+  'insecure-context',
+  'ios-third-party-browser',
+  'no-media-devices',
+]);
+
+function isSuppressedCode(code: string | null): boolean {
+  if (!code || !PERSISTENT_ENV_CODES.has(code)) return false;
+  try {
+    return sessionStorage.getItem(`ax-tooltip-shown:${code}`) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function markShown(code: string): void {
+  if (!PERSISTENT_ENV_CODES.has(code)) return;
+  try {
+    sessionStorage.setItem(`ax-tooltip-shown:${code}`, '1');
   } catch {}
 }
 
@@ -290,6 +312,7 @@ function computeAutoShow(
   if (needsUnlock) return { kind: 'persistent', key: 'unlock' };
   if (hasError) {
     const code = errorCode || 'generic';
+    if (isSuppressedCode(code)) return { kind: 'none' };
     const isPermDenied = code === 'permission-denied';
     return { kind: 'timed', key: `err:${code}`, baseDuration: isPermDenied ? 8000 : 6000 };
   }
@@ -376,12 +399,14 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
     const count = (seenCountRef.current.get(result.key) ?? 0) + 1;
     seenCountRef.current.set(result.key, count);
     const duration = count === 1 ? result.baseDuration : 2500;
+    const code = result.key.startsWith('err:') ? result.key.slice(4) : null;
     setTooltipForceShow(true);
     hideTimerRef.current = window.setTimeout(() => {
       setTooltipForceShow(false);
       hideTimerRef.current = null;
       // Allow re-trigger if the same error key fires again later.
       lastAutoKeyRef.current = null;
+      if (code) markShown(code);
     }, duration);
   }, [stt, tts, perm, needsUnlock, errorCode, hasError]);
 
@@ -481,7 +506,8 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
     : `calc(${orbCSS} * 0.45)`;
   const activeCode = hasError ? errorCode : null;
   const tooltip = tooltipText(stt, tts, perm, activeError, activeCode, needsUnlock);
-  const showTooltip = hover || tooltipForceShow;
+  const suppressed = isSuppressedCode(activeCode);
+  const showTooltip = !suppressed && (hover || tooltipForceShow);
 
   return (
     <div
