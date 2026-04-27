@@ -66,6 +66,120 @@ export async function AX_get_knowledge_groups() {
 
 export const AX_search_knowledge_schema = `{
   "name": "AX_search_knowledge",
+  "description": "Search knowledge base using regex pattern. Optionally fetch and search from an external JSON URL.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "regex": { "type": "string", "description": "Regular expression pattern to search" },
+      "group": { "type": "string", "description": "Knowledge group to search within" },
+      "url":   { "type": "string", "description": "Optional Knowledge URL. If specified, fetches JSON data from this URL and searches within it instead of the local knowledge base. Expected response format: { total: number, data: [...] }" },
+      "page":  { "type": "number", "description": "Page number for pagination (default: 1)" },
+      "limit": { "type": "number", "description": "Number of results per page (default: 20)" }
+    },
+    "required": ["regex"]
+  }
+}`;
+
+export async function AX_search_knowledge(args: unknown) {
+  const { group, regex, page = 1, limit = 20, url } = (args ?? {}) as {
+    group?: string; regex?: string; page?: number; limit?: number; url?: string;
+  };
+  if (!regex) {
+    return { groups: {}, total: 0, page, limit, error: 'Missing regex' };
+  }
+
+  let re: RegExp;
+  try {
+    re = new RegExp(regex, 'i');
+  } catch (e) {
+    return { groups: {}, total: 0, page, limit, error: `Invalid regex: ${(e as Error).message}` };
+  }
+
+  const matches = (value: unknown): boolean => {
+    if (value == null) return false;
+    if (typeof value === 'string') return re.test(value);
+    if (typeof value === 'number' || typeof value === 'boolean') return re.test(String(value));
+    if (typeof value === 'object') {
+      for (const v of Object.values(value as Record<string, unknown>)) {
+        if (matches(v)) return true;
+      }
+    }
+    return false;
+  };
+
+  const isUrlItem = (item: unknown): item is { name: string; content: string } => {
+    const entry = item as Record<string, unknown>;
+    return entry?.name === 'url' && typeof entry?.content === 'string';
+  };
+
+  const sliceGroups = (allFiltered: Record<string, unknown[]>, total: number) => {
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const sliced: Record<string, unknown[]> = {};
+    let seen = 0;
+    for (const [g, items] of Object.entries(allFiltered)) {
+      const gStart = seen;
+      const gEnd = seen + items.length;
+      seen = gEnd;
+      if (gEnd <= start || gStart >= end) continue;
+      sliced[g] = items.slice(Math.max(0, start - gStart), Math.min(items.length, end - gStart));
+    }
+    return { groups: sliced, total, page, limit };
+  };
+
+  try {
+    if (url) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
+      const json = await res.json() as { total: number; data: unknown[] };
+      const items: unknown[] = json.data ?? [];
+      const filtered = items.filter(matches);
+      const groupKey = group ?? '';
+      return sliceGroups({ [groupKey]: filtered }, filtered.length);
+    }
+
+    let source: Record<string, unknown[]>;
+    if ((AXSDK.config as any)?.remote_knowledge) {
+      const raw = await AXSDK.fetchKnowledge({ group, page: 1, limit: 10000 });
+      source = raw.groups;
+    } else {
+      const knowledge = AXSDK.getKnowledgeStore().getState().knowledge ?? {};
+      source = group ? { [group]: knowledge[group] ?? [] } : knowledge;
+    }
+
+    const urlFetchEnabled = !!(AXSDK.config as any)?.knowledge_url_fetch;
+    const allFiltered: Record<string, unknown[]> = {};
+    let total = 0;
+
+    for (const [g, items] of Object.entries(source)) {
+      const regularItems = urlFetchEnabled ? items.filter(item => !isUrlItem(item)) : items;
+      const hit = regularItems.filter(matches);
+      if (hit.length) {
+        allFiltered[g] = hit;
+        total += hit.length;
+      }
+      if (urlFetchEnabled) {
+        for (const urlItem of items.filter(isUrlItem)) {
+          try {
+            const sub = await AX_search_knowledge({ group: g, regex, url: urlItem.content, page: 1, limit: 10000 });
+            const subData = (sub as any).groups?.[g] ?? [];
+            if (subData.length) {
+              allFiltered[g] = [...(allFiltered[g] ?? []), ...subData];
+              total += subData.length;
+            }
+          } catch {}
+        }
+      }
+    }
+
+    return sliceGroups(allFiltered, total);
+  } catch (e) {
+    return { groups: {}, total: 0, page, limit, error: (e as Error).message };
+  }
+}
+
+export const AX_search_knowledge_v2_schema = `{
+  "name": "AX_search_knowledge_v2",
   "description": "Search the knowledge base with a case-insensitive regex. Escape regex metacharacters (. * + ? ( ) [ ] etc.) when you want a literal match. Use the returned next_cursor to fetch the next page with the same regex.",
   "parameters": {
     "type": "object",
@@ -79,7 +193,7 @@ export const AX_search_knowledge_schema = `{
   }
 }`;
 
-export async function AX_search_knowledge(args: unknown) {
+export async function AX_search_knowledge_v2(args: unknown) {
   const { regex, group, cursor, limit } = (args ?? {}) as {
     regex?: string; group?: string; cursor?: string; limit?: number;
   };
@@ -170,6 +284,7 @@ const AX_FUNCTIONS: Record<string, Function> = {
   AX_search_data,
   AX_get_knowledge_groups,
   AX_search_knowledge,
+  AX_search_knowledge_v2,
 }
 const AX_PROXY = new Proxy(AX_FUNCTIONS, {
   get(target, command: string) {
