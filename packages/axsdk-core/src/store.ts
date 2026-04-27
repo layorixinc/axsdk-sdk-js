@@ -135,6 +135,8 @@ export interface ChatState {
   setDeferredCalls: (calls: DeferredCall[]) => void;
   addDeferredCall: (call: DeferredCall) => void;
   removeDeferredCall: (deferId: string) => void;
+  ttsEnabled: boolean;
+  setTtsEnabled: (enabled: boolean) => void;
 }
 
 function findLatestAssistantWithText(messages: ChatMessage[]): ChatMessage | null {
@@ -191,6 +193,8 @@ export const chatStore = createStore<ChatState>()(
       removeDeferredCall: (deferId: string) => set((state) => ({
         deferredCalls: state.deferredCalls.filter((c) => c.deferId !== deferId),
       })),
+      ttsEnabled: true,
+      setTtsEnabled: (enabled: boolean) => set({ ttsEnabled: enabled }),
     }),
     {
       name: 'axsdk:chat',
@@ -198,7 +202,7 @@ export const chatStore = createStore<ChatState>()(
         const noop = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
         return noop;
       })())),
-      partialize: (state) => ({ session: state.session, sessionClosed: state.sessionClosed, messages: state.messages, isOpen: state.isOpen, deferredCalls: state.deferredCalls }),
+      partialize: (state) => ({ session: state.session, sessionClosed: state.sessionClosed, messages: state.messages, isOpen: state.isOpen, deferredCalls: state.deferredCalls, ttsEnabled: state.ttsEnabled }),
       merge: (persisted, current) => {
         const merged = { ...current, ...(persisted as Partial<ChatState>) };
         merged.latestAssistantWithText = findLatestAssistantWithText(merged.messages ?? []);

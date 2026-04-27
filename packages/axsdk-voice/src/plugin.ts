@@ -85,6 +85,7 @@ export interface VoiceEventMap {
   'voice.tts.playback.started': { messageId: string };
   'voice.tts.playback.ended': { messageId: string };
   'voice.tts.gesture_required': { messageId: string };
+  'voice.tts.pending': { messageId: string | null };
   'voice.session.restored': { sessionId?: string };
   'voice.error': {
     scope: 'capture' | 'transport' | 'tts';
@@ -103,6 +104,7 @@ interface ChatStoreShape {
   session: ChatSession | null;
   messages: ChatMessage[];
   latestAssistantWithText?: ChatMessage | null;
+  ttsEnabled?: boolean;
 }
 
 interface ChatStoreApi {
@@ -188,6 +190,8 @@ export class VoicePlugin {
   #prevIsOpen = false;
   #prevStatus: string | undefined = undefined;
   #prevSessionId: string | undefined = undefined;
+  #prevTtsEnabled = true;
+  #pendingMessageId: string | null = null;
   #spokenIds = new Set<string>();
   #pausedByVisibility = false;
   #visibilityHandler: (() => void) | null = null;
@@ -196,6 +200,18 @@ export class VoicePlugin {
   #lastAssistantText = '';
   #fallbackTimer: ReturnType<typeof setTimeout> | null = null;
   #deferredCloseAfterSpeak = false;
+
+  // Half-duplex echo guard: while TTS plays through the device speaker (mobile,
+  // no headphones), the mic re-captures it and VAD treats it as user speech.
+  // We drop mic frames and suppress speech events while TTS is audible, plus a
+  // short tail to let the speaker/OS reverb settle before re-opening the mic.
+  #ttsActiveUntil = 0;
+  static readonly #TTS_TAIL_MS = 400;
+
+  #isTtsActive(): boolean {
+    if (this.#ttsState === 'speaking') return true;
+    return Date.now() < this.#ttsActiveUntil;
+  }
 
   // VAD owns 'capturing'; transport ready only nudges STT to 'listening' if STT was actually starting up.
   readonly #onReady = () => {
@@ -317,6 +333,7 @@ export class VoicePlugin {
       this.#emit('voice.tts.playback.started', p);
     });
     this.#ttsPlayer.on('playback.ended', (p) => {
+      this.#ttsActiveUntil = Date.now() + VoicePlugin.#TTS_TAIL_MS;
       this.#emit('voice.tts.playback.ended', p);
       setTimeout(() => {
         if (!this.#ttsPlayer?.isActive) this.#setTtsState('idle');
@@ -345,6 +362,7 @@ export class VoicePlugin {
     this.#prevIsOpen = initial.isOpen;
     this.#prevStatus = initial.session?.status;
     this.#prevSessionId = initial.session?.id;
+    this.#prevTtsEnabled = initial.ttsEnabled !== false;
 
     this.#unsubscribe = store.subscribe((state) => {
       this.#onStoreUpdate(state);
@@ -495,6 +513,8 @@ export class VoicePlugin {
     }
     this.#clearFallbackTimer();
     this.#spokenIds.clear();
+    this.#setPending(null);
+    this.#prevTtsEnabled = true;
     this.#transport = null;
     this.#setSttState('idle');
     this.#setTtsState('idle');
@@ -522,10 +542,34 @@ export class VoicePlugin {
     }
   }
 
+  #setPending(messageId: string | null): void {
+    if (this.#pendingMessageId === messageId) return;
+    this.#pendingMessageId = messageId;
+    this.#emit('voice.tts.pending', { messageId });
+  }
+
   #onStoreUpdate(state: ChatStoreShape): void {
     const isOpen = state.isOpen;
     const status = state.session?.status;
     const sessionId = state.session?.id;
+    const ttsEnabled = state.ttsEnabled !== false;
+
+    if (ttsEnabled !== this.#prevTtsEnabled) {
+      this.#prevTtsEnabled = ttsEnabled;
+      if (!ttsEnabled) {
+        this.#ttsPlayer?.stop();
+        this.#clearFallbackTimer();
+        if (this.#ttsState !== 'idle') this.#setTtsState('idle');
+        const last = findSpeakableAssistant(state);
+        if (last) {
+          this.#spokenIds.delete(last.info.id);
+          this.#ttsPlayer?.forget(last.info.id);
+          this.#setPending(last.info.id);
+        }
+      } else {
+        this.#maybeSpeakLatestAssistant(state);
+      }
+    }
 
     if (sessionId !== this.#prevSessionId) {
       this.#prevSessionId = sessionId;
@@ -559,10 +603,12 @@ export class VoicePlugin {
       const prev = this.#prevStatus;
       this.#prevStatus = status;
       if (this.#config.debug) console.log('[axsdk-voice] session status', { prev, status });
-      // Only reset TTS/fallback when a NEW turn starts (status becomes 'busy').
-      // Intermediate transitions through undefined (multi-step tool calls) must
-      // not clobber the pending fallback or stop in-flight TTS.
-      if (status === 'busy') {
+      // Only reset TTS/fallback when a NEW turn starts (idle → busy edge).
+      // Intermediate transitions like `busy → undefined → busy` (multi-step
+      // tool calls) must not clobber pending fallback or stop in-flight TTS,
+      // otherwise a turn whose synthesize is still pending gets cancelled and
+      // the message ID stays in #spokenIds, blocking re-speak forever.
+      if (prev === 'idle' && status === 'busy') {
         this.#ttsPlayer?.stop();
         this.#clearFallbackTimer();
         if (this.#ttsState !== 'idle') this.#setTtsState('idle');
@@ -627,15 +673,19 @@ export class VoicePlugin {
       positiveThreshold: this.#config.vad.sileroPositiveThreshold,
       negativeThreshold: this.#config.vad.sileroNegativeThreshold,
       onSpeechStarted: () => {
-        if (this.#ttsState === 'speaking') this.#ttsPlayer?.stop();
+        if (this.#isTtsActive()) return;
         this.#emit('voice.vad.speech.started', { at: Date.now() });
         this.#setSttState('capturing');
       },
       onSpeechEnded: () => {
+        if (this.#sttState !== 'capturing') return;
         this.#emit('voice.vad.speech.ended', { at: Date.now(), durationMs: 0 });
         this.#setSttState(transport.ready ? 'listening' : 'connecting');
       },
-      onFrame: (pcm) => transport.sendAudio(pcm),
+      onFrame: (pcm) => {
+        if (this.#isTtsActive()) return;
+        transport.sendAudio(pcm);
+      },
     });
   }
 
@@ -662,10 +712,12 @@ export class VoicePlugin {
     if (!this.#vad) return;
     const transport = this.#transport;
     if (!transport) return;
+    if (this.#isTtsActive()) {
+      this.#vad.reset();
+      return;
+    }
     const result = this.#vad.process(frame);
     if (result.started) {
-      // Barge-in: abort current TTS so the user is heard without overlap.
-      if (this.#ttsState === 'speaking') this.#ttsPlayer?.stop();
       this.#emit('voice.vad.speech.started', { at: Date.now() });
       this.#setSttState('capturing');
     }
@@ -689,6 +741,14 @@ export class VoicePlugin {
       if (debug) console.log('[axsdk-voice] speak skip: mode is', this.#config.mode);
       return;
     }
+    if (state.ttsEnabled === false) {
+      const last = findSpeakableAssistant(state);
+      if (last && !this.#spokenIds.has(last.info.id) && extractAssistantText(last)) {
+        if (debug) console.log('[axsdk-voice] speak deferred: ttsEnabled=false', { id: last.info.id });
+        this.#setPending(last.info.id);
+      }
+      return;
+    }
     const cacheState = state.latestAssistantWithText;
     const last = findSpeakableAssistant(state);
     if (!last) {
@@ -709,6 +769,7 @@ export class VoicePlugin {
       return;
     }
     this.#spokenIds.add(id);
+    this.#setPending(null);
     if (debug) console.log('[axsdk-voice] speak dispatch', { id, textLen: text.length });
     this.#ttsPlayer?.speak({ id, text: this.#clipTts(text) });
   }
