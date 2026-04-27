@@ -25,6 +25,7 @@ import {
   useVoicePlugin,
   resolveVoiceConfig,
   useVoiceUnlockNeeded,
+  useTtsPending,
   getVoicePlugin,
   type AXVoiceConfig,
 } from '../voice';
@@ -87,7 +88,15 @@ function AXMoveControls({ position, setPosition, isOpen }: { position: AXCornerP
       if (next !== position) setPosition(next);
       cleanup();
     };
-    const onUp = () => cleanup();
+    const onUp = () => {
+      if (!settled) {
+        const order: AXCornerPosition[] = ['bottom-right', 'bottom-left', 'top-left', 'top-right'];
+        const idx = order.indexOf(position);
+        const next = order[(idx + 1) % order.length] ?? 'bottom-right';
+        if (next !== position) setPosition(next);
+      }
+      cleanup();
+    };
     const cleanup = () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
@@ -256,7 +265,34 @@ export function AXUI({ children, theme, voice, position: controlledPosition, def
   const [focusTrigger, setFocusTrigger] = useState(0);
   const messageInputWrapperRef = useRef<HTMLDivElement | null>(null);
 
-  const { isOpen, setIsOpen, chatWasEverOpened, setChatWasEverOpened, messages, questions, setQuestions, session } = useStore(AXSDK.getChatStore());
+  const { isOpen, setIsOpen, chatWasEverOpened, setChatWasEverOpened, messages, questions, setQuestions, session, ttsEnabled, setTtsEnabled } = useStore(AXSDK.getChatStore());
+  const ttsPending = useTtsPending();
+  const ttsControl = useMemo(() => {
+    if (!effectiveVoice || effectiveVoice.tts === false) return undefined;
+    return {
+      enabled: ttsEnabled !== false,
+      pending: ttsPending,
+      onToggle: () => {
+        const next = ttsEnabled === false;
+        if (next) {
+          const plugin = getVoicePlugin();
+          if (voiceNeedsUnlock) {
+            if (effectiveVoice.debug) console.log('[AXUI voice] tts toggle on → unlockAudio()');
+            void plugin?.unlockAudio().catch((err) => {
+              if (effectiveVoice.debug) console.warn('[AXUI voice] unlockAudio() failed', err);
+            });
+          } else if (!hasPrimedVoiceRef.current) {
+            hasPrimedVoiceRef.current = true;
+            if (effectiveVoice.debug) console.log('[AXUI voice] tts toggle on → primePermissions()');
+            void plugin?.primePermissions().catch((err) => {
+              if (effectiveVoice.debug) console.warn('[AXUI voice] primePermissions() failed', err);
+            });
+          }
+        }
+        setTtsEnabled(next);
+      },
+    };
+  }, [effectiveVoice, ttsEnabled, ttsPending, setTtsEnabled, voiceNeedsUnlock]);
   const appInfoReady = useStore(AXSDK.getAppStore(), (s) => s.appInfoReady);
   const isBusy = session?.status === 'busy';
 
@@ -272,9 +308,6 @@ export function AXUI({ children, theme, voice, position: controlledPosition, def
     const currentStatus = session?.status;
     if ((prevStatusRef.current === 'idle' || !prevStatusRef.current) && currentStatus === 'busy') {
       setIsOpen(false);
-    }
-    if (prevStatusRef.current === 'busy' && currentStatus === 'idle') {
-      setIsOpen(true);
     }
     prevStatusRef.current = currentStatus;
   }, [session?.status, setIsOpen]);
@@ -486,6 +519,7 @@ export function AXUI({ children, theme, voice, position: controlledPosition, def
         scrollToBottomTrigger={scrollTrigger}
         idleGuideText={!isBusy ? AXSDK.t("chatIdleGuide") : undefined}
         position={position}
+        ttsControl={ttsControl}
       />
     ) : (
       <AXChatNotificationPopover
@@ -494,6 +528,7 @@ export function AXUI({ children, theme, voice, position: controlledPosition, def
         visible={notifVisible}
         onClose={() => setDismissedNotification(true)}
         position={position}
+        ttsControl={ttsControl}
         onOpen={() => {
           if (!appInfoReady) return;
           if (effectiveVoice) {
@@ -608,7 +643,7 @@ export function AXUI({ children, theme, voice, position: controlledPosition, def
       isOpen={isOpen}
       status={session?.status}
       position={position}
-      overlay={effectiveVoice ? <AXVoiceIndicator orbSize="12vh" debug={effectiveVoice.debug} /> : undefined}
+      overlay={effectiveVoice ? <AXVoiceIndicator orbSize="9vh" debug={effectiveVoice.debug} /> : undefined}
     />
     {AXSDK.config?.dragHandleEnabled !== false && (
       <AXMoveControls position={position} isOpen={isOpen} setPosition={(p) => {
