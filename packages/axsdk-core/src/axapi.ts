@@ -1,5 +1,5 @@
 import { ApiClient, type RequestInterceptor, type ErrorInterceptor } from './apiclient';
-import { sessionsPath } from './config';
+import { sessionsPath, callsPath, questionsPath } from './config';
 
 export const api = new ApiClient({
   defaultHeaders: {
@@ -44,17 +44,17 @@ export async function cancelSession(sessionID: string) {
 }
 
 export async function getPendingCalls() {
-  return api.get('/calls/pendings');
+  return api.get(`${callsPath()}/pendings`);
 }
 
 export async function updateCall(callID: string, status: string, result: string) {
-  return api.put(`/calls/${callID}`, {
+  return api.put(`${callsPath()}/${callID}`, {
     status, result,
   });
 }
 
 export async function postAnswers(requestID: string, status: string, answers: string[]) {
-  return api.post(`/questions/${requestID}/${status}`, {
+  return api.post(`${questionsPath()}/${requestID}/${status}`, {
     answers,
   });
 }

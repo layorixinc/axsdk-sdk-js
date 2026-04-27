@@ -1,4 +1,4 @@
-import { Config } from './config';
+import { Config, eventPath } from './config';
 import { EventBus } from './eventbus';
 
 const INITIAL_RETRY_DELAY = 1000;
@@ -139,7 +139,7 @@ export class SSE {
   }
 
   private async connect(): Promise<void> {
-    const SSE_URL = `${Config.baseURL}${Config.basePath}/event`;
+    const SSE_URL = `${Config.baseURL}${Config.basePath}${eventPath()}`;
 
     this.updateStatus(SSEConnectionStatus.CONNECTING);
     if (this.config.enableLogging) console.log(`Connecting...`);

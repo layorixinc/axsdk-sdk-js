@@ -6,6 +6,22 @@ export const Config = {
   apiVersion: 'v1' as ApiVersion,
 };
 
+export function apiPrefix(): string {
+  return Config.apiVersion === 'v2' ? '/v2' : '';
+}
+
 export function sessionsPath(): string {
-  return Config.apiVersion === 'v2' ? '/v2/sessions' : '/sessions';
+  return `${apiPrefix()}/sessions`;
+}
+
+export function callsPath(): string {
+  return `${apiPrefix()}/calls`;
+}
+
+export function eventPath(): string {
+  return `${apiPrefix()}/event`;
+}
+
+export function questionsPath(): string {
+  return `${apiPrefix()}/questions`;
 }
