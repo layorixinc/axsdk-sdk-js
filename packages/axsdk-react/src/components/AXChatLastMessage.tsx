@@ -16,10 +16,11 @@ export interface AXChatLastMessageProps {
   scrollToBottomTrigger?: number;
   idleGuideText?: string;
   position?: AXCornerPosition;
+  ttsControl?: { enabled: boolean; pending: boolean; onToggle: () => void };
 }
 
 export function AXChatLastMessage({
-  message, userMessage, onClose, onOpen, visible, isBusy, isOpen = false, inputBottomOffset, isDesktop = false, scrollToBottomTrigger, idleGuideText, position,
+  message, userMessage, onClose, onOpen, visible, isBusy, isOpen = false, inputBottomOffset, isDesktop = false, scrollToBottomTrigger, idleGuideText, position, ttsControl,
 }: AXChatLastMessageProps) {
   if (!visible || (!message && !userMessage)) return null;
 
@@ -36,6 +37,7 @@ export function AXChatLastMessage({
       scrollToBottomTrigger={scrollToBottomTrigger}
       idleGuideText={idleGuideText}
       position={position}
+      ttsControl={ttsControl}
     />
   );
 }

@@ -35,6 +35,7 @@ export interface AXChatMessagePopoverBaseProps {
   idleGuideText?: string;
   busyGuideText?: string;
   position?: AXCornerPosition;
+  ttsControl?: { enabled: boolean; pending: boolean; onToggle: () => void };
 }
 
 export function AXChatMessagePopoverBase({
@@ -50,6 +51,7 @@ export function AXChatMessagePopoverBase({
   idleGuideText,
   busyGuideText,
   position = 'bottom-right',
+  ttsControl,
 }: AXChatMessagePopoverBaseProps) {
   const isTopPos = position.startsWith('top');
   const isLeftPos = position.endsWith('left');
@@ -256,6 +258,10 @@ export function AXChatMessagePopoverBase({
           0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
           40% { opacity: 1; transform: scale(1); }
         }
+        @keyframes ax-tts-pending-pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(var(--ax-color-primary-rgb, 168, 85, 247), 0.55); transform: scale(1); }
+          50%      { box-shadow: 0 0 0 10px rgba(var(--ax-color-primary-rgb, 168, 85, 247), 0); transform: scale(1.08); }
+        }
         .ax-notif-content::-webkit-scrollbar { display: none; }
       `}</style>
       <div
@@ -450,6 +456,86 @@ export function AXChatMessagePopoverBase({
           </div>
 
           <AXChatErrorBar />
+
+          {ttsControl && (
+            <div style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              padding: "6px 10px 2px 10px",
+              pointerEvents: "auto",
+              ...theme.styles?.popover?.ttsToggleRow,
+            }}>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); ttsControl.onToggle(); }}
+                aria-label={ttsControl.enabled ? "Mute voice" : "Unmute voice"}
+                title={ttsControl.enabled ? "Mute voice" : "Unmute voice"}
+                style={{
+                  width: 34,
+                  height: 34,
+                  padding: 0,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "1px solid var(--ax-border-primary, rgba(168, 85, 247, 0.4))",
+                  borderRadius: "50%",
+                  background: ttsControl.enabled
+                    ? "var(--ax-color-primary, #7c3aed)"
+                    : "rgba(255, 255, 255, 0.06)",
+                  color: ttsControl.enabled
+                    ? "var(--ax-text-primary, #fff)"
+                    : "var(--ax-text-muted)",
+                  cursor: "pointer",
+                  transition: "background 0.15s ease, color 0.15s ease",
+                  boxShadow: "0 1px 0 rgba(255,255,255,0.08) inset, 0 1px 3px rgba(0,0,0,0.2)",
+                  animation: !ttsControl.enabled && ttsControl.pending
+                    ? "ax-tts-pending-pulse 1.4s ease-in-out infinite"
+                    : undefined,
+                  ...(ttsControl.enabled
+                    ? theme.styles?.popover?.ttsToggleOn
+                    : theme.styles?.popover?.ttsToggleOff),
+                }}
+                onMouseEnter={(e) => {
+                  const b = e.currentTarget as HTMLButtonElement;
+                  b.style.background = ttsControl.enabled
+                    ? "var(--ax-color-primary-light, #a855f7)"
+                    : "rgba(255, 255, 255, 0.12)";
+                }}
+                onMouseLeave={(e) => {
+                  const b = e.currentTarget as HTMLButtonElement;
+                  b.style.background = ttsControl.enabled
+                    ? "var(--ax-color-primary, #7c3aed)"
+                    : "rgba(255, 255, 255, 0.06)";
+                }}
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  style={theme.styles?.popover?.ttsToggleIcon}
+                >
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none" />
+                  {ttsControl.enabled ? (
+                    <>
+                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                    </>
+                  ) : (
+                    <>
+                      <line x1="22" y1="9" x2="16" y2="15" />
+                      <line x1="16" y1="9" x2="22" y2="15" />
+                    </>
+                  )}
+                </svg>
+              </button>
+            </div>
+          )}
 
           {idleGuideText && (
             <div style={{

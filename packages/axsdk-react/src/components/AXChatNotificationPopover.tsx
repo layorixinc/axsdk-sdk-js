@@ -17,10 +17,11 @@ export interface AXChatNotificationPopoverProps {
   idleGuideText?: string;
   busyGuideText?: string;
   position?: AXCornerPosition;
+  ttsControl?: { enabled: boolean; pending: boolean; onToggle: () => void };
 }
 
 export function AXChatNotificationPopover({
-  message, userMessage, onClose, onOpen, visible, isBusy, isOpen = false, inputBottomOffset, isDesktop = false, scrollToBottomTrigger, idleGuideText, busyGuideText, position,
+  message, userMessage, onClose, onOpen, visible, isBusy, isOpen = false, inputBottomOffset, isDesktop = false, scrollToBottomTrigger, idleGuideText, busyGuideText, position, ttsControl,
 }: AXChatNotificationPopoverProps) {
   if (!visible) return null;
 
@@ -38,6 +39,7 @@ export function AXChatNotificationPopover({
       idleGuideText={idleGuideText}
       busyGuideText={busyGuideText}
       position={position}
+      ttsControl={ttsControl}
     />
   );
 }

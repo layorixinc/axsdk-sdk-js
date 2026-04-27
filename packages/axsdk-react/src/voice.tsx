@@ -156,6 +156,17 @@ export function useTtsState(initial: TtsState = 'idle'): TtsState {
   return state;
 }
 
+export function useTtsPending(): boolean {
+  const [pending, setPending] = useState(false);
+  useEffect(() => {
+    const bus = AXSDK.eventBus();
+    const handler = (p: { messageId: string | null }) => setPending(!!p.messageId);
+    bus.on('voice.tts.pending', handler);
+    return () => { bus.off('voice.tts.pending', handler); };
+  }, []);
+  return pending;
+}
+
 export function useVoiceUnlockNeeded(): boolean {
   const [needsUnlock, setNeedsUnlock] = useState(false);
   useEffect(() => {

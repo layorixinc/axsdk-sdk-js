@@ -81,6 +81,10 @@ export interface AXThemePopoverStyles {
   card?: React.CSSProperties;
   content?: React.CSSProperties;
   closeButton?: React.CSSProperties;
+  ttsToggleRow?: React.CSSProperties;
+  ttsToggleOn?: React.CSSProperties;
+  ttsToggleOff?: React.CSSProperties;
+  ttsToggleIcon?: React.CSSProperties;
 }
 
 export interface AXThemeMessageStyles {
