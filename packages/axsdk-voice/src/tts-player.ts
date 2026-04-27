@@ -28,6 +28,10 @@ export class TtsPlayer {
   #unlocked = false;
   #playbackRate = 1;
   #cancelInflight: (() => void) | null = null;
+  // Bumped on stop()/dispose(). Each pump invocation captures its generation
+  // and bails after any async boundary if it has been invalidated. This is the
+  // single source of truth for "is the work I started still wanted?".
+  #stopGen = 0;
 
   constructor(transport: VoiceTransport, opts?: { playbackRate?: number }) {
     this.#transport = transport;
@@ -73,21 +77,39 @@ export class TtsPlayer {
     this.#deferred.length = 0;
   }
 
+  forget(id: string): void {
+    this.#spoken.delete(id);
+    for (let i = this.#queue.length - 1; i >= 0; i--) {
+      if (this.#queue[i]?.id === id) this.#queue.splice(i, 1);
+    }
+    for (let i = this.#deferred.length - 1; i >= 0; i--) {
+      if (this.#deferred[i]?.job.id === id) this.#deferred.splice(i, 1);
+    }
+  }
+
   stop(): void {
     this.#queue.length = 0;
     this.#deferred.length = 0;
-    if (this.#audio && !this.#audio.paused) {
-      try { this.#audio.pause(); } catch {}
-      this.#audio.currentTime = 0;
-      this.#audio.removeAttribute('src');
-    }
-    this.#releaseObjectUrl();
+    this.#stopGen++;
     if (this.#cancelInflight) {
       const cancel = this.#cancelInflight;
       this.#cancelInflight = null;
-      cancel();
+      try { cancel(); } catch {}
     }
-    this.#playing = false;
+    if (this.#audio) {
+      try { this.#audio.pause(); } catch {}
+      try { this.#audio.currentTime = 0; } catch {}
+      try { this.#audio.removeAttribute('src'); } catch {}
+      try { this.#audio.load(); } catch {}
+    }
+    this.#releaseObjectUrl();
+    // #playing is owned by the in-flight pump's finally; resetting it here
+    // would let a concurrent speak() start a duplicate pump that the OLD
+    // pump's finally then races to clobber.
+  }
+
+  #isStale(myGen: number): boolean {
+    return this.#disposed || myGen !== this.#stopGen;
   }
 
   async unlock(): Promise<void> {
@@ -132,6 +154,10 @@ export class TtsPlayer {
           });
           this.#releaseObjectUrl();
         } catch (err) {
+          if (isPlayInterrupted(err)) {
+            this.#releaseObjectUrl();
+            return;
+          }
           this.#deferred.unshift(first);
           this.#unlocked = false;
           const message = err instanceof Error ? err.message : String(err);
@@ -142,8 +168,9 @@ export class TtsPlayer {
         const item = this.#deferred.shift();
         if (!item) break;
         try {
-          await this.#playBlob(item.job.id, item.blob);
+          await this.#playBlob(item.job.id, item.blob, this.#stopGen);
         } catch (err) {
+          if (this.#isStale(this.#stopGen)) return;
           const message = err instanceof Error ? err.message : String(err);
           this.#emitter.emit('error', { messageId: item.job.id, message });
         }
@@ -168,10 +195,17 @@ export class TtsPlayer {
 
   async dispose(): Promise<void> {
     this.#disposed = true;
+    this.#stopGen++;
     this.#queue.length = 0;
+    this.#deferred.length = 0;
+    if (this.#cancelInflight) {
+      const cancel = this.#cancelInflight;
+      this.#cancelInflight = null;
+      try { cancel(); } catch {}
+    }
     if (this.#audio) {
       try { this.#audio.pause(); } catch {}
-      this.#audio.removeAttribute('src');
+      try { this.#audio.removeAttribute('src'); } catch {}
       this.#audio = null;
     }
     this.#releaseObjectUrl();
@@ -198,22 +232,28 @@ export class TtsPlayer {
     const job = this.#queue.shift();
     if (!job) return;
     this.#playing = true;
+    const myGen = this.#stopGen;
     try {
       if (canStreamMpeg() && this.#transport.synthesizeStream) {
         const { stream, contentType } = await this.#transport.synthesizeStream(
           job.text,
           { voice: job.voice },
         );
-        if (this.#disposed) return;
-        await this.#playStream(job.id, stream, contentType);
+        if (this.#isStale(myGen)) {
+          try { await stream.cancel(); } catch {}
+          return;
+        }
+        await this.#playStream(job.id, stream, contentType, myGen);
       } else {
         const blob = await this.#transport.synthesize(job.text, { voice: job.voice });
-        if (this.#disposed) return;
-        await this.#playBlob(job.id, blob);
+        if (this.#isStale(myGen)) return;
+        await this.#playBlob(job.id, blob, myGen);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.#emitter.emit('error', { messageId: job.id, message });
+      if (!this.#isStale(myGen)) {
+        const message = err instanceof Error ? err.message : String(err);
+        this.#emitter.emit('error', { messageId: job.id, message });
+      }
     } finally {
       this.#playing = false;
       if (!this.#disposed) void this.#pump();
@@ -224,6 +264,7 @@ export class TtsPlayer {
     messageId: string,
     stream: ReadableStream<Uint8Array>,
     contentType: string,
+    gen: number,
   ): Promise<void> {
     if (!this.#audio) this.#audio = document.createElement('audio');
     const audio = this.#audio;
@@ -231,7 +272,8 @@ export class TtsPlayer {
     const mime = normalizeMpegMime(contentType);
     if (!isMediaSourceSupported(mime)) {
       const blob = await drainStreamToBlob(stream, mime);
-      await this.#playBlob(messageId, blob);
+      if (this.#isStale(gen)) return;
+      await this.#playBlob(messageId, blob, gen);
       return;
     }
 
@@ -253,14 +295,16 @@ export class TtsPlayer {
       const blob = await drainStreamToBlob(stream, mime);
       this.#releaseObjectUrl();
       audio.removeAttribute('src');
-      await this.#playBlob(messageId, blob);
+      if (this.#isStale(gen)) return;
+      await this.#playBlob(messageId, blob, gen);
       return;
     }
 
-    let startedPlaying = false;
+    let playAttempted = false;
+    let playbackStarted = false;
+    let autoplayBlocked = false;
     let streamError: Error | null = null;
     const pendingChunks: Uint8Array[] = [];
-    // pendingChunks gets drained into SourceBuffer; allChunks preserves the full stream for the unlock-deferred blob.
     const allChunks: Uint8Array[] = [];
     let streamDone = false;
 
@@ -282,9 +326,14 @@ export class TtsPlayer {
     sb.addEventListener('updateend', tryFlush);
 
     const reader = stream.getReader();
+    this.#cancelInflight = () => {
+      try { reader.cancel(); } catch {}
+      try { if (ms.readyState === 'open') ms.endOfStream(); } catch {}
+    };
     const pump = async () => {
       while (true) {
         const { done, value } = await reader.read();
+        if (this.#isStale(gen)) return;
         if (done) {
           streamDone = true;
           tryFlush();
@@ -294,15 +343,19 @@ export class TtsPlayer {
           allChunks.push(value);
           pendingChunks.push(value);
           tryFlush();
-          if (!startedPlaying) {
-            startedPlaying = true;
+          if (!playAttempted) {
+            playAttempted = true;
             try {
               await audio.play();
+              if (this.#isStale(gen)) return;
               audio.playbackRate = this.#playbackRate;
               this.#unlocked = true;
+              playbackStarted = true;
               this.#emitter.emit('playback.started', { messageId });
             } catch (err) {
+              if (this.#isStale(gen) || isPlayInterrupted(err)) return;
               if (isAutoplayBlocked(err)) {
+                autoplayBlocked = true;
                 while (true) {
                   const next = await reader.read();
                   if (next.done) break;
@@ -323,6 +376,19 @@ export class TtsPlayer {
     };
 
     await pump();
+    if (this.#isStale(gen)) { this.#releaseObjectUrl(); return; }
+    if (autoplayBlocked) {
+      // gesture_required already emitted; deferred holds the blob.
+      // Don't enter the playback wait — audio has no src to fire events from.
+      return;
+    }
+    if (!playbackStarted) {
+      // Empty stream or play() never succeeded. Audio will never fire 'ended',
+      // so synthesize a terminal event so plugin transitions out of 'queued'.
+      this.#emitter.emit('playback.ended', { messageId });
+      this.#releaseObjectUrl();
+      return;
+    }
 
     await new Promise<void>((resolve) => {
       const cleanup = () => {
@@ -332,18 +398,18 @@ export class TtsPlayer {
       };
       const onEnded = () => {
         cleanup();
-        this.#emitter.emit('playback.ended', { messageId });
+        if (!this.#isStale(gen)) this.#emitter.emit('playback.ended', { messageId });
         resolve();
       };
       const onError = () => {
         cleanup();
-        this.#emitter.emit('error', { messageId, message: 'audio playback failed' });
+        if (!this.#isStale(gen)) this.#emitter.emit('error', { messageId, message: 'audio playback failed' });
         resolve();
       };
       audio.addEventListener('ended', onEnded, { once: true });
       audio.addEventListener('error', onError, { once: true });
       this.#cancelInflight = () => { cleanup(); resolve(); };
-      if (streamError) {
+      if (streamError && !this.#isStale(gen)) {
         this.#emitter.emit('error', { messageId, message: streamError.message });
         cleanup();
         resolve();
@@ -353,7 +419,7 @@ export class TtsPlayer {
     this.#releaseObjectUrl();
   }
 
-  async #playBlob(messageId: string, blob: Blob): Promise<void> {
+  async #playBlob(messageId: string, blob: Blob, gen: number): Promise<void> {
     if (!this.#audio) this.#audio = document.createElement('audio');
     this.#releaseObjectUrl();
     this.#activeObjectUrl = URL.createObjectURL(blob);
@@ -363,8 +429,17 @@ export class TtsPlayer {
 
     try {
       await audio.play();
+      if (this.#isStale(gen)) {
+        try { audio.pause(); } catch {}
+        this.#releaseObjectUrl();
+        return;
+      }
       audio.playbackRate = this.#playbackRate;
     } catch (err) {
+      if (this.#isStale(gen) || isPlayInterrupted(err)) {
+        this.#releaseObjectUrl();
+        return;
+      }
       if (isAutoplayBlocked(err)) {
         this.#deferred.push({ job: { id: messageId, text: '' }, blob });
         this.#emitter.emit('gesture_required', { messageId });
@@ -387,12 +462,12 @@ export class TtsPlayer {
       };
       const onEnded = () => {
         cleanup();
-        this.#emitter.emit('playback.ended', { messageId });
+        if (!this.#isStale(gen)) this.#emitter.emit('playback.ended', { messageId });
         resolve();
       };
       const onError = () => {
         cleanup();
-        this.#emitter.emit('error', { messageId, message: 'audio playback failed' });
+        if (!this.#isStale(gen)) this.#emitter.emit('error', { messageId, message: 'audio playback failed' });
         resolve();
       };
       audio.addEventListener('ended', onEnded, { once: true });
@@ -456,6 +531,17 @@ function canStreamMpeg(): boolean {
 function isMediaSourceSupported(mime: string): boolean {
   if (typeof MediaSource === 'undefined') return false;
   try { return MediaSource.isTypeSupported(mime); } catch { return false; }
+}
+
+function isPlayInterrupted(err: unknown): boolean {
+  if (!(err instanceof DOMException || err instanceof Error)) return false;
+  const name = (err as { name?: string }).name ?? '';
+  const message = err.message ?? '';
+  return (
+    name === 'AbortError' ||
+    /interrupted by (a new )?load request/i.test(message) ||
+    /interrupted by a call to pause/i.test(message)
+  );
 }
 
 function isAutoplayBlocked(err: unknown): boolean {
