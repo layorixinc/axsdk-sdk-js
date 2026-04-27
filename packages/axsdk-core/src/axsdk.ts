@@ -119,7 +119,7 @@ class AxSdk extends EventEmitter {
     if (appInfo?.version != null) appStore.getState().setVersion(appInfo.version);
 
     // Local config wins over server values so explicit AXSDK.init voice options aren't clobbered.
-    const remoteVoice = (appInfo?.app as { voiceConfig?: Record<string, unknown> } | undefined)?.voiceConfig;
+    const remoteVoice = appInfo?.app?.voiceConfig;
     if (remoteVoice && this.config) {
       const localVoice = (this.config as { voice?: Record<string, unknown> }).voice ?? {};
       const merged = { ...remoteVoice, ...localVoice };

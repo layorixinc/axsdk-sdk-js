@@ -15,7 +15,7 @@ export function init(ri: RequestInterceptor, ei?: ErrorInterceptor) {
 }
 
 export async function getAppInfo() {
-  return api.get('') as Promise<{ app?: { translations?: Record<string, Record<string, string>> }; version?: number }>;
+  return api.get('') as Promise<{ app?: { translations?: Record<string, Record<string, string>>; voiceConfig?: { voice?: string } & Record<string, unknown> }; version?: number }>;
 }
 
 export interface CreateSessionOptions {

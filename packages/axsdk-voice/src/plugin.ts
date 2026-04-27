@@ -11,6 +11,7 @@ import {
 import { DEFAULT_VAD_CONFIG, Vad, type VadConfig } from './vad';
 import { startSileroCapture, type SileroCaptureHandle } from './silero-capture';
 import { TtsPlayer } from './tts-player';
+import { TtsCache, type TtsCacheOptions } from './tts-cache';
 import {
   OpenAIRealtimeTransport,
   type VoiceTransport,
@@ -51,6 +52,8 @@ export interface VoicePluginConfig {
   autoActivateWhileChatOpen?: boolean;
   primeMicOnAttach?: boolean;
   ttsVoice?: string;
+  voice?: string;
+  ttsCache?: boolean | TtsCacheOptions | TtsCache | null;
   reconnectOnce?: boolean;
   baseUrl?: string;
   wsUrl?: string;
@@ -158,7 +161,7 @@ const FALLBACK_IDLE_MS = 800;
 export class VoicePlugin {
   #transport: VoiceTransport | null = null;
   #config: Required<
-    Omit<VoicePluginConfig, 'vad' | 'workletUrl' | 'baseUrl' | 'wsUrl' | 'ttsUrl' | 'transportFactory' | 'ttsVoice' | 'ttsPlaybackRate' | 'ttsMaxChars'>
+    Omit<VoicePluginConfig, 'vad' | 'workletUrl' | 'baseUrl' | 'wsUrl' | 'ttsUrl' | 'transportFactory' | 'ttsVoice' | 'ttsPlaybackRate' | 'ttsMaxChars' | 'voice' | 'ttsCache'>
   > & {
     workletUrl: string | undefined;
     vad: VadConfig;
@@ -168,6 +171,8 @@ export class VoicePlugin {
     ttsVoice: string | undefined;
     ttsPlaybackRate: number | undefined;
     ttsMaxChars: number;
+    voice: string | undefined;
+    ttsCache: TtsCache | null;
     transportFactory: VoicePluginConfig['transportFactory'];
   };
 
@@ -268,6 +273,10 @@ export class VoicePlugin {
     return this.#ttsState;
   }
 
+  async clearTtsCache(): Promise<void> {
+    await this.#config.ttsCache?.clear().catch(() => {});
+  }
+
   async unlockAudio(): Promise<void> {
     try {
       await this.#ttsPlayer?.unlock();
@@ -316,8 +325,9 @@ export class VoicePlugin {
       ? this.#config.transportFactory(contextProvider)
       : new OpenAIRealtimeTransport({
           context: contextProvider,
-          ttsVoice: this.#config.ttsVoice,
+          ttsVoice: this.#config.voice ?? this.#config.ttsVoice,
           reconnectOnce: this.#config.reconnectOnce,
+          ttsCache: this.#config.ttsCache,
         });
     const transport = this.#transport;
 
@@ -868,7 +878,7 @@ export class VoicePlugin {
 function normalizeConfig(
   input: VoicePluginConfig,
 ): Required<
-  Omit<VoicePluginConfig, 'vad' | 'workletUrl' | 'baseUrl' | 'wsUrl' | 'ttsUrl' | 'transportFactory' | 'ttsVoice' | 'ttsPlaybackRate' | 'ttsMaxChars'>
+  Omit<VoicePluginConfig, 'vad' | 'workletUrl' | 'baseUrl' | 'wsUrl' | 'ttsUrl' | 'transportFactory' | 'ttsVoice' | 'ttsPlaybackRate' | 'ttsMaxChars' | 'voice' | 'ttsCache'>
 > & {
   workletUrl: string | undefined;
   vad: VadConfig;
@@ -878,6 +888,8 @@ function normalizeConfig(
   ttsVoice: string | undefined;
   ttsPlaybackRate: number | undefined;
   ttsMaxChars: number;
+  voice: string | undefined;
+  ttsCache: TtsCache | null;
   transportFactory: VoicePluginConfig['transportFactory'];
 } {
   return {
@@ -898,8 +910,17 @@ function normalizeConfig(
     ttsUrl: input.ttsUrl,
     ttsPlaybackRate: input.ttsPlaybackRate,
     ttsMaxChars: input.ttsMaxChars ?? 200,
+    voice: input.voice,
+    ttsCache: resolveTtsCache(input.ttsCache),
     transportFactory: input.transportFactory,
   };
+}
+
+function resolveTtsCache(input: VoicePluginConfig['ttsCache']): TtsCache | null {
+  if (input === false || input === null) return null;
+  if (input instanceof TtsCache) return input;
+  if (input && typeof input === 'object') return TtsCache.isSupported() ? new TtsCache(input) : null;
+  return TtsCache.isSupported() ? new TtsCache() : null;
 }
 
 function findSpeakableAssistant(state: ChatStoreShape): ChatMessage | null {

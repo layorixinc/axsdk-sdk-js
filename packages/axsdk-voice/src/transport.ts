@@ -1,6 +1,7 @@
 import EventEmitter from 'eventemitter3';
 import { interpret } from 'robot3';
 import { transportMachine, type TransportState } from './state/transport-machine';
+import type { TtsCache } from './tts-cache';
 
 export interface VoiceTransportEvents {
   ready: void;
@@ -46,6 +47,7 @@ export interface OpenAIRealtimeTransportConfig {
   context: () => VoiceTransportContext;
   ttsVoice?: string;
   reconnectOnce?: boolean;
+  ttsCache?: TtsCache | null;
 }
 
 type InternalEvent =
@@ -59,6 +61,7 @@ export class OpenAIRealtimeTransport implements VoiceTransport {
   readonly #context: () => VoiceTransportContext;
   readonly #ttsVoice: string;
   readonly #reconnectOnce: boolean;
+  readonly #ttsCache: TtsCache | null;
   readonly #emitter = new EventEmitter();
   #ws: WebSocket | null = null;
   #service = interpret(transportMachine, () => {});
@@ -71,6 +74,7 @@ export class OpenAIRealtimeTransport implements VoiceTransport {
     this.#context = config.context;
     this.#ttsVoice = config.ttsVoice ?? 'alloy';
     this.#reconnectOnce = config.reconnectOnce ?? true;
+    this.#ttsCache = config.ttsCache ?? null;
   }
 
   get ready(): boolean {
@@ -136,8 +140,17 @@ export class OpenAIRealtimeTransport implements VoiceTransport {
   }
 
   async synthesize(text: string, opts?: { voice?: string }): Promise<Blob> {
+    const voice = opts?.voice ?? this.#ttsVoice;
+    if (this.#ttsCache) {
+      const cached = await this.#ttsCache.get(text, voice).catch(() => null);
+      if (cached) return cached;
+    }
     const res = await this.#fetchTts(text, opts);
-    return await res.blob();
+    const blob = await res.blob();
+    if (this.#ttsCache) {
+      this.#ttsCache.set(text, voice, blob).catch(() => {});
+    }
+    return blob;
   }
 
   async synthesizeStream(

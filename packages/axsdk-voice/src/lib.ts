@@ -25,3 +25,6 @@ export {
   MicrophoneUnsupportedError,
   isMicrophoneSupported,
 } from './capture';
+
+export { TtsCache } from './tts-cache';
+export type { TtsCacheOptions } from './tts-cache';
