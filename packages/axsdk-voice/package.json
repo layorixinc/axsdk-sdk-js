@@ -1,9 +1,16 @@
 {
   "name": "@axsdk/voice",
-  "version": "0.2.2",
+  "version": "0.2.25",
   "private": false,
   "description": "Voice I/O plugin for the AXSDK — captures speech (VAD-gated), streams to a transcription proxy, dispatches finalized utterances into the chat, and speaks assistant replies via TTS.",
-  "keywords": ["axsdk", "voice", "stt", "tts", "realtime", "plugin"],
+  "keywords": [
+    "axsdk",
+    "voice",
+    "stt",
+    "tts",
+    "realtime",
+    "plugin"
+  ],
   "homepage": "https://github.com/layorixinc/axsdk-sdk-js",
   "bugs": {
     "url": "https://github.com/layorixinc/axsdk-sdk-js/issues"
@@ -35,14 +42,15 @@
   "scripts": {
     "build": "bun ./build.ts && bun build:types",
     "build:types": "bunx tsc --emitDeclarationOnly",
-    "publish": "bun run build && npm publish --access=public"
+    "release": "node ../../scripts/set-publish-deps.mjs && bun run build && npm publish --access=public",
+    "build:workspace": "rm -rf node_modules && node ../../scripts/set-workspace-deps.mjs && bun install && bun run build"
   },
   "dependencies": {
     "eventemitter3": "^5.0.4",
     "robot3": "^1.2.0"
   },
   "peerDependencies": {
-    "@axsdk/core": "^0.4",
+    "@axsdk/core": "workspace:*",
     "@ricky0123/vad-web": "^0.0",
     "typescript": "^5"
   },

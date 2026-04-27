@@ -1,6 +1,6 @@
 {
   "name": "@axsdk/browser",
-  "version": "0.4.0",
+  "version": "0.4.23",
   "private": false,
   "description": "axsdk browser - embed AXSDK widget in web",
   "keywords": [],
@@ -28,9 +28,9 @@
     "build:workspace": "rm -rf node_modules && node ../../scripts/set-workspace-deps.mjs && bun install && bun run build"
   },
   "dependencies": {
-    "@axsdk/core": "^0.4",
-    "@axsdk/react": "^0.5",
-    "@axsdk/voice": "^0.2.2",
+    "@axsdk/core": "workspace:*",
+    "@axsdk/react": "workspace:*",
+    "@axsdk/voice": "workspace:*",
     "qs": "^6.15.0",
     "react": "^19",
     "react-dom": "^19"

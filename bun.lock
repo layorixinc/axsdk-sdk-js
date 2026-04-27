@@ -10,7 +10,7 @@
     },
     "packages/axsdk-browser": {
       "name": "@axsdk/browser",
-      "version": "0.4.0",
+      "version": "0.4.22",
       "dependencies": {
         "@axsdk/core": "^0.3.3",
         "@axsdk/react": "^0.4.4",
@@ -29,7 +29,7 @@
     },
     "packages/axsdk-core": {
       "name": "@axsdk/core",
-      "version": "0.4.0",
+      "version": "0.4.22",
       "dependencies": {
         "eventemitter3": "^5.0.4",
         "html2canvas": "^1.4.1",
@@ -48,9 +48,9 @@
     },
     "packages/axsdk-react": {
       "name": "@axsdk/react",
-      "version": "0.5.0",
+      "version": "0.5.22",
       "dependencies": {
-        "@axsdk/core": "^0.4",
+        "@axsdk/core": "workspace:*",
         "react": "^19",
         "react-dom": "^19",
         "react-markdown": "^10.1.0",
@@ -74,14 +74,14 @@
         "vite": "^8.0.0",
       },
       "peerDependencies": {
-        "@axsdk/voice": "^0.2",
+        "@axsdk/voice": "workspace:*",
         "react": "^19",
         "react-dom": "^19",
       },
     },
     "packages/axsdk-voice": {
       "name": "@axsdk/voice",
-      "version": "0.2.2",
+      "version": "0.2.24",
       "dependencies": {
         "eventemitter3": "^5.0.4",
         "robot3": "^1.2.0",
@@ -91,7 +91,7 @@
         "@types/bun": "latest",
       },
       "peerDependencies": {
-        "@axsdk/core": "^0.4",
+        "@axsdk/core": "workspace:*",
         "@ricky0123/vad-web": "^0.0",
         "typescript": "^5",
       },
