@@ -467,7 +467,7 @@ export function AXChatMessagePopoverBase({
             }}>
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); ttsControl.onToggle(); }}
+                onClick={(e) => { e.stopPropagation(); AXSDK.eventBus().emit('voice.user-intent', undefined); ttsControl.onToggle(); }}
                 aria-label={ttsControl.enabled ? "Mute voice" : "Unmute voice"}
                 title={ttsControl.enabled ? "Mute voice" : "Unmute voice"}
                 style={{

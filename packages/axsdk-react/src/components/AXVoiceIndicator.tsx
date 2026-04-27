@@ -267,8 +267,6 @@ function tooltipText(
   return parts.join(' · ');
 }
 
-const sessionDismissedCodes = new Set<string>();
-
 function openInSafari(): void {
   try {
     const stripped = window.location.href.replace(/^https?:\/\//, '');
@@ -276,11 +274,29 @@ function openInSafari(): void {
   } catch {}
 }
 
-function shouldAutoShowTooltip(stt: SttState, perm: PermState, needsUnlock: boolean, hasError: boolean): boolean {
-  if (needsUnlock) return true;
-  if (hasError) return true;
-  if (stt === 'connecting' && perm === 'prompt') return true;
-  return false;
+type AutoShowKind =
+  | { kind: 'none' }
+  | { kind: 'persistent'; key: string }
+  | { kind: 'timed'; key: string; baseDuration: number };
+
+function computeAutoShow(
+  stt: SttState,
+  tts: TtsState,
+  perm: PermState,
+  needsUnlock: boolean,
+  errorCode: string | null,
+  hasError: boolean,
+): AutoShowKind {
+  if (needsUnlock) return { kind: 'persistent', key: 'unlock' };
+  if (hasError) {
+    const code = errorCode || 'generic';
+    const isPermDenied = code === 'permission-denied';
+    return { kind: 'timed', key: `err:${code}`, baseDuration: isPermDenied ? 8000 : 6000 };
+  }
+  if (stt === 'connecting' && perm === 'prompt') return { kind: 'persistent', key: 'perm-wait' };
+  if (tts === 'queued') return { kind: 'persistent', key: 'tts-queued' };
+  if (stt === 'connecting') return { kind: 'persistent', key: 'stt-connecting' };
+  return { kind: 'none' };
 }
 
 export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceIndicatorProps) {
@@ -290,12 +306,16 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
   const [perm, setPerm] = useState<PermState>('unknown');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
-  const [, forceRender] = useState(0);
   const [hover, setHover] = useState(false);
+  const [tooltipForceShow, setTooltipForceShow] = useState(false);
   const needsUnlock = useVoiceUnlockNeeded();
   const prevSttRef = useRef<SttState>('idle');
   const prevTtsRef = useRef<TtsState>('idle');
   const rootRef = useRef<HTMLDivElement>(null);
+  const hideTimerRef = useRef<number | null>(null);
+  const hoverLeaveTimerRef = useRef<number | null>(null);
+  const lastAutoKeyRef = useRef<string | null>(null);
+  const seenCountRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     ensureStyles(shadowRoot);
@@ -306,13 +326,87 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
     const el = rootRef.current;
     const parent = el?.parentElement;
     if (!parent) return;
-    const enter = () => setHover(true);
-    const leave = () => setHover(false);
+    const enter = () => {
+      if (hoverLeaveTimerRef.current !== null) {
+        clearTimeout(hoverLeaveTimerRef.current);
+        hoverLeaveTimerRef.current = null;
+      }
+      setHover(true);
+    };
+    const leave = () => {
+      if (hoverLeaveTimerRef.current !== null) clearTimeout(hoverLeaveTimerRef.current);
+      hoverLeaveTimerRef.current = window.setTimeout(() => {
+        setHover(false);
+        hoverLeaveTimerRef.current = null;
+      }, 200);
+    };
     parent.addEventListener('mouseenter', enter);
     parent.addEventListener('mouseleave', leave);
     return () => {
       parent.removeEventListener('mouseenter', enter);
       parent.removeEventListener('mouseleave', leave);
+      if (hoverLeaveTimerRef.current !== null) {
+        clearTimeout(hoverLeaveTimerRef.current);
+        hoverLeaveTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const hasError = stt === 'error' || tts === 'error';
+
+  useEffect(() => {
+    const result = computeAutoShow(stt, tts, perm, needsUnlock, errorCode, hasError);
+    const newKey = result.kind === 'none' ? null : result.key;
+    if (newKey === lastAutoKeyRef.current) return;
+    lastAutoKeyRef.current = newKey;
+
+    if (hideTimerRef.current !== null) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+
+    if (result.kind === 'none') {
+      setTooltipForceShow(false);
+      return;
+    }
+    if (result.kind === 'persistent') {
+      setTooltipForceShow(true);
+      return;
+    }
+    const count = (seenCountRef.current.get(result.key) ?? 0) + 1;
+    seenCountRef.current.set(result.key, count);
+    const duration = count === 1 ? result.baseDuration : 2500;
+    setTooltipForceShow(true);
+    hideTimerRef.current = window.setTimeout(() => {
+      setTooltipForceShow(false);
+      hideTimerRef.current = null;
+      // Allow re-trigger if the same error key fires again later.
+      lastAutoKeyRef.current = null;
+    }, duration);
+  }, [stt, tts, perm, needsUnlock, errorCode, hasError]);
+
+  useEffect(() => {
+    const bus = AXSDK.eventBus();
+    const onIntent = () => {
+      if (hideTimerRef.current !== null) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+      setTooltipForceShow(true);
+      hideTimerRef.current = window.setTimeout(() => {
+        setTooltipForceShow(false);
+        hideTimerRef.current = null;
+      }, 4000);
+    };
+    bus.on('voice.user-intent', onIntent);
+    return () => {
+      bus.off('voice.user-intent', onIntent);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (hideTimerRef.current !== null) clearTimeout(hideTimerRef.current);
     };
   }, []);
 
@@ -377,7 +471,6 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
     };
   }, [debug]);
 
-  const hasError = stt === 'error' || tts === 'error';
   const activeError = hasError ? errorMsg : null;
 
   const visual = getVisual(stt, tts, perm, needsUnlock);
@@ -388,8 +481,7 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
     : `calc(${orbCSS} * 0.45)`;
   const activeCode = hasError ? errorCode : null;
   const tooltip = tooltipText(stt, tts, perm, activeError, activeCode, needsUnlock);
-  const isDismissed = activeCode ? sessionDismissedCodes.has(activeCode) : false;
-  const showTooltip = !isDismissed && (hover || shouldAutoShowTooltip(stt, perm, needsUnlock, hasError));
+  const showTooltip = hover || tooltipForceShow;
 
   return (
     <div
@@ -444,8 +536,6 @@ export function AXVoiceIndicator({ orbSize = '12vh', debug = false }: AXVoiceInd
             activeCode === 'ios-third-party-browser'
               ? (e) => {
                   e.stopPropagation();
-                  sessionDismissedCodes.add('ios-third-party-browser');
-                  forceRender((n) => n + 1);
                   openInSafari();
                 }
               : undefined

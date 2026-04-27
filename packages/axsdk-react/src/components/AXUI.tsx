@@ -479,6 +479,9 @@ export function AXUI({ children, theme, voice, position: controlledPosition, def
       });
       return;
     }
+    if (effectiveVoice) {
+      AXSDK.eventBus().emit('voice.user-intent', undefined);
+    }
     if (effectiveVoice && !hasPrimedVoiceRef.current) {
       hasPrimedVoiceRef.current = true;
       const plugin = getVoicePlugin();
