@@ -255,16 +255,8 @@ function tooltipText(
     }
     return errorMsg || AXSDK.t('voiceError');
   }
-  const parts: string[] = [];
-  if (tts === 'speaking') parts.push(AXSDK.t('voiceSpeaking'));
-  else if (tts === 'queued') parts.push(AXSDK.t('voiceConnecting'));
-  if (stt === 'capturing') parts.push(AXSDK.t('voiceCapturing'));
-  else if (stt === 'listening') parts.push(AXSDK.t('voiceListening'));
-  else if (stt === 'connecting') {
-    parts.push(perm === 'prompt' ? AXSDK.t('voicePermissionWaiting') : AXSDK.t('voiceConnecting'));
-  }
-  if (parts.length === 0) return '';
-  return parts.join(' · ');
+  if (stt === 'connecting' && perm === 'prompt') return AXSDK.t('voicePermissionWaiting');
+  return '';
 }
 
 function openInSafari(): void {
