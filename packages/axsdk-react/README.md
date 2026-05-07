@@ -2,7 +2,7 @@
 
 These packages are code for integrating with the AXSDK (https://axsdk.ai) platform.
 
-React UI components for the AXSDK AI chat platform. Built on top of [`@axsdk/core`](../axsdk-core), providing a fully-featured chat popup, message list, input bar, and floating action button — all rendered into a portal so they stay above your app's layout.
+React UI components for the AXSDK AI chat platform. Built on top of [`@axsdk/core`](../axsdk-core), providing a fully-featured floating chat popup and a search-bar style assistant surface — all rendered into a portal so they stay above your app's layout.
 
 ## Installation
 
@@ -61,7 +61,47 @@ export default function App() {
 }
 ```
 
-### Option B — Composing individual components
+### Option B — Search bar surface
+
+Use `variant="searchBar"` when the assistant should behave like an autocomplete/search surface instead of a floating chat button. The search bar and onboarding suggestions render as one panel; answers render below it.
+
+```tsx
+import { useEffect } from "react";
+import { AXSDK } from "@axsdk/core";
+import { AXUI } from "@axsdk/react";
+import "@axsdk/react/index.css";
+
+export default function SearchAssistant() {
+  useEffect(() => {
+    AXSDK.init({
+      apiKey: import.meta.env.VITE_AXSDK_API_KEY,
+      appId:  import.meta.env.VITE_AXSDK_APP_ID,
+      axHandler: async (command, args) => {
+        console.log(command, args);
+        return { status: "OK" };
+      },
+    });
+  }, []);
+
+  return <AXUI variant="searchBar" />;
+}
+```
+
+You can mount the search bar and answer panel into existing elements with `targets`:
+
+```tsx
+<div id="ax-search" />
+<div id="ax-answer" />
+
+<AXUI
+  variant="searchBar"
+  targets={{ searchBar: "ax-search", answerPanel: "ax-answer" }}
+/>
+```
+
+Submitted search text remains visible after send and is restored after page refresh from `@axsdk/core` chat state (`localStorage` key `axsdk:chat`). In-progress drafts are kept local and are only persisted after submit or onboarding suggestion selection.
+
+### Option C — Composing individual components
 
 ```tsx
 import { useState } from "react";
@@ -87,7 +127,10 @@ export default function MyChat() {
 
 | Component | Description |
 |---|---|
-| `<AXUI />` | Top-level composite component. Renders a portal containing the floating button, both speech bubbles, and the full chat popup. Manages open/closed state internally via the `chatStore`. |
+| `<AXUI />` | Top-level composite component. Renders either the default floating chat popup or the `searchBar` assistant surface. Manages shared state through `@axsdk/core` stores. |
+| `<AXSearchBar />` | Search-style input row with controlled/uncontrolled value support and an opt-in embedded surface mode. |
+| `<AXSearchOnboarding />` | Selectable onboarding suggestions. In search-bar mode, comma-separated onboarding text is shown as autocomplete rows. |
+| `<AXAnswerPanel />` | Search-bar variant answer surface for user query context, assistant responses, busy state, and close behavior. |
 | `<AXButton />` | Animated floating action button (fixed, bottom-right). Supports show/hide animations, press ripple effects, and an `isOpen` slide-off mode. |
 | `<AXChatPopup />` | Full-screen overlay containing the chat message list and input bar. Animates in/out on `visible` prop changes. |
 | `<AXChat />` | Scrollable chat message list. Auto-scrolls to the latest message and applies a scroll-based opacity fade for older messages. Exposes `scrollToBottom()` via `ref`. |
@@ -101,8 +144,24 @@ export default function MyChat() {
 ```ts
 interface AXUIProps {
   children?: React.ReactNode; // Rendered inside the portal (above the popup)
+  theme?: AXTheme;
+  voice?: AXVoiceConfig;
+  variant?: 'fab' | 'searchBar';
+  targets?: {
+    searchBar?: string | HTMLElement;
+    answerPanel?: string | HTMLElement;
+  };
+  ui?: {
+    variant?: 'fab' | 'searchBar';
+    targets?: AXUIProps['targets'];
+  };
+  position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  defaultPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  onPositionChange?: (position: AXUIProps['position']) => void;
 }
 ```
+
+The default `variant` is `'fab'`. The `searchBar` variant submits a fresh query by cancelling/resetting the current chat session first, then sending the trimmed query text. The submitted text is persisted in the core chat store as `searchBarInputValue`.
 
 ### `<AXButton>`
 
@@ -166,6 +225,37 @@ interface AXChatMessageInputProps {
   placeholder?: string;
 }
 ```
+
+### `<AXSearchBar>`
+
+```ts
+interface AXSearchBarProps {
+  onSearch: (query: string) => void;
+  disabled?: boolean;
+  placeholder?: string;
+  buttonLabel?: string;
+  defaultValue?: string;
+  value?: string;
+  onValueChange?: (value: string) => void;
+  clearOnSubmit?: boolean;
+  surface?: 'standalone' | 'embedded';
+}
+```
+
+`surface="embedded"` is used by `<AXUI variant="searchBar" />` so the input row can share one panel with onboarding suggestions. Standalone usage keeps the original pill/card styling and clears on submit by default.
+
+### `<AXSearchOnboarding>`
+
+```ts
+interface AXSearchOnboardingProps {
+  onboardingText?: string;
+  latestUserText?: string;
+  onTextSelect?: (text: string) => void;
+  layout?: 'card' | 'rows';
+}
+```
+
+`layout="rows"` renders autocomplete-style suggestion rows with a leading search icon and trailing arrow affordance. Comma-separated onboarding strings are split into individual selectable rows in this layout.
 
 ## License
 
