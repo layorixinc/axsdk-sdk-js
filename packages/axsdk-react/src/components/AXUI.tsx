@@ -5,13 +5,26 @@ import ReactDOM from 'react-dom';
 
 import { useStore } from 'zustand';
 
+import { AXAnswerPanel } from './AXAnswerPanel';
 import { AXButton, type AXCornerPosition } from './AXButton';
 import { AXChatNotificationPopover } from './AXChatNotificationPopover';
 import { AXChatLastMessage } from './AXChatLastMessage';
 import { AXChatMessageInput } from './AXChatMessageInput';
 import { AXDevTools } from './AXDevTools';
 import { AXQuestionDialog } from './AXQuestionDialog';
+import { AXSearchBar } from './AXSearchBar';
+import { AXSearchOnboarding } from './AXSearchOnboarding';
+import { extractMessageText, findLatestUserMessage } from './AXAnswerPanelSelectors';
+import { isAXUIAnswerPanelVisible, isAXUISearchOnboardingVisible } from './AXUIFocus';
 import { AXVoiceIndicator } from './AXVoiceIndicator';
+import {
+  resolveAXUITarget,
+  resolveAXUIVariant,
+  type AXUIConfig,
+  type AXUITargetReference,
+  type AXUITargets,
+  type AXUIVariant,
+} from './AXUITargets';
 
 import { AXSDK } from '@axsdk/core';
 import type { TextPart } from '@axsdk/core';
@@ -38,6 +51,9 @@ export interface AXUIProps {
   children?: React.ReactNode;
   theme?: AXTheme;
   voice?: AXVoiceConfig;
+  variant?: AXUIVariant;
+  targets?: AXUITargets;
+  ui?: AXUIConfig;
   position?: AXCornerPosition;
   defaultPosition?: AXCornerPosition;
   onPositionChange?: (position: AXCornerPosition) => void;
@@ -230,8 +246,93 @@ function SpeechBubbleClosed({ visible, position }: { visible: boolean; position:
 
 const DESKTOP_BREAKPOINT = 768;
 
-export function AXUI({ children, theme, voice, position: controlledPosition, defaultPosition = 'bottom-right', onPositionChange }: AXUIProps) {
+type AXUIRegionName = 'searchBar' | 'answerPanel';
+
+interface AXUIExternalRegionPortalProps {
+  host: HTMLElement;
+  region: AXUIRegionName;
+  theme?: AXTheme;
+  children: React.ReactNode;
+}
+
+const AX_EXTERNAL_REGION_RESET_CSS = `
+.ax-portal-root[data-axsdk-region] {
+  all: initial;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  font-size: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.5;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  position: relative;
+}
+.ax-portal-root[data-axsdk-region],
+.ax-portal-root[data-axsdk-region] *,
+.ax-portal-root[data-axsdk-region] *::before,
+.ax-portal-root[data-axsdk-region] *::after {
+  box-sizing: border-box;
+}
+@keyframes ax-message-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes axchat-message-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ax-thinking-pulse {
+  0%, 80%, 100% { opacity: 0.25; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1); }
+}
+@keyframes axchat-thinking-bounce {
+  0%, 80%, 100% { opacity: 0.4; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-6px); }
+}
+@keyframes ax-tool-expand {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 300px; }
+}
+@keyframes ax-error-slide {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+`;
+
+function resolveAXUIHostTarget(target: AXUITargetReference | undefined, shadowRoot: ShadowRoot | null): HTMLElement | null {
+  return resolveAXUITarget(target, (id) => {
+    const shadowTarget = shadowRoot?.getElementById(id);
+    if (shadowTarget instanceof HTMLElement) return shadowTarget;
+
+    return document.getElementById(id);
+  });
+}
+
+function AXUIExternalRegionPortal({ host, region, theme, children }: AXUIExternalRegionPortalProps) {
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (wrapperRef.current) {
+      injectCSSVariables(wrapperRef.current, theme);
+    }
+  }, [host, region, theme]);
+
+  return ReactDOM.createPortal(
+    <div className="ax-portal-root" data-axsdk-region={region} ref={wrapperRef}>
+      <style>{AX_EXTERNAL_REGION_RESET_CSS}</style>
+      {children}
+    </div>,
+    host,
+  );
+}
+
+export function AXUI({ children, theme, voice, variant, targets, ui, position: controlledPosition, defaultPosition = 'bottom-right', onPositionChange }: AXUIProps) {
   const shadowRoot = useAXShadowRoot();
+  const resolvedVariant = resolveAXUIVariant({ variant, ui });
+  const searchBarTargetReference = targets?.searchBar ?? ui?.targets?.searchBar;
+  const answerPanelTargetReference = targets?.answerPanel ?? ui?.targets?.answerPanel;
   useVoicePlugin(voice ?? null);
   const effectiveVoice = resolveVoiceConfig(voice);
   const voiceNeedsUnlock = useVoiceUnlockNeeded();
@@ -252,16 +353,21 @@ export function AXUI({ children, theme, voice, position: controlledPosition, def
   const isTopPos = position.startsWith('top');
   const isLeftPos = position.endsWith('left');
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
+  const [searchBarHostTarget, setSearchBarHostTarget] = useState<HTMLElement | null>(null);
+  const [answerPanelHostTarget, setAnswerPanelHostTarget] = useState<HTMLElement | null>(null);
   const [dismissedNotification, setDismissedNotification] = useState(false);
   const [lastAnswer, setLastAnswer] = useState<{ questionIndex: number; selectedOption: number; label: string } | null>(null);
   const [submitLog, setSubmitLog] = useState<string | null>(null);
   const [inputTopOffset, setInputTopOffset] = useState<number | null>(null);
+  const [searchBarFocused, setSearchBarFocused] = useState(false);
+  const [dismissedAnswerPanelMessageId, setDismissedAnswerPanelMessageId] = useState<string | null>(null);
   const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= DESKTOP_BREAKPOINT);
   const [scrollTrigger, setScrollTrigger] = useState(0);
   const [focusTrigger, setFocusTrigger] = useState(0);
   const messageInputWrapperRef = useRef<HTMLDivElement | null>(null);
 
-  const { isOpen, setIsOpen, chatWasEverOpened, setChatWasEverOpened, messages, questions, setQuestions, session, ttsEnabled, setTtsEnabled } = useStore(AXSDK.getChatStore());
+  const { isOpen, setIsOpen, chatWasEverOpened, setChatWasEverOpened, messages, questions, setQuestions, session, ttsEnabled, setTtsEnabled, searchBarInputValue, setSearchBarInputValue } = useStore(AXSDK.getChatStore());
+  const [searchBarValue, setSearchBarValue] = useState(searchBarInputValue);
   const ttsPending = useTtsPending();
   const ttsState = useTtsState();
   const [ttsErrorMessage, setTtsErrorMessage] = useState<string | undefined>(undefined);
@@ -305,6 +411,27 @@ export function AXUI({ children, theme, voice, position: controlledPosition, def
   }, [effectiveVoice, ttsEnabled, ttsPending, ttsState, ttsErrorMessage, setTtsEnabled, voiceNeedsUnlock]);
   const appInfoReady = useStore(AXSDK.getAppStore(), (s) => s.appInfoReady);
   const isBusy = session?.status === 'busy';
+
+  useEffect(() => {
+    if (resolvedVariant !== 'searchBar') {
+      setSearchBarHostTarget(null);
+      setAnswerPanelHostTarget(null);
+      return;
+    }
+
+    setSearchBarHostTarget(resolveAXUIHostTarget(searchBarTargetReference, shadowRoot));
+    setAnswerPanelHostTarget(resolveAXUIHostTarget(answerPanelTargetReference, shadowRoot));
+  }, [resolvedVariant, searchBarTargetReference, answerPanelTargetReference, shadowRoot]);
+
+  useEffect(() => {
+    if (resolvedVariant !== 'searchBar') {
+      setSearchBarFocused(false);
+    }
+  }, [resolvedVariant]);
+
+  useEffect(() => {
+    setSearchBarValue(searchBarInputValue);
+  }, [searchBarInputValue]);
 
   useEffect(() => {
     const mq = window.matchMedia(`(min-width: ${DESKTOP_BREAKPOINT}px)`);
@@ -356,27 +483,11 @@ export function AXUI({ children, theme, voice, position: controlledPosition, def
       .trim();
   const assistantMessage = latestAssistantMessage?.info?.id && { id: latestAssistantMessage?.info?.id, text: assistantMessageText || '' } || undefined
 
-  const latestUserMessage = useMemo(() => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const msg = messages[i];
-      if (msg.info.role !== 'user') continue;
-      const text = msg.parts
-        ?.filter((p) => p.type === 'text')
-        .map((p) => (p as TextPart).text ?? '')
-        .join('')
-        .trim();
-      if (text) return msg;
-    }
-    return undefined;
-  }, [messages]);
+  const latestUserMessage = useMemo(() => findLatestUserMessage(messages), [messages]);
 
-  const userMessageText = latestUserMessage && latestUserMessage.parts && latestUserMessage.parts.length &&
-    latestUserMessage.parts
-      .filter((p): p is TextPart => p.type === "text")
-      .map((p) => p.text ?? "")
-      .join("")
-      .trim();
-  const userMessage = latestUserMessage?.info?.id && { id: latestUserMessage?.info?.id, text: userMessageText || '' } || undefined;
+  const userMessageText = extractMessageText(latestUserMessage);
+  const latestUserMessageId = latestUserMessage?.info?.id;
+  const userMessage = latestUserMessageId && { id: latestUserMessageId, text: userMessageText || '' } || undefined;
 
   const notifVisible = (!!assistantMessageText || !!userMessageText) && !dismissedNotification
 
@@ -507,12 +618,169 @@ export function AXUI({ children, theme, voice, position: controlledPosition, def
     AXSDK.getErrorStore().getState().clearErrors();
     AXSDK.sendMessage(text);
   }
+  const handleSearchBarSend = (text: string) => {
+    const trimmedText = text.trim();
+    if (!trimmedText) return;
+    setSearchBarValue(trimmedText);
+    setSearchBarInputValue(trimmedText);
+    AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.cancel' });
+    AXSDK.resetSession();
+    handleSend(trimmedText);
+  }
   function handleClear() {
     AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.cancel' });
     AXSDK.resetSession();
   }
 
+  function handleSearchBarFocusChange(focused: boolean) {
+    if (focused) setSearchBarFocused(true);
+  }
+
+  function handleSearchPanelBlur(event: React.FocusEvent<HTMLElement>) {
+    const nextFocusTarget = event.relatedTarget;
+    if (nextFocusTarget instanceof Node && event.currentTarget.contains(nextFocusTarget)) return;
+    setSearchBarFocused(false);
+  }
+
   if (!portalTarget) return null;
+
+  if (resolvedVariant === 'searchBar') {
+    const answerPanelDismissed = !!latestUserMessageId && dismissedAnswerPanelMessageId === latestUserMessageId;
+    const answerPanelVisible = isAXUIAnswerPanelVisible(session, messages) && !answerPanelDismissed;
+    const searchOnboardingVisible = isAXUISearchOnboardingVisible(searchBarFocused);
+    const searchBarRegion = (
+      <section
+        aria-label="AXSDK search"
+        onFocus={() => setSearchBarFocused(true)}
+        onBlur={handleSearchPanelBlur}
+        style={{
+          width: '100%',
+          boxSizing: 'border-box',
+          border: '1px solid var(--ax-border-surface, rgba(255,255,255,0.14))',
+          borderRadius: '1.25em',
+          background: 'var(--ax-bg-popover)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.28), 0 0 0 1px rgba(120,80,255,0.12)',
+          color: 'var(--ax-text-primary)',
+          pointerEvents: 'auto',
+          overflow: 'hidden',
+          ...theme?.styles?.input?.card,
+        }}
+      >
+        <AXSearchBar
+          placeholder={AXSDK.t("chatInput")}
+          buttonLabel="실행"
+          onSearch={handleSearchBarSend}
+          value={searchBarValue}
+          onValueChange={setSearchBarValue}
+          clearOnSubmit={false}
+          disabled={!appInfoReady || isBusy}
+          onFocusChange={handleSearchBarFocusChange}
+          surface="embedded"
+        />
+        {searchOnboardingVisible && (
+          <>
+            <div
+              aria-hidden="true"
+              style={{
+                height: 0,
+                borderTop: '1px solid var(--ax-border-surface, rgba(255,255,255,0.12))',
+              }}
+            />
+            <AXSearchOnboarding
+              onboardingText={AXSDK.t("chatOnboarding")}
+              latestUserText={userMessageText || undefined}
+              onTextSelect={handleSearchBarSend}
+              layout="rows"
+            />
+          </>
+        )}
+      </section>
+    );
+
+    const answerPanelRegion = (
+      <AXAnswerPanel
+        messages={messages}
+        isBusy={isBusy}
+        emptyText={AXSDK.t("chatEmpty")}
+        busyText={AXSDK.t("chatBusyGuide")}
+        headerText={userMessageText || undefined}
+        onClose={latestUserMessageId ? () => setDismissedAnswerPanelMessageId(latestUserMessageId) : undefined}
+      />
+    );
+
+    const searchBarPortal = searchBarHostTarget
+      ? <AXUIExternalRegionPortal host={searchBarHostTarget} region="searchBar" theme={theme}>{searchBarRegion}</AXUIExternalRegionPortal>
+      : null;
+    const answerPanelPortal = answerPanelVisible && answerPanelHostTarget
+      ? <AXUIExternalRegionPortal host={answerPanelHostTarget} region="answerPanel" theme={theme}>{answerPanelRegion}</AXUIExternalRegionPortal>
+      : null;
+
+    const content = <AXThemeProvider theme={theme}>
+      <div>
+        {children}
+        <AXDevTools debug={AXSDK.config?.debug} messages={messages} />
+        <div
+          style={{
+            position: 'fixed',
+            top: '1.25em',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 'min(680px, 90vw)',
+            zIndex: 10001,
+            pointerEvents: 'none',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.75em',
+          }}
+        >
+          {!searchBarHostTarget && searchBarRegion}
+          {answerPanelVisible && !answerPanelHostTarget && (
+            <div
+              style={{
+                width: 'min(720px, 92vw)',
+                height: 'min(52vh, 520px)',
+                pointerEvents: 'none',
+              }}
+            >
+              {answerPanelRegion}
+            </div>
+          )}
+        </div>
+        {answerPanelPortal}
+        {searchBarPortal}
+        {questions && (
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 99999, width: '100%', maxWidth: '420px' }}>
+            {AXSDK.config?.debug && lastAnswer && (
+              <div style={{ marginBottom: '0.5em', padding: '0.4em 0.8em', background: 'color-mix(in srgb, var(--ax-color-primary, #7c3aed) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--ax-color-primary, #7c3aed) 40%, transparent)', borderRadius: '999px', color: '#c4b5fd', fontSize: '0.75em', display: 'inline-block' }}>
+                Selected: <strong>{lastAnswer.label}</strong>
+              </div>
+            )}
+            {AXSDK.config?.debug && submitLog && (
+              <div style={{ marginBottom: '0.5em', padding: '0.5em 0.75em', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '8px', color: '#6ee7b7', fontSize: '0.7em', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+                {submitLog}
+              </div>
+            )}
+            <AXQuestionDialog
+              data={questions}
+              onAnswer={(qi, si, label) => setLastAnswer({ questionIndex: qi, selectedOption: si, label })}
+              onSubmit={(answers) => {
+                setSubmitLog(JSON.stringify(answers, null, 2));
+                AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.reply', data: { request: questions, status: 'reply', answers: answers.map(x => [x.customAnswer || x.label]) } });
+                setQuestions(null);
+              }}
+              onDecline={() => {
+                AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.reply', data: { request: questions, status: 'reject' } });
+                setQuestions(null);
+              }}
+              visible={true}
+            />
+          </div>
+        )}
+      </div>
+    </AXThemeProvider>;
+
+    return ReactDOM.createPortal(content, portalTarget);
+  }
 
   const content = <AXThemeProvider theme={theme}>
     <div>

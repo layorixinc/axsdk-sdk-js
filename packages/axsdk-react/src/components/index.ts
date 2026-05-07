@@ -1,4 +1,6 @@
 export * from './AXUI';
+export * from './AXAnswerPanel';
+export * from './AXAnswerPanelSelectors';
 export * from './AXButton';
 export * from './AXChatPopup';
 export * from './AXChat';
@@ -7,6 +9,9 @@ export * from './AXChatMessageInput';
 export * from './AXChatNotificationPopover';
 export * from './AXChatLastMessage';
 export * from './AXChatMessagePopoverBase';
+export * from './AXSearchBar';
+export * from './AXSearchOnboarding';
+export * from './AXUITargets';
 export { AXChatErrorBar } from './AXChatErrorBar';
 export * from './AXDevTools';
 export * from './AXQuestionDialog';
