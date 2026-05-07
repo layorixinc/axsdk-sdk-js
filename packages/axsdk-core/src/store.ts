@@ -125,6 +125,8 @@ export interface ChatState {
   latestAssistantWithText: ChatMessage | null;
   setMessages: (messages: ChatMessage[]) => void;
   updateMessage: (message: ChatMessage) => void;
+  searchBarInputValue: string;
+  setSearchBarInputValue: (value: string) => void;
   setIsOpen: (isOpen: boolean) => void;
   setChatWasEverOpened: (value: boolean) => void;
   translations: Record<string, AXSDKTranslationsSchema>;
@@ -164,6 +166,7 @@ export const chatStore = createStore<ChatState>()(
       setSessionClosed: (sessionClosed) => set({ sessionClosed }),
       messages: [],
       latestAssistantWithText: null,
+      searchBarInputValue: '',
       setMessages: (messages) => set({
         messages,
         latestAssistantWithText: findLatestAssistantWithText(messages),
@@ -179,6 +182,7 @@ export const chatStore = createStore<ChatState>()(
           latestAssistantWithText: findLatestAssistantWithText(next),
         });
       },
+      setSearchBarInputValue: (value: string) => set({ searchBarInputValue: value }),
       setIsOpen: (isOpen) => set({ isOpen }),
       setChatWasEverOpened: (value: boolean) => set({ chatWasEverOpened: value }),
       translations: {},
@@ -202,7 +206,7 @@ export const chatStore = createStore<ChatState>()(
         const noop = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
         return noop;
       })())),
-      partialize: (state) => ({ session: state.session, sessionClosed: state.sessionClosed, messages: state.messages, isOpen: state.isOpen, deferredCalls: state.deferredCalls, ttsEnabled: state.ttsEnabled }),
+      partialize: (state) => ({ session: state.session, sessionClosed: state.sessionClosed, messages: state.messages, isOpen: state.isOpen, deferredCalls: state.deferredCalls, ttsEnabled: state.ttsEnabled, searchBarInputValue: state.searchBarInputValue }),
       merge: (persisted, current) => {
         const merged = { ...current, ...(persisted as Partial<ChatState>) };
         merged.latestAssistantWithText = findLatestAssistantWithText(merged.messages ?? []);
