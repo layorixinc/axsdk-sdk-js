@@ -64,21 +64,21 @@ bun add @axsdk/browser
 </html>
 ```
 
-Global `AXSDK` is the `AXSDKBrowser` object (`init`, `destroy`, `voice`, `eventBus`). A floating chat button appears in the bottom-right; clicking opens the chat popup.
+Global `AXSDK` is the `AXSDKBrowser` object (`init`, `destroy`, `voice`, `eventBus`). A compact bottom-right search launcher appears by default; opening it reveals the bottom-centered assistant surface.
 
 ### UI variants
 
-Pass `ui.variant` to choose the bundled React surface:
+Pass `ui.variant` to override the default bundled React surface:
 
 ```js
 AXSDK.init({
   apiKey: 'YOUR_API_KEY',
   appId:  'YOUR_APP_ID',
-  ui: { variant: 'bottomSearchBar' },
+  ui: { variant: 'fab' },
 });
 ```
 
-Supported variants are `'fab'` (default floating chat button), `'searchBar'` (host-mounted search and answer regions), and `'bottomSearchBar'` (small bottom-right launcher that opens a bottom-centered search surface with answer preview, suggestion chips, and embedded input).
+Supported variants are `'bottomSearchBar'` (default small bottom-right launcher that opens a bottom-centered search surface with answer preview, suggestion chips, and embedded input), `'fab'` (floating chat button), and `'searchBar'` (host-mounted search and answer regions).
 
 ### With `axHandler`
 

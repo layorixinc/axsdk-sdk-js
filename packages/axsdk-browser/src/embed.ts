@@ -88,6 +88,10 @@ const AXSDKBrowser = {
     }
 
     const { axHandler, theme, voice, ui, ...axsdkConfig } = config;
+    const browserUI: AXSDKBrowserUIConfig = {
+      ...ui,
+      variant: ui?.variant ?? 'bottomSearchBar',
+    };
 
     const voiceForCore = voice
       ? { ...voice, workletUrl: voice.workletUrl ?? workletBlobUrl() }
@@ -133,7 +137,7 @@ const AXSDKBrowser = {
       React.createElement(
         AXShadowRootProvider,
         { shadowRoot: shadow },
-        React.createElement(AXUI, { theme, ui }),
+        React.createElement(AXUI, { theme, ui: browserUI }),
       ),
     );
   },
