@@ -96,6 +96,7 @@ Root `bun run build` runs `scripts/set-workspace-deps.mjs`, then builds `axsdk-v
 - `@axsdk/react` is the only package with ESLint: `cd packages/axsdk-react && bun run lint`.
 - `@axsdk/voice` has ad-hoc Bun test harnesses: `src/vad.test.ts` and `src/state/machines.test.ts`.
 - `@axsdk/browser/test.html` is manual smoke coverage, not an automated suite.
+- Run long-lived dev/test servers under `pmux` sessions so they can be inspected and stopped explicitly; do not use detached `Start-Process`/orphaned background server processes for manual QA.
 - After changing `core`, rebuild downstream consumers that depend on it.
 - After touching style isolation or the browser embed, verify the widget inside a hostile host page.
 
