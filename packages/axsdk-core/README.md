@@ -60,6 +60,7 @@ AXSDK.eventBus().on("message.chat", (event) => {
 | Key | Description |
 |---|---|
 | `chatInput` | Placeholder shown in chat and search inputs |
+| `chatSearchSubmit` | Submit button label shown in search-style inputs |
 | `chatAskMe` | Prompt shown in the closed-state speech bubble |
 | `chatHide` | Prompt shown in the open-state speech bubble |
 | `chatEmpty` | Placeholder shown when the chat history is empty |
@@ -78,6 +79,7 @@ await AXSDK.init({
   translations: {
     en: {
       chatInput: "Please type here",
+      chatSearchSubmit: "Run",
       chatAskMe: "How can I help?",
       chatEmpty: "Ask me anything.",
       chatBottomSearchReset: "Clear",
@@ -85,6 +87,7 @@ await AXSDK.init({
     },
     ko: {
       chatInput: "여기에 입력해주세요",
+      chatSearchSubmit: "실행",
       chatAskMe: "무엇을 도와드릴까요?",
       chatEmpty: "대화를 시작하세요.",
       chatBottomSearchReset: "지우기",
