@@ -31,7 +31,7 @@ import "@axsdk/react/index.css";
 
 ### Option A — `<AXUI />` (recommended)
 
-Drop `<AXUI />` anywhere in your React tree **after** calling `AXSDK.init()`. It handles everything: the floating button, the popup overlay, the message list, and the input bar.
+Drop `<AXUI />` anywhere in your React tree **after** calling `AXSDK.init()`. It handles everything: the bottom search launcher, assistant preview surface, suggestions, and input bar.
 
 ```tsx
 import { useEffect } from "react";
@@ -103,7 +103,7 @@ Submitted search text remains visible after send and is restored after page refr
 
 ### Option C — Bottom search bar launcher
 
-Use `variant="bottomSearchBar"` when you want a compact bottom-right launcher that expands into a bottom-centered search surface. The open surface stacks the latest assistant preview, onboarding suggestion chips, and an embedded search input while using the same fresh-search submit semantics as `variant="searchBar"`.
+`bottomSearchBar` is the default `<AXUI />` surface. You can still pass `variant="bottomSearchBar"` explicitly when you want to make that choice visible in code. It uses a compact bottom-right launcher that expands into a bottom-centered search surface. The open surface stacks the latest assistant preview, onboarding suggestion chips, and an embedded search input while using the same fresh-search submit semantics as `variant="searchBar"`.
 
 ```tsx
 import { AXUI } from "@axsdk/react";
@@ -140,7 +140,7 @@ export default function MyChat() {
 
 | Component | Description |
 |---|---|
-| `<AXUI />` | Top-level composite component. Renders the default floating chat popup, the `searchBar` assistant surface, or the `bottomSearchBar` launcher surface. Manages shared state through `@axsdk/core` stores. |
+| `<AXUI />` | Top-level composite component. Renders the default `bottomSearchBar` launcher surface, the `searchBar` assistant surface, or the `fab` floating chat popup. Manages shared state through `@axsdk/core` stores. |
 | `<AXSearchBar />` | Search-style input row with controlled/uncontrolled value support and an opt-in embedded surface mode. |
 | `<AXSearchOnboarding />` | Selectable onboarding suggestions. In search-bar mode, comma-separated onboarding text is shown as autocomplete rows. |
 | `<AXAnswerPanel />` | Search-bar variant answer surface for user query context, assistant responses, busy state, and close behavior. |
@@ -174,7 +174,7 @@ interface AXUIProps {
 }
 ```
 
-The default `variant` is `'fab'`. The `searchBar` and `bottomSearchBar` variants submit a fresh query by cancelling/resetting the current chat session first, then sending the trimmed query text. The submitted text is persisted in the core chat store as `searchBarInputValue`.
+The default `variant` is `'bottomSearchBar'`. The `searchBar` and `bottomSearchBar` variants submit a fresh query by cancelling/resetting the current chat session first, then sending the trimmed query text. The submitted text is persisted in the core chat store as `searchBarInputValue`.
 
 The `bottomSearchBar` variant keeps a small bottom-right icon launcher in its closed state. Opening it reveals an animated bottom-centered surface with capped desktop width and nearly full mobile width. It uses local open state, so the default floating chat open state and chat-store open polling semantics remain unchanged.
 

@@ -7,8 +7,8 @@ import {
 } from '../src/components/AXUITargets';
 
 describe('resolveAXUIVariant', () => {
-  test('defaults to fab when no variant config is provided', () => {
-    expect(resolveAXUIVariant({})).toBe('fab');
+  test('defaults to bottom search bar when no variant config is provided', () => {
+    expect(resolveAXUIVariant({})).toBe('bottomSearchBar');
   });
 
   test('uses ui.variant when direct variant is absent', () => {

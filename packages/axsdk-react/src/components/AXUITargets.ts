@@ -18,7 +18,7 @@ export interface AXUIVariantOptions {
 }
 
 export function resolveAXUIVariant({ variant, ui }: AXUIVariantOptions): AXUIVariant {
-  return variant ?? ui?.variant ?? 'fab';
+  return variant ?? ui?.variant ?? 'bottomSearchBar';
 }
 
 export function resolveAXUITarget(
