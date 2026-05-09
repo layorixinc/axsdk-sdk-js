@@ -7,8 +7,8 @@ import { AXSearchBar, DEFAULT_AX_SEARCH_BAR_BUTTON_LABEL } from '../src/componen
 import { AXSearchOnboarding } from '../src/components/AXSearchOnboarding';
 
 describe('AXSearchBar', () => {
-  test('defaults the submit button label to 실행', () => {
-    expect(DEFAULT_AX_SEARCH_BAR_BUTTON_LABEL).toBe('실행');
+  test('defaults the submit button label to Run', () => {
+    expect(DEFAULT_AX_SEARCH_BAR_BUTTON_LABEL).toBe('Run');
   });
 
   test('renders the default submit button label', () => {
@@ -23,7 +23,8 @@ describe('AXSearchBar', () => {
       ),
     );
 
-    expect(markup).toContain('실행');
+    expect(markup).toContain('Run');
+    expect(markup).not.toContain('실행');
     expect(markup).not.toContain('검색');
     expect(markup).not.toContain('data-ax-search-bar="submit-button-image"');
     expect(markup).not.toContain('data-ax-search-bar="clear-button"');

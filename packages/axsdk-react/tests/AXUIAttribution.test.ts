@@ -18,13 +18,17 @@ describe('AXUI powered-by attribution wiring', () => {
 
   test('bottomSearchBar variant reaches the shared attribution through the open surface component', async () => {
     const axuiSource = await Bun.file(new URL('../src/components/AXUI.tsx', import.meta.url)).text();
-    const bottomSearchBarSource = await Bun.file(new URL('../src/components/AXBottomSearchBar.tsx', import.meta.url)).text();
+    const bottomSearchBarSource = await Bun.file(new URL('../src/components/bottom-search-bar/AXBottomSearchBar.tsx', import.meta.url)).text();
+    const surfaceSource = await Bun.file(new URL('../src/components/bottom-search-bar/BottomSearchBarSurface.tsx', import.meta.url)).text();
+    const inputSource = await Bun.file(new URL('../src/components/bottom-search-bar/BottomSearchBarInput.tsx', import.meta.url)).text();
     const bottomSearchBarMarkup = axuiSource.match(/<AXBottomSearchBar[\s\S]*?\/>/)?.[0] ?? '';
-    const openSurfaceMarkup = bottomSearchBarSource.match(/\{open && \([\s\S]*?<AXPoweredBy[\s\S]*?<\/section>/)?.[0] ?? '';
+    const openSurfaceMarkup = surfaceSource.match(/<section[\s\S]*?<AXPoweredBy[\s\S]*?<\/section>/)?.[0] ?? '';
 
     expect(bottomSearchBarMarkup).toContain('open={isOpen}');
-    expect(bottomSearchBarSource).toContain("import { AXPoweredBy } from './AXPoweredBy';");
-    expect(openSurfaceMarkup).toContain('data-ax-bottom-search-bar="input"');
+    expect(bottomSearchBarSource).toContain("import { BottomSearchBarSurface } from './BottomSearchBarSurface';");
+    expect(surfaceSource).toContain("import { AXPoweredBy } from '../shared/AXPoweredBy';");
+    expect(openSurfaceMarkup).toContain('<BottomSearchBarInput');
+    expect(inputSource).toContain('data-ax-bottom-search-bar="input"');
     expect(openSurfaceMarkup).toContain('<AXPoweredBy');
   });
 

@@ -125,6 +125,20 @@ function getBottomSearchChipsStyle(markup: string): string {
   return style ?? '';
 }
 
+function getBottomSearchLauncherTag(markup: string): string {
+  const launcherTag = markup.match(/<button\b(?=[^>]*data-ax-bottom-search-bar="launcher")[^>]*>/)?.[0];
+  expect(launcherTag).toBeDefined();
+
+  return launcherTag ?? '';
+}
+
+function getBottomSearchClosedTooltipTag(markup: string): string {
+  const tooltipTag = markup.match(/<div\b(?=[^>]*data-ax-bottom-search-bar="closed-tooltip")[^>]*>/)?.[0];
+  expect(tooltipTag).toBeDefined();
+
+  return tooltipTag ?? '';
+}
+
 function getButtonTagByLabel(markup: string, label: string): string {
   const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const buttonTag = markup.match(new RegExp(`<button\\b(?=[^>]*aria-label="${escapedLabel}")[^>]*>`))?.[0];
@@ -142,7 +156,7 @@ afterEach(() => {
 });
 
 describe('buildAXBottomSearchBarChipTexts', () => {
-  test('splits onboarding text and dedupes the latest user text', () => {
+  test('splits onboarding text without adding the latest user text', () => {
     expect(buildAXBottomSearchBarChipTexts('Ask pricing, Ask docs, Ask pricing', 'Ask docs', 'Again, Continue', false)).toEqual([
       'Ask pricing',
       'Ask docs',
@@ -174,6 +188,7 @@ describe('AXBottomSearchBar', () => {
     expect(markup).not.toContain('data-ax-powered-by="root"');
     expect(markup).not.toContain('data-ax-powered-by="link"');
     expect(markup).toContain('data-ax-bottom-search-bar="unread-indicator"');
+    expect(markup).toContain('data-ax-bottom-search-bar-indicator="unread"');
     expect(markup).toContain('aria-hidden="true"');
     expect(markup).toContain('background:var(--ax-text-error, #f87171)');
     expect(markup).toContain('<svg');
@@ -193,6 +208,7 @@ describe('AXBottomSearchBar', () => {
       message('assistant-latest', 'assistant', '**Bold latest**\n\n- markdown item'),
       message('user-2', 'user', 'Newest user text should not replace assistant text'),
     ]);
+    const tooltipTag = getBottomSearchClosedTooltipTag(markup);
 
     expect(markup).toContain('data-ax-bottom-search-bar="closed-tooltip"');
     expect(markup).toContain('role="button"');
@@ -205,13 +221,17 @@ describe('AXBottomSearchBar', () => {
     expect(markup).toContain('<li');
     expect(markup).toContain('markdown item');
     expect(markup).toContain('pointer-events:auto');
-    expect(markup).toContain('display:-webkit-box');
-    expect(markup).toContain('-webkit-line-clamp:2');
-    expect(markup).toContain('-webkit-box-orient:vertical');
-    expect(markup).toContain('overflow:hidden');
-    expect(markup).toContain('text-overflow:ellipsis');
+    expect(tooltipTag).not.toContain('display:-webkit-box');
+    expect(tooltipTag).not.toContain('-webkit-line-clamp');
+    expect(tooltipTag).not.toContain('-webkit-box-orient');
+    expect(tooltipTag).not.toContain('max-height:calc(2.7em + 20px)');
+    expect(tooltipTag).not.toContain('overflow:hidden');
+    expect(tooltipTag).not.toContain('text-overflow:ellipsis');
+    expect(markup).not.toContain('<p style="display:inline;margin:0;line-height:inherit"');
+    expect(markup).not.toContain('<li style="display:inline;margin:0;line-height:inherit"');
     expect(markup).toContain('right:calc(max(1em, env(safe-area-inset-right)) + 4.55em)');
     expect(markup).toContain('bottom:calc(max(1em, env(safe-area-inset-bottom)) + 0.4em)');
+    expect(markup).toContain('max-width:min(320px, calc(100vw - max(1em, env(safe-area-inset-left)) - max(1em, env(safe-area-inset-right)) - 4.55em))');
     expect(markup).toContain('data-ax-bottom-search-bar="unread-indicator"');
     expect(markup).not.toContain('Older answer');
     expect(markup).not.toContain('User text should stay out');
@@ -235,8 +255,34 @@ describe('AXBottomSearchBar', () => {
     expect(markup).not.toContain('Only user text');
   });
 
+  test('component source persists closed tooltip read state by assistant message id', async () => {
+    const source = await Bun.file(new URL('../src/components/bottom-search-bar/AXBottomSearchBar.tsx', import.meta.url)).text();
+
+    expect(source).toContain("'axsdk:bottom-search-read-assistant-message-ids'");
+    expect(source).toContain('window.localStorage.getItem(BOTTOM_SEARCH_READ_ASSISTANT_IDS_STORAGE_KEY)');
+    expect(source).toContain('window.localStorage.setItem(BOTTOM_SEARCH_READ_ASSISTANT_IDS_STORAGE_KEY');
+    expect(source).toContain('const latestAssistantId = latestAssistantMessage?.info.id ?? null;');
+    expect(source).toContain('!readAssistantIds.has(latestAssistantId)');
+    expect(source).toContain('nextIds.add(latestAssistantId);');
+    expect(source).toContain('markLatestAssistantRead();\n    onOpenChange(true);');
+    expect(source).not.toContain('latestAssistantKey');
+  });
+
   test('component source has no closed tooltip auto-hide timer path', async () => {
-    const source = await Bun.file(new URL('../src/components/AXBottomSearchBar.tsx', import.meta.url)).text();
+    const sourceFiles = [
+      '../src/components/bottom-search-bar/AXBottomSearchBar.tsx',
+      '../src/components/bottom-search-bar/BottomSearchBarLauncher.tsx',
+      '../src/components/bottom-search-bar/BottomSearchBarClosedTooltip.tsx',
+      '../src/components/bottom-search-bar/BottomSearchBarUnreadIndicator.tsx',
+      '../src/components/bottom-search-bar/BottomSearchBarLauncherButton.tsx',
+      '../src/components/bottom-search-bar/BottomSearchBarSurface.tsx',
+      '../src/components/bottom-search-bar/BottomSearchBarPreview.tsx',
+      '../src/components/bottom-search-bar/BottomSearchBarChips.tsx',
+      '../src/components/bottom-search-bar/BottomSearchBarInput.tsx',
+    ];
+    const source = (await Promise.all(
+      sourceFiles.map((filePath) => Bun.file(new URL(filePath, import.meta.url)).text()),
+    )).join('\n');
 
     expect(source).not.toContain('CLOSED_TOOLTIP_AUTO_HIDE_MS');
     expect(source).not.toContain('tooltipHiddenAssistantKey');
@@ -253,7 +299,22 @@ describe('AXBottomSearchBar', () => {
   });
 
   test('default search palette and component fallbacks stay teal aligned', async () => {
-    const bottomSearchBarSource = await Bun.file(new URL('../src/components/AXBottomSearchBar.tsx', import.meta.url)).text();
+    const bottomSearchBarFiles = [
+      '../src/components/bottom-search-bar/AXBottomSearchBar.tsx',
+      '../src/components/bottom-search-bar/BottomSearchBarLauncher.tsx',
+      '../src/components/bottom-search-bar/BottomSearchBarClosedTooltip.tsx',
+      '../src/components/bottom-search-bar/BottomSearchBarUnreadIndicator.tsx',
+      '../src/components/bottom-search-bar/BottomSearchBarLauncherButton.tsx',
+      '../src/components/bottom-search-bar/BottomSearchBarSurface.tsx',
+      '../src/components/bottom-search-bar/BottomSearchBarPreview.tsx',
+      '../src/components/bottom-search-bar/BottomSearchBarChips.tsx',
+      '../src/components/bottom-search-bar/BottomSearchBarInput.tsx',
+      '../src/components/bottom-search-bar/markdown.tsx',
+      '../src/components/bottom-search-bar/keyframes.tsx',
+    ];
+    const bottomSearchBarSource = (await Promise.all(
+      bottomSearchBarFiles.map((filePath) => Bun.file(new URL(filePath, import.meta.url)).text()),
+    )).join('\n');
     const searchBarSource = await Bun.file(new URL('../src/components/AXSearchBar.tsx', import.meta.url)).text();
     const searchSurfaceSource = `${bottomSearchBarSource}\n${searchBarSource}`;
 
@@ -328,23 +389,34 @@ describe('AXBottomSearchBar', () => {
     expect(markup).toContain('animation:none');
   });
 
-  test('open reset control uses the provided translated label', () => {
+  test('open header hides reset control by default', () => {
     const markup = renderBottomSearchBar(true, true, [message('assistant-1', 'assistant', 'Here is the latest answer.')], false, true, 'Ask docs', false, '지우기');
-    const resetButtonTag = getButtonTagByLabel(markup, '지우기');
 
-    expect(markup).toContain('aria-label="지우기"');
-    expect(markup).toContain('title="지우기"');
-    expect(markup).toContain('data-ax-bottom-search-bar="reset-button-icon"');
-    expect(markup).toContain('data-ax-bottom-search-bar="reset-button-label"');
-    expect(markup).toContain('>지우기</span>');
-    expect(resetButtonTag).toContain('min-width:4.9em');
-    expect(resetButtonTag).toContain('min-height:2.72em');
-    expect(resetButtonTag).toContain('font-size:0.92em');
-    expect(resetButtonTag).toContain('padding:0.42em 0.72em');
-    expect(resetButtonTag).not.toContain('font-size:1.03em');
-    expect(resetButtonTag).not.toContain('padding:0.54em 0.94em');
+    expect(markup).not.toContain('aria-label="지우기"');
+    expect(markup).not.toContain('title="지우기"');
+    expect(markup).not.toContain('data-ax-bottom-search-bar="reset-button-icon"');
+    expect(markup).not.toContain('data-ax-bottom-search-bar="reset-button-label"');
+    expect(markup).not.toContain('data-ax-bottom-search-bar="reset-chip"');
     expect(markup).not.toContain('>Reset<');
     expect(markup).not.toContain('Clear bottom search session');
+  });
+
+  test('shortcut chips append a distinct reset chip using the reset button visual', () => {
+    const markup = renderBottomSearchBar(true, true, [message('assistant-1', 'assistant', 'Here is the latest answer.')], false, true, 'Ask docs', true, '지우기', undefined, undefined, 'Close', 'Ask pricing', 'Again, 지우기');
+    const resetChipTag = getButtonTagByLabel(markup, 'Reset bottom search: 지우기');
+
+    expect(markup).toContain('aria-label="Search suggestion: Again"');
+    expect(markup).toContain('aria-label="Search suggestion: 지우기"');
+    expect(markup).toContain('aria-label="Reset bottom search: 지우기"');
+    expect(markup).toContain('data-ax-bottom-search-bar="reset-chip"');
+    expect(markup).toContain('data-ax-bottom-search-bar="reset-chip-icon"');
+    expect(markup).toContain('data-ax-bottom-search-bar="reset-chip-label"');
+    expect(resetChipTag).toContain('min-width:4.9em');
+    expect(resetChipTag).toContain('min-height:2.72em');
+    expect(resetChipTag).toContain('font-size:0.92em');
+    expect(resetChipTag).toContain('padding:0.42em 0.72em');
+    expect(markup).not.toContain('data-ax-bottom-search-bar="reset-button-icon"');
+    expect(markup).not.toContain('data-ax-bottom-search-bar="reset-button-label"');
   });
 
   test('open close control uses the provided translated label', () => {
@@ -400,6 +472,8 @@ describe('AXBottomSearchBar', () => {
     const idleMarkup = renderBottomSearchBar(false, true, [message('assistant-1', 'assistant', 'Idle answer')], false, true, 'Ask docs', false, 'Clear', themedButton);
     const busyMarkup = renderBottomSearchBar(false, true, [message('assistant-1', 'assistant', 'Busy answer')], true, true, 'Ask docs', false, 'Clear', themedButton);
     const openMarkup = renderBottomSearchBar(true, true, [message('assistant-1', 'assistant', 'Open answer')], false, true, 'Ask docs', false, 'Clear', themedButton);
+    const idleLauncherTag = getBottomSearchLauncherTag(idleMarkup);
+    const busyLauncherTag = getBottomSearchLauncherTag(busyMarkup);
 
     expect(idleMarkup).toContain('data-ax-bottom-search-bar="launcher"');
     expect(idleMarkup).toContain('data-ax-bottom-search-bar="launcher-image"');
@@ -408,6 +482,9 @@ describe('AXBottomSearchBar', () => {
     expect(idleMarkup).toContain('aria-hidden="true"');
     expect(idleMarkup).toContain('border-radius:18px');
     expect(idleMarkup).toContain('outline:2px solid rgb(1, 2, 3)');
+    expect(idleLauncherTag).toContain('border:none');
+    expect(idleLauncherTag).toContain('box-shadow:none');
+    expect(idleLauncherTag).toContain('animation:none');
     expect(idleMarkup).not.toContain('src="https://example.com/animated-launcher.gif"');
     expect(idleMarkup).not.toContain('data-ax-bottom-search-bar="launcher-idle-ring"');
     expect(idleMarkup).not.toContain('data-ax-bottom-search-bar="launcher-idle-glow"');
@@ -419,6 +496,9 @@ describe('AXBottomSearchBar', () => {
 
     expect(busyMarkup).toContain('data-ax-bottom-search-bar="launcher-image"');
     expect(busyMarkup).toContain('src="https://example.com/animated-launcher.gif"');
+    expect(busyLauncherTag).toContain('border:none');
+    expect(busyLauncherTag).toContain('box-shadow:none');
+    expect(busyLauncherTag).toContain('animation:none');
     expect(busyMarkup).not.toContain('src="https://example.com/static-launcher.png"');
     expect(busyMarkup).not.toContain('data-ax-bottom-search-bar="launcher-idle-ring"');
     expect(busyMarkup).not.toContain('data-ax-bottom-search-bar="launcher-idle-glow"');
@@ -427,7 +507,7 @@ describe('AXBottomSearchBar', () => {
     expect(busyMarkup).not.toContain('data-ax-bottom-search-bar="reset-button-image"');
     expect(busyMarkup).not.toContain('data-ax-search-bar="submit-button-image"');
 
-    expect(openMarkup).toContain('data-ax-bottom-search-bar="reset-button-label"');
+    expect(openMarkup).not.toContain('data-ax-bottom-search-bar="reset-button-label"');
     expect(openMarkup).toContain('>Run</button>');
     expect(openMarkup).toContain('box-shadow:0 0 0 2px rgb(4, 5, 6)');
     expect(openMarkup).toContain('text-transform:uppercase');
@@ -450,8 +530,8 @@ describe('AXBottomSearchBar', () => {
     expect(markup).not.toContain('data-ax-bottom-search-bar="launcher-busy-pulse"');
   });
 
-  test('open surface renders preview chips then one input card', () => {
-    const markup = renderBottomSearchBar(true);
+  test('open surface renders onboarding chips then one input card before user messages', () => {
+    const markup = renderBottomSearchBar(true, true, [message('assistant-1', 'assistant', 'Here is the latest answer.')], false, true, '', false);
     const previewIndex = markup.indexOf('data-ax-bottom-search-bar="preview"');
     const previewBodyIndex = markup.indexOf('data-ax-bottom-search-bar="preview-body"');
     const inputIndex = markup.indexOf('data-ax-bottom-search-bar="input"');
@@ -464,7 +544,7 @@ describe('AXBottomSearchBar', () => {
 
     expect(markup).toContain('data-ax-bottom-search-bar="surface"');
     expect(markup).toContain('aria-label="AXSDK answer preview"');
-    expect(markup).toContain('title="Ask docs"');
+    expect(markup).toContain('title="Translated AI preview"');
     expect(markup).not.toContain('Latest AI reply');
     expect(markup).toContain('Here is the latest answer.');
     expect(markup).toContain('data-ax-bottom-search-bar="preview-body"');
@@ -472,11 +552,11 @@ describe('AXBottomSearchBar', () => {
     expect(markup).toContain('position:sticky');
     expect(markup).toContain('background:var(--ax-bg-popover)');
     expect(markup).toContain('border:1px solid var(--ax-border-primary');
-    expect(markup).toContain('aria-label="Clear"');
-    expect(markup).toContain('title="Clear"');
+    expect(markup).not.toContain('aria-label="Clear"');
+    expect(markup).not.toContain('title="Clear"');
     expect(markup).not.toContain('data-ax-bottom-search-bar="reset-button-orb"');
-    expect(markup).toContain('data-ax-bottom-search-bar="reset-button-icon"');
-    expect(markup).toContain('data-ax-bottom-search-bar="reset-button-label"');
+    expect(markup).not.toContain('data-ax-bottom-search-bar="reset-button-icon"');
+    expect(markup).not.toContain('data-ax-bottom-search-bar="reset-button-label"');
     expect(markup).not.toContain('>Reset<');
     expect(markup).toContain('aria-label="Close"');
     expect(markup).toContain('title="Close"');
@@ -603,14 +683,14 @@ describe('AXBottomSearchBar', () => {
     expect(markup).toContain('aria-label="Mute voice"');
     expect(markup).toContain('title="Mute voice"');
     expect(markup).toContain('data-ax-bottom-search-bar="preview"');
-    expect(markup).toContain('aria-label="Clear"');
-    expect(markup).toContain('data-ax-bottom-search-bar="reset-button-icon"');
+    expect(markup).not.toContain('aria-label="Clear"');
+    expect(markup).not.toContain('data-ax-bottom-search-bar="reset-button-icon"');
     expect(markup).toContain('data-ax-bottom-search-bar="close-button-icon"');
     expect(markup).toContain('data-ax-bottom-search-bar="close-button-label"');
     expect(markup).toContain('aria-label="Close"');
     expect(markup).toContain('title="Close"');
     expect(markup).not.toContain('aria-label="Close bottom search"');
-    expect(markup).toContain('Search suggestion: Ask pricing');
+    expect(markup).not.toContain('Search suggestion: Ask pricing');
     expect(markup).toContain('Here is the latest answer.');
     expect(markup).not.toContain('<span title="Ask docs"');
     expect(markup).not.toContain('Ask docs</span>');
@@ -718,13 +798,23 @@ describe('AXBottomSearchBar', () => {
     expect(markup).not.toContain('Unrelated preview message error');
   });
 
-  test('active session shows shortcut chips instead of onboarding chips', () => {
+  test('active idle session shows shortcut chips and reset chip instead of onboarding chips', () => {
     const markup = renderBottomSearchBar(true, true, [message('assistant-1', 'assistant', 'Here is the latest answer.')], false, true, 'Ask docs', true);
 
     expect(markup).toContain('Search suggestion: Again');
     expect(markup).toContain('Search suggestion: Continue');
+    expect(markup).toContain('data-ax-bottom-search-bar="reset-chip"');
     expect(markup).not.toContain('Search suggestion: Ask pricing');
     expect(markup).not.toContain('Search suggestion: Ask docs');
+  });
+
+  test('active busy session hides chips until the session is idle', () => {
+    const markup = renderBottomSearchBar(true, true, [message('user-1', 'user', 'Ask docs')], true, true, 'Ask docs', true);
+
+    expect(markup).not.toContain('data-ax-bottom-search-bar="chips"');
+    expect(markup).not.toContain('Search suggestion: Again');
+    expect(markup).not.toContain('Search suggestion: Continue');
+    expect(markup).not.toContain('data-ax-bottom-search-bar="reset-chip"');
   });
 
   test('open preview header derives the latest user message when prop text is absent', () => {

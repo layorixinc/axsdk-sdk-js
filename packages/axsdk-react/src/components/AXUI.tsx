@@ -647,6 +647,13 @@ export function AXUI({ children, theme, voice, variant, targets, ui, position: c
     AXSDK.resetSession();
     handleSend(trimmedText);
   }
+  function handleBottomSearchBarSend(text: string) {
+    const trimmedText = text.trim();
+    if (!trimmedText) return;
+    setSearchBarValue(trimmedText);
+    setSearchBarInputValue(trimmedText);
+    handleSend(trimmedText);
+  }
   function handleClear() {
     AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.cancel' });
     AXSDK.resetSession();
@@ -693,7 +700,7 @@ export function AXUI({ children, theme, voice, variant, targets, ui, position: c
       >
         <AXSearchBar
           placeholder={AXSDK.t("chatInput")}
-          buttonLabel="실행"
+          buttonLabel={AXSDK.t("chatSearchSubmit")}
           onSearch={handleSearchBarSend}
           value={searchBarValue}
           onValueChange={setSearchBarValue}
@@ -846,14 +853,14 @@ export function AXUI({ children, theme, voice, variant, targets, ui, position: c
           appInfoReady={appInfoReady}
           searchBarValue={searchBarValue}
           onSearchBarValueChange={setSearchBarValue}
-          onSearch={handleSearchBarSend}
+          onSearch={handleBottomSearchBarSend}
           onClear={handleBottomSearchBarClear}
           onboardingText={AXSDK.t("chatOnboarding")}
           shortcutText={AXSDK.t("chatShortcutChips")}
           showShortcutChips={hasActiveSession}
           latestUserText={userMessageText || undefined}
           placeholder={AXSDK.t("chatInput")}
-          buttonLabel="실행"
+          buttonLabel={AXSDK.t("chatSearchSubmit")}
           previewTitle={AXSDK.t("chatPreviewTitle")}
           resetLabel={AXSDK.t("chatBottomSearchReset")}
           closeLabel={AXSDK.t("chatBottomSearchClose")}

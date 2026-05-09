@@ -77,7 +77,7 @@ export interface AXSearchBarProps {
   voiceDictationUnavailableLabel?: string;
 }
 
-export const DEFAULT_AX_SEARCH_BAR_BUTTON_LABEL = '실행';
+export const DEFAULT_AX_SEARCH_BAR_BUTTON_LABEL = 'Run';
 
 export function AXSearchBar({
   onSearch,
