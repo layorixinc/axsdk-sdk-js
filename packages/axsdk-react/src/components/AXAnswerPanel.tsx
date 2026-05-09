@@ -46,7 +46,7 @@ export function AXAnswerPanel({
         border: '1px solid var(--ax-border-surface, rgba(255, 255, 255, 0.12))',
         borderRadius: '1.25em',
         background: 'var(--ax-bg-base)',
-        boxShadow: '0 6px 24px rgba(0,0,0,0.22), 0 0 0 1px rgba(120,80,255,0.08)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.28), 0 0 0 1px rgba(120,80,255,0.12)',
         pointerEvents: 'auto',
       }}
     >

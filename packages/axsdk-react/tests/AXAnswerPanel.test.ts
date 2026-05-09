@@ -106,7 +106,7 @@ describe('AXAnswerPanel', () => {
     const headerTag = markup.match(/<header\b[^>]*>/)?.[0];
 
     expect(sectionTag).toBeDefined();
-    expect(sectionTag).toContain('box-shadow:0 6px 24px rgba(0,0,0,0.22), 0 0 0 1px rgba(120,80,255,0.08)');
+    expect(sectionTag).toContain('box-shadow:0 8px 32px rgba(0,0,0,0.28), 0 0 0 1px rgba(120,80,255,0.12)');
     expect(markup).not.toContain('0 8px 48px rgba(0,0,0,0.35)');
     expect(headerTag).toBeDefined();
     expect(headerTag).toContain('position:sticky');

@@ -681,7 +681,7 @@ export function AXUI({ children, theme, voice, variant, targets, ui, position: c
         style={{
           width: '100%',
           boxSizing: 'border-box',
-          border: '1px solid var(--ax-border-surface, rgba(255,255,255,0.14))',
+          border: '1px solid var(--ax-border-surface, rgba(255,255,255,0.2))',
           borderRadius: '1.25em',
           background: 'var(--ax-bg-popover)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.28), 0 0 0 1px rgba(120,80,255,0.12)',
