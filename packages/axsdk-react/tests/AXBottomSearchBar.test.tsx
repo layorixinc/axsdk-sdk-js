@@ -511,6 +511,7 @@ describe('AXBottomSearchBar', () => {
     expect(markup).toContain('max-width:min(18em, 100%)');
     expect(markup).toContain('role="search"');
     expect(markup).toContain('value="current search"');
+    expect(markup).toContain('autofocus=""');
     expect(markup).not.toContain('data-ax-search-bar="voice-dictation"');
     expect(markup).not.toContain('data-ax-search-bar="voice-status"');
     expect(markup).not.toContain('aria-label="Voice dictation is not available in this browser"');

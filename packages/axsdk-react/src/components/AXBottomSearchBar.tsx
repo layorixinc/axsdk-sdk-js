@@ -870,6 +870,7 @@ export function AXBottomSearchBar({
             onValueChange={onSearchBarValueChange}
             clearOnSubmit={false}
             disabled={!appInfoReady || isBusy}
+            autoFocus={open}
             surface="embedded"
           />
         </div>

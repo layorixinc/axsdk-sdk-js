@@ -70,6 +70,7 @@ export interface AXSearchBarProps {
   clearOnSubmit?: boolean;
   onFocusChange?: (focused: boolean, event: React.FocusEvent<HTMLFormElement>) => void;
   surface?: 'standalone' | 'embedded';
+  autoFocus?: boolean;
   enableVoiceDictation?: boolean;
   voiceDictationLabel?: string;
   voiceDictationListeningLabel?: string;
@@ -89,6 +90,7 @@ export function AXSearchBar({
   clearOnSubmit = true,
   onFocusChange,
   surface = 'standalone',
+  autoFocus = false,
   enableVoiceDictation = false,
   voiceDictationLabel = 'Start voice dictation',
   voiceDictationListeningLabel = 'Stop voice dictation',
@@ -98,6 +100,7 @@ export function AXSearchBar({
   const [localQuery, setLocalQuery] = useState(defaultValue);
   const [isDictating, setIsDictating] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState('');
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const recognitionRef = useRef<AXSpeechRecognition | null>(null);
   const voiceBaseQueryRef = useRef('');
   const query = value ?? localQuery;
@@ -180,6 +183,12 @@ export function AXSearchBar({
   }
 
   useEffect(() => {
+    if (autoFocus && !disabled) {
+      inputRef.current?.focus();
+    }
+  }, [autoFocus, disabled]);
+
+  useEffect(() => {
     return () => {
       recognitionRef.current?.abort();
     };
@@ -213,9 +222,11 @@ export function AXSearchBar({
       }}
     >
       <input
+        ref={inputRef}
         type="text"
         value={query}
         disabled={disabled}
+        autoFocus={autoFocus}
         placeholder={placeholder ?? AXSDK.t('chatInput')}
         aria-label={placeholder ?? AXSDK.t('chatInput')}
         onChange={(event) => setQuery(event.currentTarget.value)}
