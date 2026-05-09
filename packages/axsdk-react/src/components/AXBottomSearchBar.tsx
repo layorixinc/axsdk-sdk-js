@@ -627,7 +627,7 @@ export function AXBottomSearchBar({
               display: 'flex',
               alignItems: 'center',
               gap: '0.6em',
-              padding: '10px 14px 6px 14px',
+              padding: '4px 6px 3px 4px',
               borderBottom: '1px solid var(--ax-border-primary, rgba(0, 212, 255, 0.2))',
               background: 'var(--ax-bg-popover)',
               backdropFilter: 'blur(12px)',
@@ -768,6 +768,7 @@ export function AXBottomSearchBar({
               overflowY: 'auto',
               overflowX: 'hidden',
               scrollbarWidth: 'none',
+              padding: '0.5em',
             }}
           >
             <div style={previewContentStyle}>
