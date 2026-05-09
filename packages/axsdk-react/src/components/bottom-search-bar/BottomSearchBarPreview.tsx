@@ -61,8 +61,10 @@ export function BottomSearchBarPreview({
       data-ax-bottom-search-bar="preview"
       style={{
         width: '100%',
-        maxHeight: 'min(32vh, 15em)',
+        flex: '1 1 auto',
+        maxHeight: 'none',
         minHeight: '8em',
+        minWidth: 0,
         boxSizing: 'border-box',
         overflow: 'hidden',
         border: '1px solid var(--ax-border-primary, rgba(0,212,255,0.35))',

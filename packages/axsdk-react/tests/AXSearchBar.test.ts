@@ -24,6 +24,7 @@ describe('AXSearchBar', () => {
     );
 
     expect(markup).toContain('Run');
+    expect(markup).toContain('background:var(--ax-bg-input-textarea, rgba(255,255,255,0.08))');
     expect(markup).not.toContain('실행');
     expect(markup).not.toContain('검색');
     expect(markup).not.toContain('data-ax-search-bar="submit-button-image"');
@@ -49,6 +50,7 @@ describe('AXSearchBar', () => {
     expect(markup).toContain('value="Show my order history"');
     expect(markup).toContain('aria-label="Clear search input"');
     expect(markup).toContain('data-ax-search-bar="clear-button"');
+    expect(markup).toContain('background:var(--ax-color-primary, #00b8db)');
     expect(markup).not.toContain('data-ax-search-bar="voice-dictation"');
   });
 

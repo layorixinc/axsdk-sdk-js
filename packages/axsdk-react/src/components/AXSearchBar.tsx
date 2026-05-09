@@ -343,7 +343,9 @@ export function AXSearchBar({
           border: '1px solid var(--ax-border-primary, rgba(0,212,255,0.45))',
           borderRadius: '999px',
           padding: '0.55em 1em',
-          background: submitDisabled ? 'rgba(255,255,255,0.08)' : 'var(--ax-color-primary)',
+          background: submitDisabled
+            ? 'var(--ax-bg-input-textarea, rgba(255,255,255,0.08))'
+            : 'var(--ax-color-primary, #00b8db)',
           color: submitDisabled ? 'var(--ax-text-dim)' : 'var(--ax-text-primary)',
           cursor: submitDisabled ? 'not-allowed' : 'pointer',
           fontSize: '0.92em',

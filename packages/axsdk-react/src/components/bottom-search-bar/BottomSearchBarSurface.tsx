@@ -74,6 +74,7 @@ export function BottomSearchBarSurface({
           bottom: 'max(1em, env(safe-area-inset-bottom))',
           width: isDesktop ? 'min(720px, calc(100vw - 2em))' : 'auto',
           maxWidth: isDesktop ? 'calc(100vw - 2em)' : undefined,
+          maxHeight: 'calc(100dvh - max(1em, env(safe-area-inset-bottom)) - max(1em, env(safe-area-inset-top)) - 1em)',
           paddingLeft: isDesktop ? undefined : 'max(0.75em, env(safe-area-inset-left))',
           paddingRight: isDesktop ? undefined : 'max(0.75em, env(safe-area-inset-right))',
           boxSizing: 'border-box',
@@ -87,6 +88,7 @@ export function BottomSearchBarSurface({
           display: 'flex',
           flexDirection: 'column',
           gap: '0.55em',
+          minHeight: 0,
           color: 'var(--ax-text-primary)',
         }}
       >

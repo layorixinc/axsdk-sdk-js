@@ -115,6 +115,16 @@ function getBottomSearchPreviewStyle(markup: string): string {
   return style ?? '';
 }
 
+function getBottomSearchSurfaceStyle(markup: string): string {
+  const surfaceTag = markup.match(/<section\b(?=[^>]*data-ax-bottom-search-bar="surface")[^>]*>/)?.[0];
+  expect(surfaceTag).toBeDefined();
+
+  const style = surfaceTag?.match(/\sstyle="([^"]*)"/)?.[1];
+  expect(style).toBeDefined();
+
+  return style ?? '';
+}
+
 function getBottomSearchChipsStyle(markup: string): string {
   const chipsTag = markup.match(/<section\b(?=[^>]*data-ax-bottom-search-bar="chips")[^>]*>/)?.[0];
   expect(chipsTag).toBeDefined();
@@ -422,7 +432,7 @@ describe('AXBottomSearchBar', () => {
     expect(markup).toContain('data-ax-bottom-search-bar="reset-chip-label"');
     expect(resetChipTag).toContain('min-width:0');
     expect(resetChipTag).toContain('max-width:min(18em, 100%)');
-    expect(resetChipTag).toContain('background:var(--ax-bg-input-textarea, rgba(255, 255, 255, 0.12))');
+    expect(resetChipTag).toContain('background:color-mix(in srgb, var(--ax-color-primary-dark, #005f73) 18%, var(--ax-bg-input-textarea, transparent))');
     expect(resetChipTag).toContain('font-size:0.9em');
     expect(resetChipTag).toContain('line-height:1.35');
     expect(resetChipTag).toContain('padding:0.48em 0.75em');
@@ -593,6 +603,7 @@ describe('AXBottomSearchBar', () => {
     expect(markup).not.toContain('data-ax-bottom-search-bar="chips-scroll-left-icon"');
     expect(markup).not.toContain('data-ax-bottom-search-bar="chips-scroll-right-icon"');
     expect(markup).toContain('border-top:1px solid var(--ax-border-surface');
+    expect(markup).toContain('linear-gradient(135deg, color-mix(in srgb, var(--ax-color-primary, #00b8db) 22%');
     expect(chipsStyle).toContain('display:flex');
     expect(chipsStyle).toContain('flex-wrap:wrap');
     expect(chipsStyle).toContain('align-items:flex-start');
@@ -912,11 +923,18 @@ describe('AXBottomSearchBar', () => {
 
   test('desktop open surface stays bottom centered with capped width', () => {
     const markup = renderBottomSearchBar(true, true);
+    const surfaceStyle = getBottomSearchSurfaceStyle(markup);
+    const previewStyle = getBottomSearchPreviewStyle(markup);
 
     expect(markup).toContain('left:50%');
     expect(markup).toContain('width:min(720px, calc(100vw - 2em))');
     expect(markup).toContain('max-width:calc(100vw - 2em)');
     expect(markup).toContain('transform:translate(-50%, 0)');
+    expect(surfaceStyle).toContain('max-height:calc(100dvh - max(1em, env(safe-area-inset-bottom)) - max(1em, env(safe-area-inset-top)) - 1em)');
+    expect(surfaceStyle).toContain('min-height:0');
+    expect(previewStyle).toContain('flex:1 1 auto');
+    expect(previewStyle).toContain('max-height:none');
+    expect(previewStyle).toContain('min-height:8em');
   });
 
   test('mobile open surface uses full-width placement without capped calc width', () => {
