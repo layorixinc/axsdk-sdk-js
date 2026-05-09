@@ -603,7 +603,8 @@ describe('AXBottomSearchBar', () => {
     expect(markup).not.toContain('data-ax-bottom-search-bar="chips-scroll-left-icon"');
     expect(markup).not.toContain('data-ax-bottom-search-bar="chips-scroll-right-icon"');
     expect(markup).toContain('border-top:1px solid var(--ax-border-surface');
-    expect(markup).toContain('linear-gradient(135deg, color-mix(in srgb, var(--ax-color-primary, #00b8db) 22%');
+    expect(markup).toContain('background:color-mix(in srgb, var(--ax-color-primary, #00b8db) 16%, var(--ax-bg-input-textarea, transparent))');
+    expect(markup).not.toContain('linear-gradient(135deg, color-mix(in srgb, var(--ax-color-primary, #00b8db)');
     expect(chipsStyle).toContain('display:flex');
     expect(chipsStyle).toContain('flex-wrap:wrap');
     expect(chipsStyle).toContain('align-items:flex-start');

@@ -21,7 +21,7 @@ export function BottomSearchBarChips({ chipTexts, resetButtonLabel, showResetChi
     maxWidth: 'min(18em, 100%)',
     border: '1px solid var(--ax-border-primary, rgba(0,212,255,0.4))',
     borderRadius: '999px',
-    background: 'linear-gradient(135deg, color-mix(in srgb, var(--ax-color-primary, #00b8db) 22%, var(--ax-bg-input-textarea, transparent)) 0%, color-mix(in srgb, var(--ax-color-primary-light, #00d4ff) 12%, var(--ax-bg-input-textarea, transparent)) 100%)',
+    background: 'color-mix(in srgb, var(--ax-color-primary, #00b8db) 16%, var(--ax-bg-input-textarea, transparent))',
     color: 'var(--ax-text-primary)',
     cursor: 'pointer',
     font: 'inherit',

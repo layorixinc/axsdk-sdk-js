@@ -57,4 +57,14 @@ describe('AXUI bottomSearchBar reset behavior', () => {
     expect(genericClearBody).not.toContain('setSearchBarValue');
     expect(genericClearBody).not.toContain('setSearchBarInputValue');
   });
+
+  test('keeps shortcut chips eligible after a session completes with messages retained', async () => {
+    const source = await Bun.file(new URL('../src/components/AXUI.tsx', import.meta.url)).text();
+    const bottomSearchBarMarkup = source.match(/<AXBottomSearchBar[\s\S]*?\/>/)?.[0] ?? '';
+
+    expect(source).toContain('const hasSession = Boolean(session);');
+    expect(source).not.toContain('const hasActiveSession = Boolean(session && !sessionClosed);');
+    expect(bottomSearchBarMarkup).toContain('showShortcutChips={hasSession}');
+    expect(bottomSearchBarMarkup).not.toContain('showShortcutChips={hasActiveSession}');
+  });
 });

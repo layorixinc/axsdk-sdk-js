@@ -368,7 +368,7 @@ export function AXUI({ children, theme, voice, variant, targets, ui, position: c
   const [focusTrigger, setFocusTrigger] = useState(0);
   const messageInputWrapperRef = useRef<HTMLDivElement | null>(null);
 
-  const { isOpen, setIsOpen, chatWasEverOpened, setChatWasEverOpened, messages, questions, setQuestions, session, sessionClosed, ttsEnabled, setTtsEnabled, searchBarInputValue, setSearchBarInputValue } = useStore(AXSDK.getChatStore());
+  const { isOpen, setIsOpen, chatWasEverOpened, setChatWasEverOpened, messages, questions, setQuestions, session, ttsEnabled, setTtsEnabled, searchBarInputValue, setSearchBarInputValue } = useStore(AXSDK.getChatStore());
   const [searchBarValue, setSearchBarValue] = useState(searchBarInputValue);
   const ttsPending = useTtsPending();
   const ttsState = useTtsState();
@@ -413,7 +413,7 @@ export function AXUI({ children, theme, voice, variant, targets, ui, position: c
   }, [effectiveVoice, ttsEnabled, ttsPending, ttsState, ttsErrorMessage, setTtsEnabled, voiceNeedsUnlock]);
   const appInfoReady = useStore(AXSDK.getAppStore(), (s) => s.appInfoReady);
   const isBusy = session?.status === 'busy';
-  const hasActiveSession = Boolean(session && !sessionClosed);
+  const hasSession = Boolean(session);
 
   useEffect(() => {
     if (resolvedVariant !== 'searchBar') {
@@ -857,7 +857,7 @@ export function AXUI({ children, theme, voice, variant, targets, ui, position: c
           onClear={handleBottomSearchBarClear}
           onboardingText={AXSDK.t("chatOnboarding")}
           shortcutText={AXSDK.t("chatShortcutChips")}
-          showShortcutChips={hasActiveSession}
+          showShortcutChips={hasSession}
           latestUserText={userMessageText || undefined}
           placeholder={AXSDK.t("chatInput")}
           buttonLabel={AXSDK.t("chatSearchSubmit")}
