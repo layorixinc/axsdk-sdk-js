@@ -369,6 +369,9 @@ export class VoicePlugin {
 
     const store = axsdk.getChatStore();
     const initial = store.getState();
+    if (initial.ttsEnabled !== false) {
+      this.#markRestoredAssistantMessagesSpoken(initial);
+    }
     this.#prevIsOpen = initial.isOpen;
     this.#prevStatus = initial.session?.status;
     this.#prevSessionId = initial.session?.id;
@@ -782,6 +785,14 @@ export class VoicePlugin {
     this.#setPending(null);
     if (debug) console.log('[axsdk-voice] speak dispatch', { id, textLen: text.length });
     this.#ttsPlayer?.speak({ id, text: this.#clipTts(text) });
+  }
+
+  #markRestoredAssistantMessagesSpoken(state: ChatStoreShape): void {
+    for (const message of state.messages ?? []) {
+      if (message?.info.role !== 'assistant') continue;
+      if (!extractAssistantText(message)) continue;
+      this.#spokenIds.add(message.info.id);
+    }
   }
 
   #clipTts(text: string): string {
