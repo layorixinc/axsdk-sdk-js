@@ -103,7 +103,9 @@ Submitted search text remains visible after send and is restored after page refr
 
 ### Option C — Bottom search bar launcher
 
-`bottomSearchBar` is the default `<AXUI />` surface. You can still pass `variant="bottomSearchBar"` explicitly when you want to make that choice visible in code. It uses a compact bottom-right launcher that expands into a bottom-centered search surface. The open surface stacks the latest assistant preview, onboarding suggestion chips, and an embedded search input while using the same fresh-search submit semantics as `variant="searchBar"`.
+`bottomSearchBar` is the default `<AXUI />` surface. You can still pass `variant="bottomSearchBar"` explicitly when you want to make that choice visible in code. It uses a compact bottom-right launcher that expands into a bottom-centered search surface. The open surface stacks the latest assistant preview, onboarding suggestion chips, and an embedded search input while preserving the current chat session on submit.
+
+For the full rendered component tree, see [`BOTTOM_SEARCH_BAR_UI_TREE.md`](./BOTTOM_SEARCH_BAR_UI_TREE.md).
 
 ```tsx
 import { AXUI } from "@axsdk/react";
@@ -174,9 +176,9 @@ interface AXUIProps {
 }
 ```
 
-The default `variant` is `'bottomSearchBar'`. The `searchBar` and `bottomSearchBar` variants submit a fresh query by cancelling/resetting the current chat session first, then sending the trimmed query text. The submitted text is persisted in the core chat store as `searchBarInputValue`.
+The default `variant` is `'bottomSearchBar'`. The `searchBar` variant submits a fresh query by cancelling/resetting the current chat session first, then sending the trimmed query text. The `bottomSearchBar` variant preserves the current chat session on submit. The submitted text is persisted in the core chat store as `searchBarInputValue`.
 
-The `bottomSearchBar` variant keeps a small bottom-right icon launcher in its closed state. Opening it reveals an animated bottom-centered surface with capped desktop width and nearly full mobile width. It uses local open state, so the default floating chat open state and chat-store open polling semantics remain unchanged.
+The `bottomSearchBar` variant keeps a small bottom-right icon launcher in its closed state. Opening it reveals an animated bottom-centered surface with capped desktop width and nearly full mobile width. It uses AXUI's shared open-state path, including the same app-readiness and voice-unlock guards used by the floating chat surface.
 
 ### `<AXButton>`
 
