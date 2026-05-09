@@ -169,6 +169,15 @@ describe('buildAXBottomSearchBarChipTexts', () => {
       'Continue',
     ]);
   });
+
+  test('adds assistant markdown strong text before default shortcuts while preserving defaults', () => {
+    expect(buildAXBottomSearchBarChipTexts('Ask pricing, Ask docs', 'Ask docs', 'Again, Continue, Again', true, 'Try **Premium apples** and __Order history__. **Again**')).toEqual([
+      'Premium apples',
+      'Order history',
+      'Again',
+      'Continue',
+    ]);
+  });
 });
 
 describe('AXBottomSearchBar', () => {
@@ -401,7 +410,7 @@ describe('AXBottomSearchBar', () => {
     expect(markup).not.toContain('Clear bottom search session');
   });
 
-  test('shortcut chips append a distinct reset chip using the reset button visual', () => {
+  test('shortcut chips append a distinct reset chip with suggestion chip sizing', () => {
     const markup = renderBottomSearchBar(true, true, [message('assistant-1', 'assistant', 'Here is the latest answer.')], false, true, 'Ask docs', true, '지우기', undefined, undefined, 'Close', 'Ask pricing', 'Again, 지우기');
     const resetChipTag = getButtonTagByLabel(markup, 'Reset bottom search: 지우기');
 
@@ -411,10 +420,17 @@ describe('AXBottomSearchBar', () => {
     expect(markup).toContain('data-ax-bottom-search-bar="reset-chip"');
     expect(markup).toContain('data-ax-bottom-search-bar="reset-chip-icon"');
     expect(markup).toContain('data-ax-bottom-search-bar="reset-chip-label"');
-    expect(resetChipTag).toContain('min-width:4.9em');
-    expect(resetChipTag).toContain('min-height:2.72em');
-    expect(resetChipTag).toContain('font-size:0.92em');
-    expect(resetChipTag).toContain('padding:0.42em 0.72em');
+    expect(resetChipTag).toContain('min-width:0');
+    expect(resetChipTag).toContain('max-width:min(18em, 100%)');
+    expect(resetChipTag).toContain('background:var(--ax-bg-input-textarea, rgba(255, 255, 255, 0.12))');
+    expect(resetChipTag).toContain('font-size:0.9em');
+    expect(resetChipTag).toContain('line-height:1.35');
+    expect(resetChipTag).toContain('padding:0.48em 0.75em');
+    expect(resetChipTag).toContain('display:inline-flex');
+    expect(resetChipTag).toContain('gap:0.5em');
+    expect(resetChipTag).not.toContain('min-height:2.72em');
+    expect(resetChipTag).not.toContain('font-size:0.92em');
+    expect(resetChipTag).not.toContain('padding:0.42em 0.72em');
     expect(markup).not.toContain('data-ax-bottom-search-bar="reset-button-icon"');
     expect(markup).not.toContain('data-ax-bottom-search-bar="reset-button-label"');
   });
@@ -808,10 +824,29 @@ describe('AXBottomSearchBar', () => {
     expect(markup).not.toContain('Search suggestion: Ask docs');
   });
 
+  test('active idle session builds shortcut chips from assistant strong markdown plus base actions', () => {
+    const markup = renderBottomSearchBar(true, true, [
+      message('user-1', 'user', 'Ask docs'),
+      message('assistant-1', 'assistant', 'Try **Premium apples** or __Order history__. Then **다시** if needed.'),
+    ], false, true, 'Ask docs', true, '지우기', undefined, undefined, 'Close', 'Ask pricing', '다시, 계속');
+
+    expect(markup).toContain('aria-label="Search suggestion: Premium apples"');
+    expect(markup).toContain('aria-label="Search suggestion: Order history"');
+    expect(markup).toContain('aria-label="Search suggestion: 다시"');
+    expect(markup).toContain('aria-label="Search suggestion: 계속"');
+    expect(markup).toContain('aria-label="Reset bottom search: 지우기"');
+    expect(markup).toContain('data-ax-bottom-search-bar="reset-chip"');
+    expect(markup).not.toContain('Search suggestion: Ask pricing');
+  });
+
   test('active busy session hides chips until the session is idle', () => {
-    const markup = renderBottomSearchBar(true, true, [message('user-1', 'user', 'Ask docs')], true, true, 'Ask docs', true);
+    const markup = renderBottomSearchBar(true, true, [
+      message('user-1', 'user', 'Ask docs'),
+      message('assistant-1', 'assistant', 'Busy **Premium apples**'),
+    ], true, true, 'Ask docs', true);
 
     expect(markup).not.toContain('data-ax-bottom-search-bar="chips"');
+    expect(markup).not.toContain('aria-label="Search suggestion: Premium apples"');
     expect(markup).not.toContain('Search suggestion: Again');
     expect(markup).not.toContain('Search suggestion: Continue');
     expect(markup).not.toContain('data-ax-bottom-search-bar="reset-chip"');

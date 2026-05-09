@@ -1,6 +1,6 @@
 'use client';
 
-import type { MouseEvent, PointerEvent } from 'react';
+import type { CSSProperties, MouseEvent, PointerEvent } from 'react';
 import type { AXTheme } from '../../theme';
 
 interface BottomSearchBarChipsProps {
@@ -14,6 +14,26 @@ interface BottomSearchBarChipsProps {
 
 export function BottomSearchBarChips({ chipTexts, resetButtonLabel, showResetChip, theme, onChipSearch, onReset }: BottomSearchBarChipsProps) {
   if (chipTexts.length === 0 && !showResetChip) return null;
+
+  const chipButtonStyle: CSSProperties = {
+    flex: '0 1 auto',
+    minWidth: 0,
+    maxWidth: 'min(18em, 100%)',
+    border: '1px solid var(--ax-border-primary, rgba(0,212,255,0.4))',
+    borderRadius: '999px',
+    background: 'color-mix(in srgb, var(--ax-color-primary, #00b8db) 14%, var(--ax-bg-input-textarea, transparent))',
+    color: 'var(--ax-text-primary)',
+    cursor: 'pointer',
+    font: 'inherit',
+    fontSize: '0.9em',
+    lineHeight: 1.35,
+    margin: 0,
+    overflow: 'hidden',
+    padding: '0.48em 0.75em',
+    pointerEvents: 'auto',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  };
 
   function handleChipPointerDown(event: PointerEvent<HTMLButtonElement>) {
     event.preventDefault();
@@ -51,25 +71,7 @@ export function BottomSearchBarChips({ chipTexts, resetButtonLabel, showResetChi
           onPointerDown={handleChipPointerDown}
           onMouseDown={handleChipMouseDown}
           onClick={() => onChipSearch(text)}
-          style={{
-            flex: '0 1 auto',
-            minWidth: 0,
-            maxWidth: 'min(18em, 100%)',
-            border: '1px solid var(--ax-border-primary, rgba(0,212,255,0.4))',
-            borderRadius: '999px',
-            background: 'color-mix(in srgb, var(--ax-color-primary, #00b8db) 14%, var(--ax-bg-input-textarea, transparent))',
-            color: 'var(--ax-text-primary)',
-            cursor: 'pointer',
-            font: 'inherit',
-            fontSize: '0.9em',
-            lineHeight: 1.35,
-            margin: 0,
-            overflow: 'hidden',
-            padding: '0.48em 0.75em',
-            pointerEvents: 'auto',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
+          style={chipButtonStyle}
         >
           {text}
         </button>
@@ -85,28 +87,14 @@ export function BottomSearchBarChips({ chipTexts, resetButtonLabel, showResetChi
           onMouseDown={handleChipMouseDown}
           onClick={onReset}
           style={{
-            flex: '0 1 auto',
-            minWidth: '4.9em',
-            minHeight: '2.72em',
-            border: '1px solid var(--ax-border-primary, rgba(0, 212, 255, 0.4))',
-            borderRadius: '999px',
+            ...chipButtonStyle,
             background: 'var(--ax-bg-input-textarea, rgba(255, 255, 255, 0.12))',
-            color: 'var(--ax-text-primary)',
-            cursor: 'pointer',
-            font: 'inherit',
-            fontSize: '0.92em',
-            fontWeight: 700,
-            lineHeight: 1,
-            margin: 0,
-            padding: '0.42em 0.72em',
-            pointerEvents: 'auto',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '0.5em',
             boxShadow: '0 8px 20px rgba(var(--ax-color-primary-rgb, 0,212,255),0.16)',
             transition: 'filter 0.15s ease, transform 0.12s ease, opacity 0.15s ease',
-            ...theme.styles?.popover?.closeButton,
           }}
         >
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" data-ax-bottom-search-bar="reset-chip-icon" style={{ flexShrink: 0 }}>

@@ -106,7 +106,7 @@ export function AXBottomSearchBar({
     : 'hidden';
   const chipTexts = chipMode === 'hidden'
     ? []
-    : buildAXBottomSearchBarChipTexts(onboardingText, latestUserHeaderText || undefined, shortcutText, chipMode === 'shortcuts');
+    : buildAXBottomSearchBarChipTexts(onboardingText, latestUserHeaderText || undefined, shortcutText, chipMode === 'shortcuts', latestAssistantText);
   const statusText = isBusy ? (busyText ?? AXSDK.t('chatBusyGuide')) : (emptyText ?? AXSDK.t('chatEmpty'));
   const previewGlowEnabled = Boolean(latestAssistantText && !isBusy);
   const resetButtonLabel = resetLabel.trim() || 'Clear';
