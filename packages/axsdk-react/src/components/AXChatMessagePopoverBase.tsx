@@ -44,8 +44,27 @@ const TTS_RING_BASE: React.CSSProperties = {
 };
 const TTS_RING_0: React.CSSProperties = { ...TTS_RING_BASE, animationDelay: '0s' };
 const TTS_RING_1: React.CSSProperties = { ...TTS_RING_BASE, animationDelay: '0.6s' };
+const TTS_TOGGLE_KEYFRAMES = `
+  @keyframes ax-tts-pending-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(var(--ax-color-primary-rgb, 168, 85, 247), 0.55); transform: scale(1); }
+    50%      { box-shadow: 0 0 0 10px rgba(var(--ax-color-primary-rgb, 168, 85, 247), 0); transform: scale(1.08); }
+  }
+  @keyframes ax-tts-ripple {
+    0%   { transform: scale(0.7); opacity: 0.7; }
+    100% { transform: scale(2.0); opacity: 0; }
+  }
+  @keyframes ax-tts-unlock-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.7), 0 1px 0 rgba(255,255,255,0.08) inset, 0 1px 3px rgba(0,0,0,0.2); }
+    50%      { box-shadow: 0 0 0 12px rgba(99,102,241,0), 0 1px 0 rgba(255,255,255,0.08) inset, 0 1px 3px rgba(0,0,0,0.2); }
+  }
+  @keyframes ax-tts-error-blink {
+    0%, 100% { opacity: 1; }
+    35%      { opacity: 0.45; }
+  }
+  @keyframes ax-tts-spin { to { transform: rotate(360deg); } }
+`;
 
-function TtsToggleButton({ control, theme }: { control: AXTtsControl; theme: AXTheme }) {
+export function AXTtsToggleButton({ control, theme, rowStyle }: { control: AXTtsControl; theme: AXTheme; rowStyle?: React.CSSProperties }) {
   const [hover, setHover] = useState(false);
   const ttsState = control.state ?? 'idle';
   const isError = ttsState === 'error';
@@ -75,96 +94,100 @@ function TtsToggleButton({ control, theme }: { control: AXTtsControl; theme: AXT
     ? 'Tap to enable voice'
     : control.enabled ? 'Mute voice' : 'Unmute voice';
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'flex-end',
-      padding: '6px 10px 2px 10px',
-      pointerEvents: 'auto',
-      ...theme.styles?.popover?.ttsToggleRow,
-    }}>
-      <div style={{ position: 'relative', width: 34, height: 34 }}>
-        {isSpeaking && (
-          <>
-            <div style={TTS_RING_0} />
-            <div style={TTS_RING_1} />
-          </>
-        )}
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); AXSDK.eventBus().emit('voice.user-intent', undefined); control.onToggle(); }}
-          aria-label={title}
-          title={title}
-          style={{
-            position: 'relative',
-            width: 34,
-            height: 34,
-            padding: 0,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '1px solid var(--ax-border-primary, rgba(168, 85, 247, 0.4))',
-            borderRadius: '50%',
-            background,
-            color: fgColor,
-            cursor: 'pointer',
-            transition: 'filter 0.15s ease, color 0.15s ease',
-            filter: hover ? 'brightness(1.18) saturate(1.1)' : undefined,
-            boxShadow: '0 1px 0 rgba(255,255,255,0.08) inset, 0 1px 3px rgba(0,0,0,0.2)',
-            animation,
-            ...(control.enabled
-              ? theme.styles?.popover?.ttsToggleOn
-              : theme.styles?.popover?.ttsToggleOff),
-          }}
-          onMouseEnter={() => setHover(true)}
-          onMouseLeave={() => setHover(false)}
-        >
-          {isUnlock ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          ) : (
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              style={theme.styles?.popover?.ttsToggleIcon}
-            >
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none" />
-              {isError ? (
-                <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth="2.4" />
-              ) : control.enabled ? (
-                <>
-                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-                </>
-              ) : (
-                <>
-                  <line x1="22" y1="9" x2="16" y2="15" />
-                  <line x1="16" y1="9" x2="22" y2="15" />
-                </>
-              )}
-            </svg>
+    <>
+      <style>{TTS_TOGGLE_KEYFRAMES}</style>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'flex-end',
+        padding: '6px 10px 2px 10px',
+        pointerEvents: 'auto',
+        ...theme.styles?.popover?.ttsToggleRow,
+        ...rowStyle,
+      }}>
+        <div style={{ position: 'relative', width: 34, height: 34 }}>
+          {isSpeaking && (
+            <>
+              <div style={TTS_RING_0} />
+              <div style={TTS_RING_1} />
+            </>
           )}
-          {isQueued && !isError && !isUnlock && (
-            <div style={{
-              position: 'absolute',
-              inset: -3,
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); AXSDK.eventBus().emit('voice.user-intent', undefined); control.onToggle(); }}
+            aria-label={title}
+            title={title}
+            style={{
+              position: 'relative',
+              width: 34,
+              height: 34,
+              padding: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '1px solid var(--ax-border-primary, rgba(168, 85, 247, 0.4))',
               borderRadius: '50%',
-              border: '2px solid rgba(255,255,255,0.25)',
-              borderTopColor: 'var(--ax-color-primary-light, #a855f7)',
-              animation: 'ax-tts-spin 0.9s linear infinite',
-              pointerEvents: 'none',
-            }} />
-          )}
-        </button>
+              background,
+              color: fgColor,
+              cursor: 'pointer',
+              transition: 'filter 0.15s ease, color 0.15s ease',
+              filter: hover ? 'brightness(1.18) saturate(1.1)' : undefined,
+              boxShadow: '0 1px 0 rgba(255,255,255,0.08) inset, 0 1px 3px rgba(0,0,0,0.2)',
+              animation,
+              ...(control.enabled
+                ? theme.styles?.popover?.ttsToggleOn
+                : theme.styles?.popover?.ttsToggleOff),
+            }}
+            onMouseEnter={() => setHover(true)}
+            onMouseLeave={() => setHover(false)}
+          >
+            {isUnlock ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            ) : (
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                style={theme.styles?.popover?.ttsToggleIcon}
+              >
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none" />
+                {isError ? (
+                  <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth="2.4" />
+                ) : control.enabled ? (
+                  <>
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                  </>
+                ) : (
+                  <>
+                    <line x1="22" y1="9" x2="16" y2="15" />
+                    <line x1="16" y1="9" x2="22" y2="15" />
+                  </>
+                )}
+              </svg>
+            )}
+            {isQueued && !isError && !isUnlock && (
+              <div style={{
+                position: 'absolute',
+                inset: -3,
+                borderRadius: '50%',
+                border: '2px solid rgba(255,255,255,0.25)',
+                borderTopColor: 'var(--ax-color-primary-light, #a855f7)',
+                animation: 'ax-tts-spin 0.9s linear infinite',
+                pointerEvents: 'none',
+              }} />
+            )}
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -404,23 +427,6 @@ export function AXChatMessagePopoverBase({
           0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
           40% { opacity: 1; transform: scale(1); }
         }
-        @keyframes ax-tts-pending-pulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(var(--ax-color-primary-rgb, 168, 85, 247), 0.55); transform: scale(1); }
-          50%      { box-shadow: 0 0 0 10px rgba(var(--ax-color-primary-rgb, 168, 85, 247), 0); transform: scale(1.08); }
-        }
-        @keyframes ax-tts-ripple {
-          0%   { transform: scale(0.7); opacity: 0.7; }
-          100% { transform: scale(2.0); opacity: 0; }
-        }
-        @keyframes ax-tts-unlock-pulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.7), 0 1px 0 rgba(255,255,255,0.08) inset, 0 1px 3px rgba(0,0,0,0.2); }
-          50%      { box-shadow: 0 0 0 12px rgba(99,102,241,0), 0 1px 0 rgba(255,255,255,0.08) inset, 0 1px 3px rgba(0,0,0,0.2); }
-        }
-        @keyframes ax-tts-error-blink {
-          0%, 100% { opacity: 1; }
-          35%      { opacity: 0.45; }
-        }
-        @keyframes ax-tts-spin { to { transform: rotate(360deg); } }
         .ax-notif-content::-webkit-scrollbar { display: none; }
       `}</style>
       <div
@@ -616,7 +622,7 @@ export function AXChatMessagePopoverBase({
 
           <AXChatErrorBar />
 
-          {ttsControl && <TtsToggleButton control={ttsControl} theme={theme} />}
+          {ttsControl && <AXTtsToggleButton control={ttsControl} theme={theme} />}
 
           {idleGuideText && (
             <div style={{

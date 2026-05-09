@@ -18,6 +18,9 @@ async function main() {
         chatIdleGuide: 'AI는 실수를 할 수 있습니다.\n그럴 때는 다시 요청해보세요.',
         chatBusyGuide: 'AI가 일하는 중입니다. 잠시만 기다려주세요...',
         chatClear: '대화를 지우시려면 눌러주세요.',
+        chatShortcutChips: '다시, 계속',
+        chatPreviewTitle: '',
+        chatBottomSearchReset: '지우기',
       },
       'en': {
         chatAskMe: 'Feel free to call on me.',
@@ -27,6 +30,9 @@ e.g., What do you sell?, Buy the cheapest apples, Show my order history, Cancel 
         chatIdleGuide: 'AI may make mistakes.\nFeel free to ask again if needed.',
         chatBusyGuide: 'AI is working. Please stand by...',
         chatClear: 'Click here to start over.',
+        chatShortcutChips: 'Again, Continue',
+        chatPreviewTitle: '',
+        chatBottomSearchReset: 'Clear',
       },
     },
   });

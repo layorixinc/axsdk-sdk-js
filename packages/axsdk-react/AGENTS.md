@@ -1,83 +1,101 @@
-# AGENTS.md — `@axsdk/react`
+# AGENTS.md for `@axsdk/react`
 
-React 19 component library for AXSDK. See the repo-root [`AGENTS.md`](../../AGENTS.md) for monorepo-wide rules.
+Child guide for `packages/axsdk-react`, version `0.5.25`. This package is the React 19 UI layer for AXSDK: `<AXUI />`, chat primitives, theme helpers, Shadow DOM integration, and optional voice hooks on top of `@axsdk/core`.
 
-## Purpose
+## PACKAGE BOUNDARIES
 
-Drop-in React UI for the AXSDK chat platform. Built on top of `@axsdk/core`. The headline export is `<AXUI />`, but the full set of composable primitives (`AXChat`, `AXButton`, popups, dialogs, etc.) is also exported for custom layouts.
+- `react` and `react-dom` are peer dependencies. Do not bundle them into this package.
+- `@axsdk/core` is a workspace dependency and runtime peer for SDK state/events.
+- `@axsdk/voice` is optional/peer-based at runtime; React loads it dynamically through `src/voice.tsx`.
+- `@axsdk/browser` consumes this package by rendering `<AXUI />` inside an open Shadow DOM and wrapping it with `AXShadowRootProvider`.
 
-The package is consumed by host React apps **and** by `@axsdk/browser` (which renders `<AXUI />` into a vanilla-JS embed). Both consumption paths must keep working.
+## PUBLIC ENTRY
 
-## Source layout (`src/`)
+Published entry: `src/lib.ts`.
+
+```ts
+import './index.css';
+export * from './components';
+export * from './voice';
+```
+
+Keep this entry small. It must import `index.css`, export public components/theme helpers through `components/index.ts`, and export voice hooks from `voice.tsx`.
+
+The export map points `.` to `dist/lib.js` and `dist/lib.d.ts`, and exposes `./index.css` as `dist/lib.css`.
+
+## SOURCE MAP
 
 | Path | Role |
 |---|---|
-| `lib.ts` | Public entry — imports `index.css`, re-exports everything from `components/` |
-| `main.tsx` / `App.tsx` / `App.css` | Vite dev playground (not shipped) |
-| `index.css` | Global CSS — keyframes, scoped `box-sizing` reset, isolation rules |
-| `theme.ts` / `defaultTheme.ts` / `AXThemeContext.tsx` | Theming system (`AXTheme` + provider) |
-| `cssVariables.ts` | Injects `--ax-*` custom properties onto the portal root |
-| `components/AXUI.tsx` | Root component — creates portal target, mounts the widget |
-| `components/AXButton.tsx` | Floating chat trigger button |
-| `components/AXChat.tsx` | Main chat surface |
-| `components/AXChatPopup.tsx` | Popup chat window |
-| `components/AXChatMessage*.tsx` | Message rendering, input, popovers |
-| `components/AXChatNotificationPopover.tsx` | Notification UI |
-| `components/AXChatErrorBar.tsx` | Error surface |
-| `components/AXChatLastMessage.tsx` | Speech-bubble preview |
-| `components/AXQuestionDialog.tsx` | Modal question prompt |
-| `components/AXDevTools.tsx` | Dev-only diagnostics |
-| `hooks/` | Custom React hooks |
+| `src/lib.ts` | Public library entry. Imports CSS, exports components and voice hooks |
+| `src/components/index.ts` | Public component barrel, theme exports, Shadow DOM helpers, CSS variable injection, selected voice hooks |
+| `src/components/AXUI.tsx` | Root widget component: portal target, theme CSS variables, chat store, voice hooks, portals |
+| `src/AXShadowRootContext.tsx` | `AXShadowRootProvider` and `useAXShadowRoot()` for browser embeds |
+| `src/voice.tsx` | Optional React voice bridge. Dynamically imports `@axsdk/voice`, attaches plugin to `AXSDK`, exposes voice state hooks |
+| `src/theme.ts` | Public theme type definitions |
+| `src/defaultTheme.ts` | Default dark/light themes and `mergeTheme` |
+| `src/AXThemeContext.tsx` | Theme provider and `useAXTheme()` |
+| `src/cssVariables.ts` | Converts theme values into `--ax-*` custom properties on the portal root |
+| `src/index.css` | Portal reset, scoped box model rules, utility classes, animation keyframes |
+| `THEME_CUSTOMIZATION.md` | CSS variable, `theme` prop, and per-component style override reference |
+| `src/main.tsx`, `src/App.tsx`, `src/App.css`, `index.html` | Vite dev playground only; not shipped |
 
-## Build
+Component hotspot rules live in `src/components/AGENTS.md`. Read it before changing chat surfaces, popovers, message rendering, input behavior, or root `<AXUI />` composition.
 
-Vite library build + dual `tsc` for app vs. build types:
+## DEV PLAYGROUND
+
+- `src/App.tsx` is a Vite playground only; it is not part of the published library entry.
+- The playground intentionally uses an app shell with `header.app-bar`, `main.app-content`, and `footer.app-footer`, plus long-scroll host-page content to test widget behavior over several viewport heights.
+- Keep the playground's SDK init, mock delivery `axHandler` branches, example app auth token, translations, event listeners, and voice bridge intact unless the task is explicitly about playground runtime wiring.
+- `src/App.css` uses scoped `app-` classes and `--app-*` tokens. Keep playground styles isolated and avoid `rem` units here too.
+
+## BUILD
 
 ```bash
-bun run dev          # vite --port 3334 (uses index.html, src/main.tsx)
-bun run build        # tsc -b && vite build && bun build:types
-bun run build:types  # bunx tsc --project tsconfig.build.json
-bun run lint         # eslint .
-bun run preview      # vite preview
+bun run dev
+bun run build
+bun run build:types
+bun run lint
+bun run preview
 ```
 
-- `tsconfig.app.json` covers the dev playground.
-- `tsconfig.build.json` covers the published library types.
-- `tsconfig.node.json` covers Vite/eslint config files.
-- `rollup-plugin-preserve-use-client` keeps the `"use client";` directive in built output so the lib works inside React Server Components hosts.
+`bun run build` runs `tsc -b`, Vite library build, then declaration emit through `tsconfig.build.json`. The library build entry is `src/lib.ts`; shipped files come from `dist/` only.
 
-Outputs:
-- `dist/lib.js` (ESM)
-- `dist/lib.d.ts`
-- `dist/lib.css` (exported as `@axsdk/react/index.css`)
+`rollup-plugin-preserve-use-client` keeps the `"use client";` directive in built output for React Server Components hosts.
 
-`react` and `react-dom` are **peerDependencies** — never bundle them.
+## STYLE ISOLATION
 
-## Style isolation (load-bearing)
+Facts from `src/index.css`:
 
-This is the most subtle part of the package. Read [`ISOLATION_STRATEGY.md`](./ISOLATION_STRATEGY.md) before touching anything style-related.
+- `.ax-portal-root` applies `all: initial`.
+- `.ax-portal-root` restores `display: block`, `box-sizing: border-box`, font family, line height, direction, smoothing, and relative positioning.
+- `.ax-portal-root` anchors `font-size: 16px`.
+- `.ax-portal-root *`, `*::before`, and `*::after` get scoped `box-sizing: border-box`.
+- Theme values are CSS custom properties prefixed with `--ax-*`.
 
-Key invariants:
+Never use `rem` in component styles. Use `em`, `px`, viewport units already established, or `var(--ax-*)`. Do not add global resets; scope rules to `.ax-portal-root` or package-owned class names.
 
-1. **The portal root (`<div class="ax-portal-root">`) anchors `font-size: 16px`** so every `em` unit in component styles is predictable regardless of host page typography. **Never use `rem`** in component styles — `rem` resolves against `:root`, defeating isolation. Always use `em`, `px`, or theme variables.
-2. **`box-sizing: border-box` is scoped** to `.ax-portal-root *` in `index.css`, not applied globally.
-3. **Theme tokens (`--ax-*`)** are stamped onto the portal root via `cssVariables.ts`'s `element.style.setProperty(...)`. Components read them with `var(--ax-...)`.
-4. **Keyframes** are prefixed (`ax-*`, `axchat-*`, `axbubble-*`) and live in `index.css`. Avoid generic names like `spin`.
-5. The `theme` prop on `<AXUI />` flows through `AXThemeContext` and is also serialized into CSS variables.
+Keyframes should be prefixed with an AXSDK-owned prefix. Existing examples include `ax-*`, `axchat-*`, and `axv-*`. `slide` is legacy and should not be copied.
 
-When `@axsdk/browser` consumes this package, it inlines `dist/lib.css` into a `<style>` tag plus an `all: initial` reset on `.ax-portal-root` — see `packages/axsdk-browser/src/embed.ts`. Any new CSS rule you add must survive that hard reset.
+## THEME RULES
 
-## Conventions
+- Primary reference: `THEME_CUSTOMIZATION.md`.
+- `<AXUI theme={...} />` flows through `AXThemeProvider`.
+- `injectCSSVariables(portalTarget, theme)` stamps tokens onto the portal root.
+- Components should prefer `var(--ax-*)` or `useAXTheme()` before adding new style channels.
 
-- **React 19**, new JSX transform — no `import React` for JSX-only files.
-- Most styling is **inline `React.CSSProperties`** plus theme variables. There is no Tailwind, no CSS Modules, no CSS-in-JS lib.
-- State that needs to live across components uses **Zustand**; everything else uses local `useState` / `useReducer`.
-- Strict TS — narrow array access, no implicit any.
-- Avoid mutating `document.body` or `document.head` from new components; existing mutations (e.g., `document.body.style.overflow` in `AXChatPopup`) are documented and intentional.
+## SHADOW DOM AND VOICE
 
-## What to be careful about
+- `AXShadowRootContext.tsx` bridges browser embeds.
+- If `useAXShadowRoot()` returns a ShadowRoot, `AXUI` appends portal/dynamic styles there.
+- Without a ShadowRoot, `AXUI` appends an `.ax-portal-root` div to `document.body`.
+- `useVoicePlugin()` resolves config from the `voice` prop or `AXSDK.config.voice`, dynamically imports `@axsdk/voice`, attaches it to `AXSDK`, and listens for `voice.config.remote`.
+- Keep `@axsdk/voice` optional at runtime and peer-based for consumers.
 
-- Changing `font-size` defaults, removing the `.ax-portal-root` class, or reintroducing `rem` will silently break the embed in any non-default host page.
-- The dev playground (`main.tsx`, `App.tsx`, `index.html`) is **not** part of the published bundle — don't add runtime logic there expecting consumers to get it.
-- `eslint.config.js` is the source of truth for linting — fix lint errors rather than disabling rules.
-- Don't run `bun run publish` unless explicitly asked. Always rebuild after a `@axsdk/core` bump.
+## EDITING CAUTIONS
+
+- Do not move consumer-facing runtime logic into playground files.
+- Preserve `.ax-portal-root`, `all: initial`, `font-size: 16px`, scoped box sizing, prefixed keyframes, and `--ax-*` token flow.
+- Do not bundle React or ReactDOM.
+- Run diagnostics on touched files, then run relevant package build/lint commands after code changes.
+- Never publish unless explicitly asked.

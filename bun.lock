@@ -10,7 +10,7 @@
     },
     "packages/axsdk-browser": {
       "name": "@axsdk/browser",
-      "version": "0.4.22",
+      "version": "0.4.25",
       "dependencies": {
         "@axsdk/core": "^0.3.3",
         "@axsdk/react": "^0.4.4",
@@ -29,7 +29,7 @@
     },
     "packages/axsdk-core": {
       "name": "@axsdk/core",
-      "version": "0.4.22",
+      "version": "0.4.25",
       "dependencies": {
         "eventemitter3": "^5.0.4",
         "html2canvas": "^1.4.1",
@@ -48,7 +48,7 @@
     },
     "packages/axsdk-react": {
       "name": "@axsdk/react",
-      "version": "0.5.22",
+      "version": "0.5.25",
       "dependencies": {
         "@axsdk/core": "workspace:*",
         "react": "^19",
@@ -81,7 +81,7 @@
     },
     "packages/axsdk-voice": {
       "name": "@axsdk/voice",
-      "version": "0.2.24",
+      "version": "0.2.27",
       "dependencies": {
         "eventemitter3": "^5.0.4",
         "robot3": "^1.2.0",

@@ -1,6 +1,6 @@
 {
   "name": "@axsdk/voice",
-  "version": "0.2.25",
+  "version": "0.2.27",
   "private": false,
   "description": "Voice I/O plugin for the AXSDK — captures speech (VAD-gated), streams to a transcription proxy, dispatches finalized utterances into the chat, and speaks assistant replies via TTS.",
   "keywords": [

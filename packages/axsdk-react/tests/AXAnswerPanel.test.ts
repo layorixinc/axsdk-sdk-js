@@ -1,6 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import type { ChatMessage } from '@axsdk/core';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 
+import { AXThemeProvider } from '../src/AXThemeContext';
+import { AXAnswerPanel } from '../src/components/AXAnswerPanel';
 import {
   extractMessageText,
   findLatestAssistantMessage,
@@ -81,5 +85,36 @@ describe('extractMessageText', () => {
     } as ChatMessage;
 
     expect(extractMessageText(target)).toBe('first second');
+  });
+});
+
+describe('AXAnswerPanel', () => {
+  test('renders tightened header spacing and roomier latest message padding', () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(
+        AXThemeProvider,
+        undefined,
+        React.createElement(AXAnswerPanel, {
+          messages: [message('assistant-latest', 'assistant', 'Comfortable answer copy')],
+          headerText: 'Latest answer',
+          onClose: () => undefined,
+          closeLabel: 'Close answer',
+        }),
+      ),
+    );
+    const sectionTag = markup.match(/<section\b[^>]*>/)?.[0];
+    const headerTag = markup.match(/<header\b[^>]*>/)?.[0];
+
+    expect(sectionTag).toBeDefined();
+    expect(sectionTag).toContain('box-shadow:0 6px 24px rgba(0,0,0,0.22), 0 0 0 1px rgba(120,80,255,0.08)');
+    expect(markup).not.toContain('0 8px 48px rgba(0,0,0,0.35)');
+    expect(headerTag).toBeDefined();
+    expect(headerTag).toContain('position:sticky');
+    expect(headerTag).toContain('gap:0.6em');
+    expect(headerTag).toContain('padding:0.62em 0.8em');
+    expect(markup).toContain('aria-label="Close answer"');
+    expect(markup).toContain('<div style="padding:1.25em"><div');
+    expect(markup).not.toContain('gap:0.75em');
+    expect(markup).not.toContain('padding:0.75em 0.9em');
   });
 });

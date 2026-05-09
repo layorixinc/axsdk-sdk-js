@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { AXSDK, type DeferFn } from '@axsdk/core';
+import { AXSDK, type AXSDKConfig, type DeferFn } from '@axsdk/core';
 import { AXUI, AXShadowRootProvider } from '@axsdk/react';
 import type { VoicePlugin, VoicePluginConfig } from '@axsdk/voice';
 import { handleAX } from './axhandler';
@@ -11,12 +11,23 @@ export type { AXTheme };
 
 export type AXSDKBrowserVoiceConfig = Omit<VoicePluginConfig, 'transportFactory'>;
 
-export interface AXSDKBrowserConfig {
+export interface AXSDKBrowserUITargets {
+  searchBar?: string;
+  answerPanel?: string;
+}
+
+export interface AXSDKBrowserUIConfig {
+  variant?: 'fab' | 'searchBar' | 'bottomSearchBar';
+  targets?: AXSDKBrowserUITargets;
+}
+
+export interface AXSDKBrowserConfig extends Omit<AXSDKConfig, 'axHandler' | 'voice'> {
   apiKey: string;
   appId: string;
   axHandler?: (command: string, args: unknown) => Promise<unknown>;
   theme?: AXTheme;
   voice?: AXSDKBrowserVoiceConfig;
+  ui?: AXSDKBrowserUIConfig;
   [key: string]: unknown;
 }
 
@@ -76,7 +87,7 @@ const AXSDKBrowser = {
       return;
     }
 
-    const { axHandler, theme, voice, ...axsdkConfig } = config;
+    const { axHandler, theme, voice, ui, ...axsdkConfig } = config;
 
     const voiceForCore = voice
       ? { ...voice, workletUrl: voice.workletUrl ?? workletBlobUrl() }
@@ -89,18 +100,18 @@ const AXSDKBrowser = {
     };
     AXSDK.eventBus().on('voice.config.remote', _onRemoteVoice);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    AXSDK.init({
-      ...(axsdkConfig as any),
+    const coreConfig: AXSDKConfig = {
+      ...axsdkConfig,
       voice: voiceForCore,
       axHandler: async function(command: string, args: unknown, defer: DeferFn) {
-        if(!axHandler) {
-          throw new Error('axHandler is required')
+        if (!axHandler) {
+          throw new Error('axHandler is required');
         }
         const result = await handleAX(axHandler, command, args, defer);
         return result;
       },
-    });
+    };
+    AXSDK.init(coreConfig);
 
     _hostElement = document.createElement('div');
     _hostElement.id = 'axsdk-browser-host';
@@ -122,7 +133,7 @@ const AXSDKBrowser = {
       React.createElement(
         AXShadowRootProvider,
         { shadowRoot: shadow },
-        React.createElement(AXUI, theme ? { theme } : null),
+        React.createElement(AXUI, { theme, ui }),
       ),
     );
   },

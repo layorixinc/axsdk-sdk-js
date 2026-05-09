@@ -9,7 +9,7 @@ Vanilla JS embed for the [AXSDK](https://axsdk.ai) AI chat widget. Drop one `<sc
 
 ## Architecture
 
-Single IIFE bundle. `@axsdk/core`, `@axsdk/react`, and `@axsdk/voice` are bundled in; React renders `<AXUI />` directly into the host page's DOM. Styles are scoped via `all: initial` on an `.ax-portal-root` element, so the widget renders identically regardless of the host page's CSS.
+Single IIFE bundle. `@axsdk/core`, `@axsdk/react`, and `@axsdk/voice` are bundled in. The widget creates `#axsdk-browser-host`, attaches an open Shadow DOM, injects the inlined React CSS plus a `:host` reset, then renders `<AXUI />` into `#axsdk-root` inside that shadow root.
 
 > Historical note: the package used to load inside a sandboxed `<iframe>` with postMessage RPC. That's been removed — the current build renders in-process for better performance, simpler debugging, and direct access to `@axsdk/core` APIs from the host.
 
@@ -18,7 +18,7 @@ Single IIFE bundle. `@axsdk/core`, `@axsdk/react`, and `@axsdk/voice` are bundle
 ## Features
 
 - **Zero-dependency embed** — single `<script>` tag, no npm / bundler required
-- **CSS isolation** — `all: initial` reset on `.ax-portal-root` keeps host styles out
+- **CSS isolation**: open Shadow DOM, `:host` reset, and AXUI portal roots/styles keep host styles out
 - **Responsive sizing** — full-screen on mobile (≤ 767 px), 420 × 680 px panel on desktop; live switch via `matchMedia`
 - **Direct `axHandler`** — AI tool-call callback runs as a normal function (no RPC bridge)
 - **`destroy()` API** — unmounts React, removes the host element + `<style>` tag, disposes the voice plugin
@@ -65,6 +65,20 @@ bun add @axsdk/browser
 ```
 
 Global `AXSDK` is the `AXSDKBrowser` object (`init`, `destroy`, `voice`, `eventBus`). A floating chat button appears in the bottom-right; clicking opens the chat popup.
+
+### UI variants
+
+Pass `ui.variant` to choose the bundled React surface:
+
+```js
+AXSDK.init({
+  apiKey: 'YOUR_API_KEY',
+  appId:  'YOUR_APP_ID',
+  ui: { variant: 'bottomSearchBar' },
+});
+```
+
+Supported variants are `'fab'` (default floating chat button), `'searchBar'` (host-mounted search and answer regions), and `'bottomSearchBar'` (small bottom-right launcher that opens a bottom-centered search surface with answer preview, suggestion chips, and embedded input).
 
 ### With `axHandler`
 
@@ -128,6 +142,7 @@ AXSDKBrowser.init(config: AXSDKBrowserConfig): void
 | `appId` | `string` | ✅ | AXSDK application ID. Also used as the shared secret for the voice proxy. |
 | `axHandler` | `(command, args) => Promise<unknown>` | — | AI tool-call handler |
 | `theme` | `AXTheme` | — | Theme overrides (see `AXTheme` type) |
+| `ui` | `AXSDKBrowserUIConfig` | — | UI variant and optional search-bar targets. `ui.variant` supports `'fab'`, `'searchBar'`, and `'bottomSearchBar'`. |
 | `voice` | `AXSDKBrowserVoiceConfig` | — | Voice I/O — see below |
 | `[key]` | `unknown` | — | Additional keys forwarded to `AXSDK.init()` (`debug`, `language`, `translations`, `headers`, `env`, `data`, `knowledge`, …) |
 
@@ -171,18 +186,18 @@ Returns the `@axsdk/core` event emitter. Subscribe to `voice.*`, `message.chat`,
 ```
 document.body
 └── #axsdk-browser-host          (position: fixed; 0×0; z-index: max)
-    └── #axsdk-root.ax-portal-root   (React root — <AXUI /> renders here)
+    └── #shadow-root (open)
+        ├── <style>                 (:host reset + inlined React CSS)
+        └── #axsdk-root             (React root, <AXUI /> renders here)
 ```
 
-`z-index: 2147483647` (max int32) so the widget floats above any host overlay. `pointer-events: none` on the host wrapper lets clicks pass through dead zones; visible child elements re-enable their own pointer events.
+`z-index: 2147483647` (max int32) so the widget floats above any host overlay. The host is fixed at `0×0`, so dead zones remain click-through while React surfaces manage their own pointer events.
 
-CSS isolation applied on `.ax-portal-root`:
-- `all: initial` — wipes inherited host styles
-- `font-size: 16px` — anchors all `em` units used internally
-- `box-sizing: border-box` (inherited by all descendants)
-- plus a `font-family` / `line-height` / `direction` / smoothing reset
+CSS isolation comes from the open Shadow DOM style tag plus AXUI portal roots/styles:
+- `:host` applies `all: initial`, a `16px` font-size anchor, font defaults, direction, smoothing, and shadow-local `box-sizing`
+- AXUI portal roots apply their own reset and pointer-event rules for the rendered surfaces
 
-Don't loosen these — `@axsdk/react` depends on them for visual consistency across host pages.
+Don't loosen these. `@axsdk/react` depends on them for visual consistency across host pages.
 
 ---
 

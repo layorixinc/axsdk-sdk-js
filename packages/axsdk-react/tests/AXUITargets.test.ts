@@ -15,6 +15,10 @@ describe('resolveAXUIVariant', () => {
     expect(resolveAXUIVariant({ ui: { variant: 'searchBar' } })).toBe('searchBar');
   });
 
+  test('supports the bottom search bar variant from ui config', () => {
+    expect(resolveAXUIVariant({ ui: { variant: 'bottomSearchBar' } })).toBe('bottomSearchBar');
+  });
+
   test('prefers direct variant over ui.variant', () => {
     expect(resolveAXUIVariant({ variant: 'fab', ui: { variant: 'searchBar' } })).toBe('fab');
   });

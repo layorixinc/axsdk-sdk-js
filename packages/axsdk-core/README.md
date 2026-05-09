@@ -59,9 +59,15 @@ AXSDK.eventBus().on("message.chat", (event) => {
 
 | Key | Description |
 |---|---|
+| `chatInput` | Placeholder shown in chat and search inputs |
 | `chatAskMe` | Prompt shown in the closed-state speech bubble |
 | `chatHide` | Prompt shown in the open-state speech bubble |
 | `chatEmpty` | Placeholder shown when the chat history is empty |
+| `chatOnboarding` | Comma-separated onboarding suggestions shown before a session starts |
+| `chatShortcutChips` | Comma-separated shortcut chips shown while a session is active |
+| `chatPreviewTitle` | Fallback title for the bottom search answer preview |
+| `chatBottomSearchReset` | Label for the bottom-search reset button |
+| `chatBottomSearchClose` | Label for the bottom-search close button |
 | `chatIdleGuide` | Status text shown when the AI session is idle |
 | `chatBusyGuide` | Status text shown when the AI session is busy |
 | `chatClear` | Label for the clear-conversation button |
@@ -71,12 +77,18 @@ await AXSDK.init({
   // ...
   translations: {
     en: {
+      chatInput: "Please type here",
       chatAskMe: "How can I help?",
       chatEmpty: "Ask me anything.",
+      chatBottomSearchReset: "Clear",
+      chatBottomSearchClose: "Close",
     },
     ko: {
+      chatInput: "여기에 입력해주세요",
       chatAskMe: "무엇을 도와드릴까요?",
       chatEmpty: "대화를 시작하세요.",
+      chatBottomSearchReset: "지우기",
+      chatBottomSearchClose: "닫기",
     },
   },
 });

@@ -25,6 +25,8 @@ describe('AXSearchBar', () => {
 
     expect(markup).toContain('실행');
     expect(markup).not.toContain('검색');
+    expect(markup).not.toContain('data-ax-search-bar="submit-button-image"');
+    expect(markup).not.toContain('data-ax-search-bar="clear-button"');
   });
 
   test('renders a controlled value for persisted search text', () => {
@@ -41,7 +43,49 @@ describe('AXSearchBar', () => {
       ),
     );
 
+    expect(markup).toContain('type="text"');
+    expect(markup).not.toContain('type="search"');
     expect(markup).toContain('value="Show my order history"');
+    expect(markup).toContain('aria-label="Clear search input"');
+    expect(markup).toContain('data-ax-search-bar="clear-button"');
+    expect(markup).not.toContain('data-ax-search-bar="voice-dictation"');
+  });
+
+  test('keeps voice dictation hidden unless explicitly enabled', () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(
+        AXThemeProvider,
+        undefined,
+        React.createElement(AXSearchBar, {
+          onSearch: () => undefined,
+          placeholder: 'Search',
+        }),
+      ),
+    );
+
+    expect(markup).not.toContain('data-ax-search-bar="voice-dictation"');
+    expect(markup).not.toContain('data-ax-search-bar="voice-status"');
+  });
+
+  test('renders opt-in voice dictation controls gracefully when speech recognition is unavailable', () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(
+        AXThemeProvider,
+        undefined,
+        React.createElement(AXSearchBar, {
+          onSearch: () => undefined,
+          placeholder: 'Search',
+          enableVoiceDictation: true,
+        }),
+      ),
+    );
+
+    expect(markup).toContain('data-ax-search-bar="voice-dictation"');
+    expect(markup).toContain('aria-label="Voice dictation is not available in this browser"');
+    expect(markup).toContain('disabled=""');
+    expect(markup).toContain('data-ax-search-bar="voice-status"');
+    expect(markup).toContain('role="status"');
+    expect(markup).toContain('aria-live="polite"');
   });
 
   test('does not clear a controlled value when clearOnSubmit is false', () => {
@@ -61,6 +105,14 @@ describe('AXSearchBar', () => {
 
     expect(markup).toContain('value="Buy apples"');
     expect(onSearch).not.toHaveBeenCalled();
+  });
+
+  test('keeps the search bar and answer panel close in the searchBar stack', async () => {
+    const source = await Bun.file(new URL('../src/components/AXUI.tsx', import.meta.url)).text();
+    const searchBarStack = source.match(/top: '1\.25em'[\s\S]*?gap: '0\.5em'/)?.[0] ?? '';
+
+    expect(searchBarStack).toContain("gap: '0.5em'");
+    expect(source).not.toContain("gap: '0.75em'");
   });
 
   test('renders embedded search and suggestions inside one autocomplete panel', () => {

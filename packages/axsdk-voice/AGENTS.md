@@ -1,74 +1,85 @@
-# AGENTS.md — `@axsdk/voice`
+# AGENTS.md for `@axsdk/voice`
 
-Guidance for AI coding agents working inside `packages/axsdk-voice`. See the repo-root [`AGENTS.md`](../../AGENTS.md) and [`packages/axsdk-core/AGENTS.md`](../axsdk-core/AGENTS.md) first — the monorepo rules apply here.
+Guidance for agents working in `packages/axsdk-voice` only. Root monorepo rules still apply; this file covers voice-specific facts.
 
-## Purpose
+## PACKAGE ROLE
 
-Optional voice I/O plugin for `@axsdk/core`. While a chat session is open, the plugin captures microphone audio (VAD-gated), streams it to a user-supplied transcription proxy, routes finalized transcripts into the chat as user messages, and speaks assistant replies through TTS once the session transitions to `idle`.
+`@axsdk/voice` is the optional voice I/O plugin for AXSDK chat. It captures microphone audio in the browser, gates speech with VAD, sends audio to a user-supplied transport, dispatches finalized transcripts into chat, and plays assistant replies through TTS.
 
-## Hard rules
+Current package version: `0.2.27`.
 
-- **Never bundle a server in this package.** The package is DOM-only; the reference proxy lives in the standalone `axsdk-voice` repo and is deployed separately by consumers.
-- **Never touch `OPENAI_API_KEY` client-side.** Keys live in the user's proxy.
-- **No React.** If a React wrapper is needed later, it must be a separate package.
-- **DOM APIs are expected** (`AudioContext`, `AudioWorkletNode`, `MediaStream`, `WebSocket`, `fetch`, `<audio>`). The package is not meant to run in Node.
-- **Respect strict TS** (`noUncheckedIndexedAccess`, `verbatimModuleSyntax`). Audio buffers have a lot of index access — narrow every `[0]`.
+## HARD RULES
 
-## Source layout (`src/`)
+- No server code belongs in this package.
+- Never read, pass, or document `OPENAI_API_KEY` for client-side use. Secrets stay in the user's proxy.
+- No React imports or React components. React integration belongs in `@axsdk/react`.
+- DOM APIs are expected: `AudioContext`, `AudioWorkletNode`, `MediaStream`, `WebSocket`, `fetch`, `Blob`, `URL`, and `<audio>`.
+- This package is browser-facing. Do not make changes that imply it runs as a Node runtime package.
+- Keep `@axsdk/core` external in builds.
 
-| File | Role |
+## SOURCE LAYOUT
+
+| Path | Purpose |
 |---|---|
-| `lib.ts` | Public entry — exports `VoicePlugin`, `OpenAIRealtimeTransport`, types |
-| `plugin.ts` | `VoicePlugin` — attach/detach, chat-open listener, session-status watcher, config updates |
-| `capture.ts` | `getUserMedia` + `AudioContext` + `AudioWorkletNode` glue (Phase 2) |
-| `vad.ts` | Pure RMS-based voice activity state machine (Phase 2) |
-| `transport.ts` | `VoiceTransport` interface + default `OpenAIRealtimeTransport` |
-| `tts-player.ts` | Queued `<audio>` playback keyed by `messageId` (Phase 4) |
-| `usage.ts` | Optional client-side cost metering (console) |
-| `pcm-worklet.ts` | Exports the worklet asset URL helper |
+| `src/lib.ts` | Public entry point and exports |
+| `src/plugin.ts` | `VoicePlugin`, attach/detach, config updates, chat lifecycle wiring |
+| `src/capture.ts` | Microphone capture, `AudioContext`, worklet hookup |
+| `src/vad.ts` | RMS/Silero VAD gate and utterance buffering |
+| `src/transport.ts` | `VoiceTransport` contract and `OpenAIRealtimeTransport` proxy client |
+| `src/tts-player.ts` | Queued browser audio playback, deduped by `messageId` |
+| `src/tts-cache.ts` | TTS result caching |
+| `src/usage.ts` | Optional client-side usage accounting |
+| `src/pcm-worklet.ts` | Helper surface for the PCM worklet asset |
+| `src/silero-capture.ts` | Optional Silero VAD capture path using `@ricky0123/vad-web` |
+| `src/state/*.ts` | Robot state machines for STT, TTS, and transport flow |
+| `src/vad.test.ts` | Ad-hoc VAD harness runnable with Bun |
+| `src/state/machines.test.ts` | Ad-hoc state machine harness runnable with Bun |
+| `public/pcm-worklet.js` | Raw AudioWorklet source shipped as a public asset |
 
-`public/pcm-worklet.js` is the raw AudioWorklet source. Exposed via package export `@axsdk/voice/pcm-worklet.js`.
+## WORKLET CONTRACT
 
-- `@axsdk/react` and `@axsdk/browser` read this file at **build time** via Vite `define` (`__AXSDK_PCM_WORKLET__`) and inline it into their bundles, then create a `Blob` URL at runtime — host needs no static asset.
-- Standalone `@axsdk/voice` consumers must serve it themselves and pass `workletUrl` to `VoicePlugin`.
+`public/pcm-worklet.js` is exported as `@axsdk/voice/pcm-worklet.js`.
 
-## Build
+- `@axsdk/react` and `@axsdk/browser` inline the worklet at build time, then create a Blob URL at runtime.
+- Standalone `@axsdk/voice` consumers must serve the worklet asset and pass `workletUrl`.
+- Do not assume `/pcm-worklet.js` exists on the host page unless an integration supplied it.
+
+## BUILD FACTS
 
 ```bash
-bun run build        # bun ./build.ts && tsc --emitDeclarationOnly
-bun run build:types
+bun run build        # bun ./build.ts && bun build:types
+bun run build:types  # bunx tsc --emitDeclarationOnly
 ```
 
-Produces `dist/lib.js` (ESM), `dist/lib.cjs` (CJS), `dist/lib.d.ts`. Both bundles are minified and browser-targeted, prefixed with `"use client";` for RSC safety (matching `@axsdk/core`).
+The Bun build emits browser-targeted bundles from `src/lib.ts`:
 
-## Integration contract with `@axsdk/core`
+- `dist/lib.js`, ESM
+- `dist/lib.cjs`, CJS
+- linked source maps
+- minified output
+- `"use client";` banner
+- `@axsdk/core` external
 
-- Plugin depends on `@axsdk/core` as a **peer**.
-- It subscribes to `AXSDK.getChatStore()` (Zustand) to detect chat open/close and `session.status` transitions.
-- Voice IN emits via `AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.message', data: { text, images: [] } })` — same event shape as `AXSDK.sendMessage()`.
-- Voice OUT watches `chatStore.session.status`. Primary trigger: `busy → idle`. Fallback: last assistant message stops receiving deltas for ~800 ms.
-- Plugin must be tolerant of core version drift — validate store shape when subscribing; fail soft on missing fields.
+Types come from `tsc --emitDeclarationOnly` into `dist/lib.d.ts`.
 
-## VAD
+## CORE INTEGRATION
 
-- Runs on the main thread, consuming Int16 PCM frames (100 ms at 24 kHz = 2400 samples) from the worklet.
-- Ring buffer holds `prerollMs` of pre-voice audio so we don't clip speech onsets.
-- Client VAD is a **gate**, not a segmenter. Utterance boundaries are still detected by the server (OpenAI `turn_detection: server_vad`).
+`@axsdk/core` is a peer dependency using the workspace current version during local development. Current core is `0.4.x`, so published voice builds must stay compatible with that line.
 
-## Transport
+The plugin integrates through public core surfaces:
 
-- `VoiceTransport` bundles STT (audio in / transcript events out) and TTS (text in / audio blob out). Hosts can implement either side as a no-op.
-- Default `OpenAIRealtimeTransport` wraps the reference proxy's `/ws` + `/tts` wire format. Not tied to OpenAI directly — swappable.
+- `AXSDK.getChatStore()` for the chat store
+- `AXSDK.eventBus()` for events
+- `message.chat` for transcript dispatch
+- `session.status` changes for TTS timing
 
-## Versioning
+Voice input should emit the same chat event shape as normal text send paths. Voice output should prefer the `busy` to `idle` transition as the TTS trigger. If the core store shape drifts, validate fields, fail soft, and avoid throwing from subscriptions.
 
-- Pre-1.0 — breaking changes allowed in minor bumps, called out in commit message.
-- Pin to `@axsdk/core ^0.3` until core ships 0.4.
-- **Do not publish** without explicit user request.
+## GOTCHAS
 
-## What to be careful about
-
-- `<audio>` autoplay: the first chat-open must be user-initiated or TTS may fail on the first utterance. Plugin falls back to `voice.error` with scope `'tts'`.
-- AudioWorklet URL: when integrating via `@axsdk/react` or `@axsdk/browser` the worklet is inlined as a blob URL at build time — `workletUrl` is auto-supplied. Standalone `@axsdk/voice` consumers must serve `public/pcm-worklet.js` and pass `workletUrl`. Both packages also patch missing `workletUrl` in server-injected `voice.config.remote` payloads, so server `voiceConfig` doesn't 404 on `/pcm-worklet.js`.
-- Do not tear down `AudioContext` on transient transport errors — just reopen the socket. Tearing down the context forfeits the mic gesture and forces another permission prompt.
-- If both the primary (`session.status`) and fallback (`delta-quiet timeout`) fire for the same assistant message, only speak once — dedupe by `messageId` in the TTS queue.
+- Browser autoplay can block first TTS playback unless activation follows a user gesture.
+- Transient transport failures should not tear down mic capture or the `AudioContext`.
+- TTS must dedupe by `messageId`, especially when both status and fallback triggers fire.
+- VAD is a client-side gate, not the final utterance authority.
+- `@ricky0123/vad-web` is optional. Keep Silero paths lazy and guarded.
+- Never publish unless explicitly asked.

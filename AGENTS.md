@@ -1,78 +1,110 @@
-# AGENTS.md
+# PROJECT KNOWLEDGE BASE
 
-Guidance for AI coding agents working in this repository.
+**Generated:** Tue May 05 2026
+**Commit:** `f3e9d2c`
+**Branch:** `main`
 
-## Project overview
+## OVERVIEW
 
-`axsdk-sdk-js` is a Bun workspace monorepo containing the JavaScript/TypeScript SDK for the [AXSDK](https://axsdk.ai) AI chat platform. It ships three published packages:
+`axsdk-sdk-js` is a Bun workspace monorepo for AXSDK's JavaScript/TypeScript SDK. It publishes framework-agnostic core logic, React UI, a script-tag browser embed, and an optional voice plugin.
 
-| Package | Path | Purpose |
-|---|---|---|
-| `@axsdk/core` | `packages/axsdk-core` | Framework-agnostic core: SDK init, session management, SSE streaming, event bus, types |
-| `@axsdk/react` | `packages/axsdk-react` | React 19 component library — `<AXUI />` and chat UI primitives built on `@axsdk/core` |
-| `@axsdk/browser` | `packages/axsdk-browser` | Vanilla JS embed — single `<script>` tag drops a sandboxed widget on any page |
-| `@axsdk/voice` | `packages/axsdk-voice` | Optional voice I/O plugin — VAD-gated mic capture + TTS playback, driven by the core chat store |
+## STRUCTURE
 
-Dependency graph: `core` ← `react` ← `browser`. `voice` depends only on `core` (peer). Always rebuild downstream packages after changing `core`.
-
-## Setup
-
-- Requires **Bun ≥ 1.0** and **TypeScript ≥ 5**.
-- Install everything from the repo root:
-
-  ```bash
-  bun install
-  ```
-
-## Common commands
-
-Run from each package directory (`packages/axsdk-*`):
-
-| Command | What it does |
-|---|---|
-| `bun run dev` | Dev server / watch mode (Vite for `react` & `browser`, Bun runner for `core`) |
-| `bun run build` | Production build + type declarations |
-| `bun run build:types` | Emit `.d.ts` only (core, react) |
-| `bun run lint` | ESLint (react package only) |
-| `bun run publish` | Build then `npm publish --access=public` — **do not run unless explicitly asked** |
-
-There is no repo-wide test suite. There is no root-level build script — build each package individually in dependency order (`core` → `react` → `browser`).
-
-## Code conventions
-
-- **TypeScript strict mode** is on (see `tsconfig.json`): `strict`, `noUncheckedIndexedAccess`, `noImplicitOverride`, `noFallthroughCasesInSwitch`, `verbatimModuleSyntax`. Honor these — do not loosen them.
-- **ESM only** (`"type": "module"`). Use `import`/`export`, not CommonJS.
-- **React 19** in `@axsdk/react`. Components use the new JSX transform (`"jsx": "react-jsx"`) — no `import React` needed for JSX.
-- **State management**: `zustand` (in `core` and `react`).
-- **Events**: `eventemitter3` in `core`.
-- **Validation**: `zod` v4 in `core`.
-- **Style isolation**: `@axsdk/react` mounts into a `.ax-portal-root` element with `font-size: 16px` anchored and a scoped `box-sizing` reset; `@axsdk/browser` additionally applies `all: initial` on the same root. CSS must use `em`/`px`, **never `rem`** (which would resolve against the host page's `:root`). See `packages/axsdk-react/ISOLATION_STRATEGY.md`.
-
-## Versioning & publishing
-
-- Each package is versioned independently. Current versions live in each `package.json`.
-- `@axsdk/react` and `@axsdk/browser` depend on a specific minor of `@axsdk/core` — when bumping `core`, update the dependent packages' `dependencies` entries to match.
-- Commit message style for releases follows: `core: 0.2.13 react: 0.4.2 browser: 0.3.2` (see `git log`).
-- **Never publish to npm** without an explicit user request.
-
-## What to be careful about
-
-- Don't introduce a bundler or test framework without asking — the repo deliberately keeps tooling minimal (Vite + Bun + tsc).
-- Don't add cross-package imports via relative paths (`../axsdk-core/src/...`). Import from the published package name (`@axsdk/core`) so workspace resolution stays clean.
-- The `browser` package builds **two** bundles (loader + iframe/frame). Check `packages/axsdk-browser/vite.config.ts` before changing build config.
-- `@axsdk/react` is consumed by host apps with their own React — keep `react`/`react-dom` as `peerDependencies`, never bundle them.
-- Style isolation in `@axsdk/react` is load-bearing; if you touch CSS units or shadow root setup, verify the widget still renders correctly inside a host page with arbitrary global styles.
-
-## Repo layout
-
-```
+```text
 axsdk-sdk-js/
-├── packages/
-│   ├── axsdk-core/      # @axsdk/core    (framework-agnostic)
-│   ├── axsdk-react/     # @axsdk/react   (React 19, Shadow DOM)
-│   └── axsdk-browser/   # @axsdk/browser (vanilla embed, two bundles)
-├── plans/               # design / planning docs
-├── package.json         # Bun workspace root
-├── tsconfig.json        # shared strict TS config
-└── README.md
+├── scripts/                    # workspace dependency and release helpers
+├── docs/                       # focused design and policy notes
+├── plans/                      # planning bucket, currently sparse
+└── packages/
+    ├── axsdk-core/             # @axsdk/core, SDK state/API/SSE/types
+    ├── axsdk-react/            # @axsdk/react, React 19 UI and theming
+    │   └── src/components/     # chat UI component hotspot
+    ├── axsdk-browser/          # @axsdk/browser, single-file IIFE embed
+    └── axsdk-voice/            # @axsdk/voice, browser voice I/O plugin
 ```
+
+## WHERE TO LOOK
+
+| Task | Location | Notes |
+|---|---|---|
+| SDK init, config, stores | `packages/axsdk-core/src/axsdk.ts`, `store.ts` | Core owns shared runtime state. |
+| API calls and SSE | `packages/axsdk-core/src/axapi.ts`, `apiclient.ts`, `sse.ts` | Streaming bugs cascade to every consumer. |
+| Public core exports | `packages/axsdk-core/src/lib.ts`, `package.json#exports` | Keep `import`, `require`, `types`, `source` aligned. |
+| React public UI | `packages/axsdk-react/src/lib.ts`, `src/components/index.ts` | `lib.ts` imports CSS and exports components plus voice hooks. |
+| React component work | `packages/axsdk-react/src/components/` | Read the child `AGENTS.md` first. |
+| React theme tokens | `packages/axsdk-react/src/theme.ts`, `defaultTheme.ts`, `cssVariables.ts` | Tokens are emitted as `--ax-*`. |
+| Browser embed | `packages/axsdk-browser/src/embed.ts` | Exposes `window.AXSDK`; mounts React in an open Shadow DOM. |
+| Browser build | `packages/axsdk-browser/vite.config.ts` | Inlines React CSS and PCM worklet into `dist/axsdk-browser.js`. |
+| Voice plugin | `packages/axsdk-voice/src/plugin.ts` | Coordinates capture, transport, TTS, and core events. |
+| Voice worklet | `packages/axsdk-voice/public/pcm-worklet.js` | Exported as `@axsdk/voice/pcm-worklet.js`. |
+
+## CODE MAP
+
+| Package | Public entry | Primary output | Role |
+|---|---|---|---|
+| `@axsdk/core` | `src/lib.ts` | `dist/lib.js`, `dist/lib.cjs`, `dist/lib.d.ts` | SDK facade, state, SSE, EventBus, types |
+| `@axsdk/react` | `src/lib.ts` | `dist/lib.js`, `dist/lib.css`, `dist/lib.d.ts` | `<AXUI />`, chat primitives, theme, voice hooks |
+| `@axsdk/browser` | `src/embed.ts` | `dist/axsdk-browser.js` | script-tag IIFE, Shadow DOM host, public `window.AXSDK` |
+| `@axsdk/voice` | `src/lib.ts` | `dist/lib.js`, `dist/lib.cjs`, `dist/lib.d.ts` | VAD mic capture, transcript dispatch, TTS playback |
+
+## CHILD GUIDANCE
+
+- `packages/axsdk-core/AGENTS.md`
+- `packages/axsdk-react/AGENTS.md`
+- `packages/axsdk-react/src/components/AGENTS.md`
+- `packages/axsdk-browser/AGENTS.md`
+- `packages/axsdk-voice/AGENTS.md`
+
+Read the nearest child guide before editing package code.
+
+## CONVENTIONS
+
+- Bun workspace, ESM only, TypeScript strict mode.
+- Cross-package imports use package names such as `@axsdk/core`, never relative paths into another package.
+- `@axsdk/react` keeps `react` and `react-dom` as peer dependencies.
+- `@axsdk/browser` bundles React, ReactDOM, `@axsdk/core`, `@axsdk/react`, and `@axsdk/voice` into the IIFE.
+- Core state uses `zustand`; core events use `eventemitter3`; boundary validation uses `zod`.
+- React components use inline `React.CSSProperties` plus `--ax-*` CSS variables.
+
+## STYLE ISOLATION
+
+- `.ax-portal-root` is load-bearing.
+- `packages/axsdk-react/src/index.css` applies `all: initial`, `font-size: 16px`, and scoped `box-sizing` under `.ax-portal-root`.
+- `@axsdk/browser` mounts React inside an open Shadow DOM and injects a `:host` reset plus the inlined React CSS.
+- Use `em`, `px`, viewport units already present, or `var(--ax-*)`.
+- Never use `rem` in widget styles; it resolves against the host document root.
+- Keyframes should be package-prefixed, for example `ax-*`, `axchat-*`, `axbubble-*`, or another `ax` prefix.
+
+## COMMANDS
+
+```bash
+bun install
+bun run build
+
+cd packages/axsdk-core && bun run build
+cd packages/axsdk-react && bun run build
+cd packages/axsdk-react && bun run lint
+cd packages/axsdk-browser && bun run build
+cd packages/axsdk-voice && bun run build
+```
+
+Root `bun run build` runs `scripts/set-workspace-deps.mjs`, then builds `axsdk-voice`, `axsdk-core`, `axsdk-react`, and `axsdk-browser` in that order.
+
+## TESTS AND VERIFICATION
+
+- No repo-wide test suite exists.
+- `@axsdk/react` is the only package with ESLint: `cd packages/axsdk-react && bun run lint`.
+- `@axsdk/voice` has ad-hoc Bun test harnesses: `src/vad.test.ts` and `src/state/machines.test.ts`.
+- `@axsdk/browser/test.html` is manual smoke coverage, not an automated suite.
+- After changing `core`, rebuild downstream consumers that depend on it.
+- After touching style isolation or the browser embed, verify the widget inside a hostile host page.
+
+## ANTI-PATTERNS
+
+- Do not publish to npm or run release scripts unless explicitly asked.
+- Do not add a new bundler or test framework without asking.
+- Do not loosen strict TypeScript settings.
+- Do not bundle host React into `@axsdk/react`.
+- Do not break `window.AXSDK` or the script-tag API.
+- Do not document or rely on a browser `./frame` export; current `@axsdk/browser` exports only `.`.
+- Do not reference missing docs as required reading.

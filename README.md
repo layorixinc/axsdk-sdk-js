@@ -11,7 +11,7 @@ JavaScript/TypeScript SDK packages for integrating the [AXSDK](https://axsdk.ai)
 | Package | Version | Description |
 |---|---|---|
 | [`@axsdk/core`](./packages/axsdk-core/README.md) | [![npm](https://img.shields.io/npm/v/@axsdk/core)](https://www.npmjs.com/package/@axsdk/core) | Framework-agnostic core — SDK initialization, session management, SSE streaming, event bus, and type definitions |
-| [`@axsdk/browser`](./packages/axsdk-browser/README.md) | [![npm](https://img.shields.io/npm/v/@axsdk/browser)](https://www.npmjs.com/package/@axsdk/browser) | Vanilla JS browser embed — drop a `<script>` tag on any page to embed the chat widget inside a sandboxed iframe |
+| [`@axsdk/browser`](./packages/axsdk-browser/README.md) | [![npm](https://img.shields.io/npm/v/@axsdk/browser)](https://www.npmjs.com/package/@axsdk/browser) | Vanilla JS browser embed that mounts the chat widget in an open Shadow DOM from one `<script>` tag |
 | [`@axsdk/react`](./packages/axsdk-react/README.md) | [![npm](https://img.shields.io/npm/v/@axsdk/react)](https://www.npmjs.com/package/@axsdk/react) | React component library — drop-in `<AXUI />` component and composable chat UI primitives built on `@axsdk/core` |
 | [`@axsdk/voice`](./packages/axsdk-voice/README.md) | [![npm](https://img.shields.io/npm/v/@axsdk/voice)](https://www.npmjs.com/package/@axsdk/voice) | Optional voice I/O plugin — VAD-gated mic capture, transcript-into-chat dispatch, TTS playback on assistant replies |
 
@@ -114,7 +114,7 @@ bun install
 # @axsdk/core
 cd packages/axsdk-core && bun run build
 
-# @axsdk/browser (builds both loader + iframe bundles)
+# @axsdk/browser (builds the single script-tag bundle)
 cd packages/axsdk-browser && bun run build
 
 # @axsdk/react

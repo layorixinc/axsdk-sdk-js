@@ -9,9 +9,10 @@ export interface AXChatErrorBarProps {
 
 export function AXChatErrorBar({ message } : AXChatErrorBarProps) {
   const errorStore = AXSDK.getErrorStore();
-  const errors = useSyncExternalStore(errorStore.subscribe, errorStore.getState);
+  const errors = useSyncExternalStore(errorStore.subscribe, errorStore.getState, errorStore.getState);
   const latestError = errors.errors[0] ?? null;
-  const effectiveError = latestError?.url?.startsWith("axsdk://") && latestError?.method == "message" && message?.id === latestError?.id ? latestError : null
+  const messageErrorUrl = message ? `axsdk://${message.id}` : null;
+  const effectiveError = latestError?.method === "message" && latestError.url === messageErrorUrl ? latestError : null;
 
   if (!effectiveError) return null;
 

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
@@ -6,7 +6,9 @@ import ReactDOM from 'react-dom';
 import { useStore } from 'zustand';
 
 import { AXAnswerPanel } from './AXAnswerPanel';
+import { AXBottomSearchBar } from './AXBottomSearchBar';
 import { AXButton, type AXCornerPosition } from './AXButton';
+import { AXPoweredBy } from './AXPoweredBy';
 import { AXChatNotificationPopover } from './AXChatNotificationPopover';
 import { AXChatLastMessage } from './AXChatLastMessage';
 import { AXChatMessageInput } from './AXChatMessageInput';
@@ -366,7 +368,7 @@ export function AXUI({ children, theme, voice, variant, targets, ui, position: c
   const [focusTrigger, setFocusTrigger] = useState(0);
   const messageInputWrapperRef = useRef<HTMLDivElement | null>(null);
 
-  const { isOpen, setIsOpen, chatWasEverOpened, setChatWasEverOpened, messages, questions, setQuestions, session, ttsEnabled, setTtsEnabled, searchBarInputValue, setSearchBarInputValue } = useStore(AXSDK.getChatStore());
+  const { isOpen, setIsOpen, chatWasEverOpened, setChatWasEverOpened, messages, questions, setQuestions, session, sessionClosed, ttsEnabled, setTtsEnabled, searchBarInputValue, setSearchBarInputValue } = useStore(AXSDK.getChatStore());
   const [searchBarValue, setSearchBarValue] = useState(searchBarInputValue);
   const ttsPending = useTtsPending();
   const ttsState = useTtsState();
@@ -411,6 +413,7 @@ export function AXUI({ children, theme, voice, variant, targets, ui, position: c
   }, [effectiveVoice, ttsEnabled, ttsPending, ttsState, ttsErrorMessage, setTtsEnabled, voiceNeedsUnlock]);
   const appInfoReady = useStore(AXSDK.getAppStore(), (s) => s.appInfoReady);
   const isBusy = session?.status === 'busy';
+  const hasActiveSession = Boolean(session && !sessionClosed);
 
   useEffect(() => {
     if (resolvedVariant !== 'searchBar') {
@@ -443,11 +446,11 @@ export function AXUI({ children, theme, voice, variant, targets, ui, position: c
   const prevStatusRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     const currentStatus = session?.status;
-    if ((prevStatusRef.current === 'idle' || !prevStatusRef.current) && currentStatus === 'busy') {
+    if ((resolvedVariant === 'fab' || resolvedVariant === 'bottomSearchBar') && (prevStatusRef.current === 'idle' || !prevStatusRef.current) && currentStatus === 'busy') {
       setIsOpen(false);
     }
     prevStatusRef.current = currentStatus;
-  }, [session?.status, setIsOpen]);
+  }, [resolvedVariant, session?.status, setIsOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -515,7 +518,7 @@ export function AXUI({ children, theme, voice, variant, targets, ui, position: c
       ro.disconnect();
       window.removeEventListener('resize', measure);
     };
-  }, [isOpen]);
+  }, [isOpen, isTopPos]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -589,12 +592,12 @@ export function AXUI({ children, theme, voice, variant, targets, ui, position: c
     bus.on('voice.session.restored', onRestored);
     return () => { bus.off('voice.session.restored', onRestored); };
   }, [effectiveVoice]);
-  const handleClick = () => {
+  const openChatFromUserIntent = () => {
     if (!appInfoReady) return;
     // Unlock-only branch: don't also toggle chat — the same tap would close it as a side effect.
     if (effectiveVoice && voiceNeedsUnlock) {
       const plugin = getVoicePlugin();
-      if (effectiveVoice.debug) console.log('[AXUI voice] orb click → unlockAudio()');
+      if (effectiveVoice.debug) console.log('[AXUI voice] chat open → unlockAudio()');
       void plugin?.unlockAudio().catch((err) => {
         if (effectiveVoice.debug) console.warn('[AXUI voice] unlockAudio() failed', err);
       });
@@ -606,13 +609,30 @@ export function AXUI({ children, theme, voice, variant, targets, ui, position: c
     if (effectiveVoice && !hasPrimedVoiceRef.current) {
       hasPrimedVoiceRef.current = true;
       const plugin = getVoicePlugin();
-      if (effectiveVoice.debug) console.log('[AXUI voice] first orb click → primePermissions()');
+      if (effectiveVoice.debug) console.log('[AXUI voice] first chat open → primePermissions()');
       void plugin?.primePermissions().catch((err) => {
         if (effectiveVoice.debug) console.warn('[AXUI voice] primePermissions() failed', err);
       });
     }
-    setIsOpen(!isOpen);
+    setIsOpen(true);
   };
+
+  const handleClick = () => {
+    if (!appInfoReady) return;
+    if (isOpen) {
+      setIsOpen(false);
+      return;
+    }
+    openChatFromUserIntent();
+  };
+
+  function handleBottomSearchBarOpenChange(open: boolean) {
+    if (open) {
+      openChatFromUserIntent();
+      return;
+    }
+    setIsOpen(false);
+  }
 
   const handleSend = (text: string) => {
     AXSDK.getErrorStore().getState().clearErrors();
@@ -631,6 +651,11 @@ export function AXUI({ children, theme, voice, variant, targets, ui, position: c
     AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.cancel' });
     AXSDK.resetSession();
   }
+  function handleBottomSearchBarClear() {
+    setSearchBarValue('');
+    setSearchBarInputValue('');
+    handleClear();
+  }
 
   function handleSearchBarFocusChange(focused: boolean) {
     if (focused) setSearchBarFocused(true);
@@ -648,7 +673,7 @@ export function AXUI({ children, theme, voice, variant, targets, ui, position: c
     const answerPanelDismissed = !!latestUserMessageId && dismissedAnswerPanelMessageId === latestUserMessageId;
     const answerPanelVisible = isAXUIAnswerPanelVisible(session, messages) && !answerPanelDismissed;
     const searchOnboardingVisible = isAXUISearchOnboardingVisible(searchBarFocused);
-    const searchBarRegion = (
+    const searchBarCard = (
       <section
         aria-label="AXSDK search"
         onFocus={() => setSearchBarFocused(true)}
@@ -708,6 +733,30 @@ export function AXUI({ children, theme, voice, variant, targets, ui, position: c
       />
     );
 
+    const searchBarAttribution = (
+      <AXPoweredBy
+        style={{
+          marginTop: '0.35em',
+          color: 'var(--ax-text-muted, rgba(255,255,255,0.66))',
+        }}
+      />
+    );
+
+    const searchBarRegion = (
+      <div
+        style={{
+          width: '100%',
+          boxSizing: 'border-box',
+          display: 'flex',
+          flexDirection: 'column',
+          pointerEvents: 'none',
+        }}
+      >
+        {searchBarCard}
+        {searchBarAttribution}
+      </div>
+    );
+
     const searchBarPortal = searchBarHostTarget
       ? <AXUIExternalRegionPortal host={searchBarHostTarget} region="searchBar" theme={theme}>{searchBarRegion}</AXUIExternalRegionPortal>
       : null;
@@ -730,10 +779,10 @@ export function AXUI({ children, theme, voice, variant, targets, ui, position: c
             pointerEvents: 'none',
             display: 'flex',
             flexDirection: 'column',
-            gap: '0.75em',
+            gap: '0.5em',
           }}
         >
-          {!searchBarHostTarget && searchBarRegion}
+          {!searchBarHostTarget && searchBarCard}
           {answerPanelVisible && !answerPanelHostTarget && (
             <div
               style={{
@@ -745,9 +794,73 @@ export function AXUI({ children, theme, voice, variant, targets, ui, position: c
               {answerPanelRegion}
             </div>
           )}
+          {!searchBarHostTarget && searchBarAttribution}
         </div>
         {answerPanelPortal}
         {searchBarPortal}
+        {questions && (
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 99999, width: '100%', maxWidth: '420px' }}>
+            {AXSDK.config?.debug && lastAnswer && (
+              <div style={{ marginBottom: '0.5em', padding: '0.4em 0.8em', background: 'color-mix(in srgb, var(--ax-color-primary, #7c3aed) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--ax-color-primary, #7c3aed) 40%, transparent)', borderRadius: '999px', color: '#c4b5fd', fontSize: '0.75em', display: 'inline-block' }}>
+                Selected: <strong>{lastAnswer.label}</strong>
+              </div>
+            )}
+            {AXSDK.config?.debug && submitLog && (
+              <div style={{ marginBottom: '0.5em', padding: '0.5em 0.75em', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '8px', color: '#6ee7b7', fontSize: '0.7em', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+                {submitLog}
+              </div>
+            )}
+            <AXQuestionDialog
+              data={questions}
+              onAnswer={(qi, si, label) => setLastAnswer({ questionIndex: qi, selectedOption: si, label })}
+              onSubmit={(answers) => {
+                setSubmitLog(JSON.stringify(answers, null, 2));
+                AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.reply', data: { request: questions, status: 'reply', answers: answers.map(x => [x.customAnswer || x.label]) } });
+                setQuestions(null);
+              }}
+              onDecline={() => {
+                AXSDK.eventBus().emit('message.chat', { type: 'axsdk.chat.reply', data: { request: questions, status: 'reject' } });
+                setQuestions(null);
+              }}
+              visible={true}
+            />
+          </div>
+        )}
+      </div>
+    </AXThemeProvider>;
+
+    return ReactDOM.createPortal(content, portalTarget);
+  }
+
+  if (resolvedVariant === 'bottomSearchBar') {
+    const content = <AXThemeProvider theme={theme}>
+      <div>
+        {children}
+        <AXDevTools debug={AXSDK.config?.debug} messages={messages} />
+        <AXBottomSearchBar
+          open={isOpen}
+          onOpenChange={handleBottomSearchBarOpenChange}
+          messages={messages}
+          isDesktop={isDesktop}
+          isBusy={isBusy}
+          appInfoReady={appInfoReady}
+          searchBarValue={searchBarValue}
+          onSearchBarValueChange={setSearchBarValue}
+          onSearch={handleSearchBarSend}
+          onClear={handleBottomSearchBarClear}
+          onboardingText={AXSDK.t("chatOnboarding")}
+          shortcutText={AXSDK.t("chatShortcutChips")}
+          showShortcutChips={hasActiveSession}
+          latestUserText={userMessageText || undefined}
+          placeholder={AXSDK.t("chatInput")}
+          buttonLabel="실행"
+          previewTitle={AXSDK.t("chatPreviewTitle")}
+          resetLabel={AXSDK.t("chatBottomSearchReset")}
+          closeLabel={AXSDK.t("chatBottomSearchClose")}
+          emptyText={AXSDK.t("chatEmpty")}
+          busyText={AXSDK.t("chatBusyGuide")}
+          ttsControl={ttsControl}
+        />
         {questions && (
           <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 99999, width: '100%', maxWidth: '420px' }}>
             {AXSDK.config?.debug && lastAnswer && (
@@ -932,26 +1045,15 @@ export function AXUI({ children, theme, voice, variant, targets, ui, position: c
         onPositionChange?.(p);
       }} />
     )}
-    <div style={{
-      textAlign: 'center',
-      fontSize: '0.65em',
-      color: 'rgba(0, 0, 0, 1)',
-      letterSpacing: '0.04em',
-      marginTop: '0.25em',
-      userSelect: 'none',
-      position: 'fixed',
-      bottom: '0.25em',
-      right: '0.25em'
-    }}>
-      <a
-        href="https://axsdk.ai"
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{ color: 'inherit', textDecoration: 'underline' }}
-      >
-        {AXSDK.t('poweredBy')}
-      </a>
-    </div>
+    <AXPoweredBy
+      style={{
+        position: 'fixed',
+        bottom: '0.25em',
+        right: '0.25em',
+        color: 'var(--ax-text-dim, rgba(0, 0, 0, 0.65))',
+        zIndex: 10001,
+      }}
+    />
     </div>
   </AXThemeProvider>;
 

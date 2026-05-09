@@ -1,4 +1,4 @@
-export type AXUIVariant = 'fab' | 'searchBar';
+export type AXUIVariant = 'fab' | 'searchBar' | 'bottomSearchBar';
 
 export type AXUITargetReference = string | HTMLElement;
 

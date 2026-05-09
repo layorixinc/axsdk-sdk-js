@@ -46,7 +46,7 @@ export function AXAnswerPanel({
         border: '1px solid var(--ax-border-surface, rgba(255, 255, 255, 0.12))',
         borderRadius: '1.25em',
         background: 'var(--ax-bg-base)',
-        boxShadow: '0 8px 48px rgba(0,0,0,0.35), 0 0 0 1px rgba(120,80,255,0.12)',
+        boxShadow: '0 6px 24px rgba(0,0,0,0.22), 0 0 0 1px rgba(120,80,255,0.08)',
         pointerEvents: 'auto',
       }}
     >
@@ -59,8 +59,8 @@ export function AXAnswerPanel({
             boxSizing: 'border-box',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.75em',
-            padding: '0.75em 0.9em',
+            gap: '0.6em',
+            padding: '0.62em 0.8em',
             borderBottom: '1px solid var(--ax-border-surface, rgba(255, 255, 255, 0.12))',
             background: 'var(--ax-bg-popover, var(--ax-bg-base))',
             backdropFilter: 'blur(12px)',
@@ -113,7 +113,7 @@ export function AXAnswerPanel({
         </header>
       )}
       {latestAssistantMessage ? (
-        <div style={{ padding: '1em' }}>
+        <div style={{ padding: '1.25em' }}>
           <AXChatMessage message={latestAssistantMessage} />
         </div>
       ) : (
